@@ -12,20 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 690e1553cd0c3476991fd19a1084894d, type: 3}
   m_Name: Sample Triangle Dialogue
   m_EditorClassIdentifier:
-  conversationId: triangle_sample
+  conversationId: base_student_intro
   lines:
-  - speaker: Triangle
-    text: Oh! Hello, AraBOT. This is a sample proximity dialogue.
+  - speaker: Base Student
+    text: Hey, AraBOT. I am standing in for the real conversation while we wire this area up.
     portrait: {fileID: 0}
     voiceClip: {fileID: 0}
     charactersPerSecond: -1
   - speaker: AraBOT
-    text: Dialogue systems operational. Very triangle.
+    text: Nice. The question button worked, and the dialogue box actually showed up.
     portrait: {fileID: 0}
     voiceClip: {fileID: 0}
     charactersPerSecond: -1
-  - speaker: Triangle
-    text: Click or press Space to continue. We can replace this temporary box with final UI later.
+  - speaker: Base Student
+    text: Perfect. After this chat I will stay quiet until you plug in the final lines.
     portrait: {fileID: 0}
     voiceClip: {fileID: 0}
     charactersPerSecond: -1

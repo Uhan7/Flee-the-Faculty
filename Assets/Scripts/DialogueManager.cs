@@ -239,6 +239,14 @@ public sealed class DialogueManager : MonoBehaviour
             return;
         }
 
+        MonoBehaviour sceneViewProvider = FindSceneViewProvider();
+        if (sceneViewProvider != null)
+        {
+            viewProvider = sceneViewProvider;
+            view = (IDialogueView)sceneViewProvider;
+            return;
+        }
+
         DialogueView fallbackView = GetComponent<DialogueView>();
         if (fallbackView == null)
         {
@@ -247,6 +255,35 @@ public sealed class DialogueManager : MonoBehaviour
 
         viewProvider = fallbackView;
         view = fallbackView;
+    }
+
+    private MonoBehaviour FindSceneViewProvider()
+    {
+        MonoBehaviour dialogueViewFallback = null;
+
+#if UNITY_2023_1_OR_NEWER
+        MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+#else
+        MonoBehaviour[] behaviours = FindObjectsOfType<MonoBehaviour>();
+#endif
+        for (int index = 0; index < behaviours.Length; index++)
+        {
+            MonoBehaviour behaviour = behaviours[index];
+            if (behaviour == null || behaviour == this || behaviour is not IDialogueView)
+            {
+                continue;
+            }
+
+            if (behaviour is DialogueView)
+            {
+                dialogueViewFallback ??= behaviour;
+                continue;
+            }
+
+            return behaviour;
+        }
+
+        return dialogueViewFallback;
     }
 
     private bool WasAdvancePressed()

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
@@ -92,6 +93,12 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private void HandleClick()
     {
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        if ((DialogueManager.Instance != null && DialogueManager.Instance.IsPlaying)
+            || (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
         {
             return;
         }

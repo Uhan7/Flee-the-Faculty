@@ -1,34 +1,25 @@
 fileFormatVersion: 2
-guid: ee554b1459560491195b7ee773c1e990
+guid: d4b25bd8141644c4e81a1e9febb9154d
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7417499075117354394
-    second: AraBOT_0
+      213: 8911013118935309240
+    second: Base Student_0
   - first:
-      213: 5759511617640882876
-    second: AraBOT_1
+      213: 1008800971872050894
+    second: Base Student_1
   - first:
-      213: -6694675788690467690
-    second: AraBOT_2
+      213: -1543802536009635291
+    second: Base Student_2
   - first:
-      213: 902443476512468571
-    second: AraBOT_3
+      213: 6156780059282378216
+    second: Base Student_3
   - first:
-      213: 3656617967013500566
-    second: AraBOT_4
+      213: -1230455073582095265
+    second: Base Student_4
   - first:
-      213: 7369255296983496780
-    second: AraBOT_5
-  - first:
-      213: 6667723220810866068
-    second: AraBOT_6
-  - first:
-      213: 1713857701710593440
-    second: AraBOT_7
-  - first:
-      213: 4342312116842409562
-    second: AraBOT_8
+      213: -4709399232760800151
+    second: Base Student_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -163,57 +154,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: AraBOT_0
-      rect:
-        serializedVersion: 2
-        x: 347
-        y: 660
-        width: 34
-        height: 117
-      alignment: 9
-      pivot: {x: 0.46629784, y: 0.04948334}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: a9d8826fb1040f660800000000000000
-      internalID: 7417499075117354394
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: AraBOT_1
-      rect:
-        serializedVersion: 2
-        x: 525
-        y: 660
-        width: 33
-        height: 112
-      alignment: 9
-      pivot: {x: 0.43055308, y: 0.049833026}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: cb268311d45edef40800000000000000
-      internalID: 5759511617640882876
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: AraBOT_2
+      name: Base Student_0
       rect:
         serializedVersion: 2
         x: 14
-        y: 553
-        width: 26
-        height: 27
+        y: 417
+        width: 38
+        height: 38
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -222,20 +169,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 69452b017dbb713a0800000000000000
-      internalID: -6694675788690467690
+      spriteID: 8bb1cf618374aab70800000000000000
+      internalID: 8911013118935309240
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: AraBOT_3
+      name: Base Student_1
       rect:
         serializedVersion: 2
-        x: 156
-        y: 542
-        width: 27
-        height: 27
+        x: 148
+        y: 402
+        width: 35
+        height: 38
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -244,20 +191,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b5ee46f7f8f168c00800000000000000
-      internalID: 902443476512468571
+      spriteID: ece9089932bfffd00800000000000000
+      internalID: 1008800971872050894
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: AraBOT_4
+      name: Base Student_2
       rect:
         serializedVersion: 2
-        x: 287
-        y: 403
-        width: 342
-        height: 252
+        x: 281
+        y: 315
+        width: 242
+        height: 240
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -266,20 +213,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 696962bdaaaeeb230800000000000000
-      internalID: 3656617967013500566
+      spriteID: 52a6ccdd5cf439ae0800000000000000
+      internalID: -1543802536009635291
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: AraBOT_5
+      name: Base Student_3
       rect:
         serializedVersion: 2
-        x: 27
-        y: 475
-        width: 129
-        height: 29
+        x: 38
+        y: 348
+        width: 126
+        height: 30
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -288,42 +235,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c48fddb06aad44660800000000000000
-      internalID: 7369255296983496780
+      spriteID: 8ed0cb908d6417550800000000000000
+      internalID: 6156780059282378216
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: AraBOT_6
+      name: Base Student_4
       rect:
         serializedVersion: 2
-        x: 297
-        y: 100
-        width: 325
-        height: 294
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 49d1e0531f2888c50800000000000000
-      internalID: 6667723220810866068
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: AraBOT_7
-      rect:
-        serializedVersion: 2
-        x: 319
+        x: 277
         y: 13
-        width: 83
-        height: 85
+        width: 253
+        height: 300
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -332,20 +257,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0adf602df78d8c710800000000000000
-      internalID: 1713857701710593440
+      spriteID: f54ef0b31ab8ceee0800000000000000
+      internalID: -1230455073582095265
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: AraBOT_8
+      name: Base Student_5
       rect:
         serializedVersion: 2
-        x: 519
-        y: 12
+        x: 636
+        y: 115
         width: 82
-        height: 87
+        height: 142
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -354,8 +279,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a5e244c1dddf24c30800000000000000
-      internalID: 4342312116842409562
+      spriteID: 96c9bc9695ad4aeb0800000000000000
+      internalID: -4709399232760800151
       vertices: []
       indices: 
       edges: []
@@ -364,7 +289,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 02bd1641cc9294d75bfd00bd6d5e0447
+    spriteID: 76634578bca5046c2a52cadbe4d5dba0
     internalID: 0
     vertices: []
     indices: 
@@ -374,15 +299,12 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      AraBOT_0: 7417499075117354394
-      AraBOT_1: 5759511617640882876
-      AraBOT_2: -6694675788690467690
-      AraBOT_3: 902443476512468571
-      AraBOT_4: 3656617967013500566
-      AraBOT_5: 7369255296983496780
-      AraBOT_6: 6667723220810866068
-      AraBOT_7: 1713857701710593440
-      AraBOT_8: 4342312116842409562
+      Base Student_0: 8911013118935309240
+      Base Student_1: 1008800971872050894
+      Base Student_2: -1543802536009635291
+      Base Student_3: 6156780059282378216
+      Base Student_4: -1230455073582095265
+      Base Student_5: -4709399232760800151
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

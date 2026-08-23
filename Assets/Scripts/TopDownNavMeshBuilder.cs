@@ -78,9 +78,18 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
             return false;
         }
 
-        if (collider.attachedRigidbody != null)
+        Rigidbody2D attachedBody = collider.attachedRigidbody;
+        if (attachedBody != null)
         {
-            return false;
+            if (attachedBody.TryGetComponent(out AraBotClickToMove _))
+            {
+                return false;
+            }
+
+            if (attachedBody.gameObject == gameObject)
+            {
+                return false;
+            }
         }
 
         return true;
