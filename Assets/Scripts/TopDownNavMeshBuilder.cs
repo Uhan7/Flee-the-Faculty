@@ -8,7 +8,7 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
 {
     [SerializeField] private float groundThickness = 0.25f;
     [SerializeField] private float obstacleHeight = 2f;
-    [SerializeField] private float obstaclePadding = 0.1f;
+    [SerializeField] private float obstaclePadding = 0.2f;
 
     private NavMeshData navMeshData;
     private NavMeshDataInstance navMeshInstance;
@@ -38,6 +38,7 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
         }
 
         Bounds walkableBounds = walkableAreaRenderer.bounds;
+        int notWalkableArea = NavMesh.GetAreaFromName("Not Walkable");
         List<NavMeshBuildSource> sources = new List<NavMeshBuildSource>
         {
             CreateGroundSource(walkableBounds)
@@ -53,7 +54,7 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
                 continue;
             }
 
-            sources.Add(CreateObstacleSource(collider.bounds));
+            sources.Add(CreateObstacleSource(collider.bounds, notWalkableArea));
         }
 
         Bounds buildBounds = CreateBuildBounds(walkableBounds);
@@ -72,7 +73,7 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
 
     private bool IsObstacle(BoxCollider2D collider)
     {
-        if (collider == null || !collider.enabled || collider.gameObject == gameObject)
+        if (collider == null || !collider.enabled || collider.isTrigger || collider.gameObject == gameObject)
         {
             return false;
         }
@@ -99,9 +100,9 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
         };
     }
 
-    private NavMeshBuildSource CreateObstacleSource(Bounds obstacleBounds)
+    private NavMeshBuildSource CreateObstacleSource(Bounds obstacleBounds, int notWalkableArea)
     {
-        Vector3 worldCenter = new Vector3(obstacleBounds.center.x, obstacleHeight * 0.5f, obstacleBounds.center.y);
+        Vector3 worldCenter = new Vector3(obstacleBounds.center.x, 0f, obstacleBounds.center.y);
         Vector3 size = new Vector3(
             obstacleBounds.size.x + obstaclePadding * 2f,
             obstacleHeight,
@@ -109,10 +110,10 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
 
         return new NavMeshBuildSource
         {
-            shape = NavMeshBuildSourceShape.Box,
+            shape = NavMeshBuildSourceShape.ModifierBox,
             transform = Matrix4x4.TRS(worldCenter, Quaternion.identity, Vector3.one),
             size = size,
-            area = 0
+            area = notWalkableArea
         };
     }
 
