@@ -167,11 +167,11 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 367
-        y: 760
+        y: 749
         width: 35
         height: 133
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.3514945, y: 0.07011195}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -189,11 +189,11 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 537
-        y: 756
+        y: 745
         width: 36
         height: 137
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.07317848}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -211,7 +211,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 15
-        y: 584
+        y: 573
         width: 25
         height: 25
       alignment: 0
@@ -233,7 +233,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 157
-        y: 573
+        y: 562
         width: 24
         height: 25
       alignment: 0
@@ -255,7 +255,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 294
-        y: 462
+        y: 451
         width: 343
         height: 270
       alignment: 0
@@ -277,7 +277,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 28
-        y: 506
+        y: 495
         width: 134
         height: 12
       alignment: 0
@@ -299,7 +299,7 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 299
-        y: 132
+        y: 121
         width: 325
         height: 315
       alignment: 0
@@ -320,10 +320,10 @@ TextureImporter:
       name: AraBOT_7
       rect:
         serializedVersion: 2
-        x: 306
+        x: 308
         y: 14
-        width: 97
-        height: 109
+        width: 96
+        height: 97
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -343,9 +343,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 521
-        y: 16
+        y: 17
         width: 93
-        height: 106
+        height: 95
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
