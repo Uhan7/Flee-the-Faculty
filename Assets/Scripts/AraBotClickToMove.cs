@@ -15,6 +15,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
     [SerializeField] private float cornerReachDistance = 0.08f;
     [SerializeField] private float stoppingDistance = 0.05f;
     [SerializeField] private float destinationSampleDistance = 1f;
+    [SerializeField, Min(0.05f)] private float repathIntervalSeconds = 0.35f;
     [SerializeField, Min(0f)] private float collisionSkin = 0.02f;
     [SerializeField, Range(0f, 1f)] private float wallSlideStrength = 1f;
     [SerializeField] private LayerMask collisionLayers = ~0;
@@ -35,6 +36,9 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private Vector2 currentVelocity;
     private Vector2 navigationOffset;
     private float cachedZ;
+    private float repathTimer;
+    private Vector3 currentDestination;
+    private bool hasDestination;
 
     public Vector2 CurrentVelocity => currentVelocity;
 
@@ -110,36 +114,13 @@ public sealed class AraBotClickToMove : MonoBehaviour
         }
 
         Vector3 worldTarget = clickRay.GetPoint(enter);
-        Vector3 navMeshTarget = ToNavMeshPosition(worldTarget);
-
-        if (!NavMesh.SamplePosition(navMeshTarget, out NavMeshHit sampledDestination, destinationSampleDistance, NavMesh.AllAreas))
-        {
-            return;
-        }
-
-        Vector3 navMeshStart = ToNavMeshPosition(GetNavigationWorldPosition());
-        if (!NavMesh.SamplePosition(navMeshStart, out NavMeshHit sampledStart, destinationSampleDistance, NavMesh.AllAreas))
-        {
-            return;
-        }
-
-        if (!NavMesh.CalculatePath(sampledStart.position, sampledDestination.position, NavMesh.AllAreas, currentPath))
-        {
-            return;
-        }
-
-        if (currentPath.status == NavMeshPathStatus.PathInvalid || currentPath.corners == null || currentPath.corners.Length < 2)
-        {
-            ClearPath();
-            return;
-        }
-
-        currentCorners = currentPath.corners;
-        currentCornerIndex = 1;
+        TrySetPathToDestination(ToNavMeshPosition(worldTarget), clearPathOnFailure: true);
     }
 
     private void UpdateMovement(float deltaTime)
     {
+        RefreshPathIfNeeded(deltaTime);
+
         Vector2 currentRootPosition = GetRootPosition();
         Vector2 currentNavigationPosition = currentRootPosition + navigationOffset;
         AdvanceCompletedCorners(currentNavigationPosition);
@@ -192,6 +173,23 @@ public sealed class AraBotClickToMove : MonoBehaviour
         {
             spriteRenderer.flipX = movement.x < 0f;
         }
+    }
+
+    private void RefreshPathIfNeeded(float deltaTime)
+    {
+        if (!hasDestination || repathIntervalSeconds <= 0f)
+        {
+            return;
+        }
+
+        repathTimer -= deltaTime;
+        if (repathTimer > 0f)
+        {
+            return;
+        }
+
+        repathTimer = repathIntervalSeconds;
+        TrySetPathToDestination(currentDestination, clearPathOnFailure: false);
     }
 
     private Vector2 LimitMovementByCollision(Vector2 requestedMovement)
@@ -331,6 +329,50 @@ public sealed class AraBotClickToMove : MonoBehaviour
     {
         currentCorners = EmptyCorners;
         currentCornerIndex = 0;
+        currentDestination = default;
+        hasDestination = false;
+        repathTimer = 0f;
+    }
+
+    private bool TrySetPathToDestination(Vector3 navMeshDestination, bool clearPathOnFailure)
+    {
+        if (!NavMesh.SamplePosition(navMeshDestination, out NavMeshHit sampledDestination, destinationSampleDistance, NavMesh.AllAreas))
+        {
+            return HandlePathFailure(clearPathOnFailure);
+        }
+
+        Vector3 navMeshStart = ToNavMeshPosition(GetNavigationWorldPosition());
+        if (!NavMesh.SamplePosition(navMeshStart, out NavMeshHit sampledStart, destinationSampleDistance, NavMesh.AllAreas))
+        {
+            return HandlePathFailure(clearPathOnFailure);
+        }
+
+        if (!NavMesh.CalculatePath(sampledStart.position, sampledDestination.position, NavMesh.AllAreas, currentPath))
+        {
+            return HandlePathFailure(clearPathOnFailure);
+        }
+
+        if (currentPath.status == NavMeshPathStatus.PathInvalid || currentPath.corners == null || currentPath.corners.Length < 2)
+        {
+            return HandlePathFailure(clearPathOnFailure);
+        }
+
+        currentCorners = currentPath.corners;
+        currentCornerIndex = 1;
+        currentDestination = sampledDestination.position;
+        hasDestination = true;
+        repathTimer = repathIntervalSeconds;
+        return true;
+    }
+
+    private bool HandlePathFailure(bool clearPathOnFailure)
+    {
+        if (clearPathOnFailure)
+        {
+            ClearPath();
+        }
+
+        return false;
     }
 
     private static Vector3 ToNavMeshPosition(Vector3 worldPosition)

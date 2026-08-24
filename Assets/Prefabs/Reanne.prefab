@@ -1,0 +1,135 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &319300000000000004
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 554563037739883886, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: conversationId
+      value: reanne_intro
+      objectReference: {fileID: 0}
+    - target: {fileID: 857086986703676108, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Name
+      value: Reanne
+      objectReference: {fileID: 0}
+    - target: {fileID: 1017571444142403266, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.296
+      objectReference: {fileID: 0}
+    - target: {fileID: 1017571444142403266, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.256
+      objectReference: {fileID: 0}
+    - target: {fileID: 1287063618470289020, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 8891529227105149759, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 1302352895392565574, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -4818878404001550396, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 1643186263286379163, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -1247895109958577515, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 1643186263286379163, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_WasSpriteAssigned
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2286507845813759275, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 1.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2788634052429094014, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 8985679554099182431, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 2788634052429094014, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_WasSpriteAssigned
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3885932952952213833, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -7011235936748061985, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 3885932952952213833, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_SortingOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3885932952952213833, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_WasSpriteAssigned
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3937628201149055031, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -2950321096984496344, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 4766012023899433892, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.108
+      objectReference: {fileID: 0}
+    - target: {fileID: 4831806537853651990, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4831806537853651990, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: displayName
+      value: Reanne
+      objectReference: {fileID: 0}
+    - target: {fileID: 5195349869047736649, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_SortingOrder
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -2058849022356411140, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 5554999724883098399, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.18
+      objectReference: {fileID: 0}
+    - target: {fileID: 5763037281756898049, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.101
+      objectReference: {fileID: 0}
+    - target: {fileID: 5955645577737593099, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.188
+      objectReference: {fileID: 0}
+    - target: {fileID: 6063052472185456871, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: -7045477177610352759, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 6075025639862314817, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.26
+      objectReference: {fileID: 0}
+    - target: {fileID: 6293557560880508391, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.236
+      objectReference: {fileID: 0}
+    - target: {fileID: 8050012587980911786, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_SortingOrder
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9113725882395993898, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.019
+      objectReference: {fileID: 0}
+    - target: {fileID: 9193948351990745245, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.68
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}

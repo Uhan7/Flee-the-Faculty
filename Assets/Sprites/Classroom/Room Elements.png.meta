@@ -1,0 +1,962 @@
+fileFormatVersion: 2
+guid: fa15d8f5d568b4545aa39e0d82a6cab3
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -7255527630444554924
+    second: RoomBox_R1_C1
+  - first:
+      213: 3745347056967105660
+    second: RoomBox_R1_C2
+  - first:
+      213: 1726224267396371985
+    second: RoomBox_R1_C3
+  - first:
+      213: 3356183267007447528
+    second: RoomBox_R1_C4
+  - first:
+      213: -94177635437300335
+    second: RoomBox_R1_C5
+  - first:
+      213: -8021076672825426688
+    second: RoomPattern_Stripes_Light
+  - first:
+      213: 9174991049144840371
+    second: RoomPattern_Stripes_Warm
+  - first:
+      213: -4336533989311360494
+    second: RoomBox_R2_C1
+  - first:
+      213: -5385722392336451480
+    second: RoomBox_R2_C2
+  - first:
+      213: -5410449838162631028
+    second: RoomBox_R2_C3
+  - first:
+      213: -5883194115077529593
+    second: RoomBox_R2_C4
+  - first:
+      213: -3739879966670609194
+    second: RoomBox_R2_C5
+  - first:
+      213: 510150219226469379
+    second: Door_Double
+  - first:
+      213: 8568583089259742374
+    second: RoomBox_R3_C1
+  - first:
+      213: 2718044590449214596
+    second: RoomBox_R3_C2
+  - first:
+      213: -7962117304678574838
+    second: RoomBox_R3_C3
+  - first:
+      213: -6814156933365581059
+    second: RoomBox_R3_C4
+  - first:
+      213: 5201186865724693808
+    second: RoomBox_R3_C5
+  - first:
+      213: 8821045644172142544
+    second: Door_Left
+  - first:
+      213: -7173896992153913947
+    second: Door_Right
+  - first:
+      213: -6215976956747557214
+    second: RoomBox_R4_C1
+  - first:
+      213: -6517376277582469093
+    second: RoomBox_R4_C2
+  - first:
+      213: 4322194954977135290
+    second: RoomBox_R4_C3
+  - first:
+      213: 2107359945245040582
+    second: RoomBox_R4_C4
+  - first:
+      213: -8696794292259931771
+    second: RoomBox_R4_C5
+  - first:
+      213: 2814776782053848246
+    second: RoomBox_R5_C1
+  - first:
+      213: 7897186093855067440
+    second: RoomBox_R5_C2
+  - first:
+      213: -770187206752437454
+    second: RoomBox_R5_C3
+  - first:
+      213: 2750031960580599472
+    second: RoomBox_R5_C4
+  - first:
+      213: 534125614393240876
+    second: RoomBox_R5_C5
+  - first:
+      213: 4513650909105161905
+    second: WallDecal_Brick
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: RoomBox_R1_C1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 1440
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4551251cf003f4b90800000000000000
+      internalID: -7255527630444554924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R1_C2
+      rect:
+        serializedVersion: 2
+        x: 406
+        y: 1437
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7c341bfd452af330800000000000000
+      internalID: 3745347056967105660
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R1_C3
+      rect:
+        serializedVersion: 2
+        x: 771
+        y: 1441
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 116d1d443d7c4f710800000000000000
+      internalID: 1726224267396371985
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R1_C4
+      rect:
+        serializedVersion: 2
+        x: 1161
+        y: 1439
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e1c61746ee839e20800000000000000
+      internalID: 3356183267007447528
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R1_C5
+      rect:
+        serializedVersion: 2
+        x: 1537
+        y: 1437
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 19539f580f961bef0800000000000000
+      internalID: -94177635437300335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomPattern_Stripes_Light
+      rect:
+        serializedVersion: 2
+        x: 1982
+        y: 1440
+        width: 300
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 00d711873496fa090800000000000000
+      internalID: -8021076672825426688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomPattern_Stripes_Warm
+      rect:
+        serializedVersion: 2
+        x: 2422
+        y: 1450
+        width: 300
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b0baad7fbd145f70800000000000000
+      internalID: 9174991049144840371
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R2_C1
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 1067
+        width: 300
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 21250ba005981d3c0800000000000000
+      internalID: -4336533989311360494
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R2_C2
+      rect:
+        serializedVersion: 2
+        x: 408
+        y: 1062
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8683be9d4021245b0800000000000000
+      internalID: -5385722392336451480
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R2_C3
+      rect:
+        serializedVersion: 2
+        x: 769
+        y: 1069
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c862f39b9883ae4b0800000000000000
+      internalID: -5410449838162631028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R2_C4
+      rect:
+        serializedVersion: 2
+        x: 1162
+        y: 1063
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 700a2227f12ba5ea0800000000000000
+      internalID: -5883194115077529593
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R2_C5
+      rect:
+        serializedVersion: 2
+        x: 1539
+        y: 1061
+        width: 300
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d4affb2cf6491cc0800000000000000
+      internalID: -3739879966670609194
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Door_Double
+      rect:
+        serializedVersion: 2
+        x: 2035
+        y: 897
+        width: 536
+        height: 501
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 304d417ebea641700800000000000000
+      internalID: 510150219226469379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R3_C1
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 720
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6a40fbfdbe8b9e670800000000000000
+      internalID: 8568583089259742374
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R3_C2
+      rect:
+        serializedVersion: 2
+        x: 408
+        y: 715
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 484c569772f68b520800000000000000
+      internalID: 2718044590449214596
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R3_C3
+      rect:
+        serializedVersion: 2
+        x: 769
+        y: 722
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0594aa1f70e08190800000000000000
+      internalID: -7962117304678574838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R3_C4
+      rect:
+        serializedVersion: 2
+        x: 1163
+        y: 717
+        width: 300
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dfabafe3f504f61a0800000000000000
+      internalID: -6814156933365581059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R3_C5
+      rect:
+        serializedVersion: 2
+        x: 1539
+        y: 715
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03d92f5b5e35e2840800000000000000
+      internalID: 5201186865724693808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Door_Left
+      rect:
+        serializedVersion: 2
+        x: 1984
+        y: 366
+        width: 253
+        height: 477
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0d723680746aa6a70800000000000000
+      internalID: 8821045644172142544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Door_Right
+      rect:
+        serializedVersion: 2
+        x: 2343
+        y: 356
+        width: 254
+        height: 475
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a53c6fc1b2317c90800000000000000
+      internalID: -7173896992153913947
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R4_C1
+      rect:
+        serializedVersion: 2
+        x: 18
+        y: 366
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a65c0934e96cb9a0800000000000000
+      internalID: -6215976956747557214
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R4_C2
+      rect:
+        serializedVersion: 2
+        x: 411
+        y: 361
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b18a32b5ec0ad85a0800000000000000
+      internalID: -6517376277582469093
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R4_C3
+      rect:
+        serializedVersion: 2
+        x: 773
+        y: 368
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abac56d59658bfb30800000000000000
+      internalID: 4322194954977135290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R4_C4
+      rect:
+        serializedVersion: 2
+        x: 1166
+        y: 363
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6cf973674b8de3d10800000000000000
+      internalID: 2107359945245040582
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R4_C5
+      rect:
+        serializedVersion: 2
+        x: 1542
+        y: 361
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 589b3353ba7ce4780800000000000000
+      internalID: -8696794292259931771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R5_C1
+      rect:
+        serializedVersion: 2
+        x: 18
+        y: 20
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b43658e198101720800000000000000
+      internalID: 2814776782053848246
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R5_C2
+      rect:
+        serializedVersion: 2
+        x: 412
+        y: 15
+        width: 301
+        height: 300
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03dc26949e0789d60800000000000000
+      internalID: 7897186093855067440
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R5_C3
+      rect:
+        serializedVersion: 2
+        x: 773
+        y: 21
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23b78fae0debf45f0800000000000000
+      internalID: -770187206752437454
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R5_C4
+      rect:
+        serializedVersion: 2
+        x: 1166
+        y: 16
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0bea0637f731a2620800000000000000
+      internalID: 2750031960580599472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: RoomBox_R5_C5
+      rect:
+        serializedVersion: 2
+        x: 1542
+        y: 14
+        width: 301
+        height: 301
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 20, y: 20, z: 20, w: 20}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c2da8579a68996700800000000000000
+      internalID: 534125614393240876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallDecal_Brick
+      rect:
+        serializedVersion: 2
+        x: 2017
+        y: 136
+        width: 149
+        height: 70
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b605556695b3ae30800000000000000
+      internalID: 4513650909105161905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 9ead7e0ca216d47ed9fc271403b98fba
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Door_Double: 510150219226469379
+      Door_Left: 8821045644172142544
+      Door_Right: -7173896992153913947
+      RoomBox_R1_C1: -7255527630444554924
+      RoomBox_R1_C2: 3745347056967105660
+      RoomBox_R1_C3: 1726224267396371985
+      RoomBox_R1_C4: 3356183267007447528
+      RoomBox_R1_C5: -94177635437300335
+      RoomBox_R2_C1: -4336533989311360494
+      RoomBox_R2_C2: -5385722392336451480
+      RoomBox_R2_C3: -5410449838162631028
+      RoomBox_R2_C4: -5883194115077529593
+      RoomBox_R2_C5: -3739879966670609194
+      RoomBox_R3_C1: 8568583089259742374
+      RoomBox_R3_C2: 2718044590449214596
+      RoomBox_R3_C3: -7962117304678574838
+      RoomBox_R3_C4: -6814156933365581059
+      RoomBox_R3_C5: 5201186865724693808
+      RoomBox_R4_C1: -6215976956747557214
+      RoomBox_R4_C2: -6517376277582469093
+      RoomBox_R4_C3: 4322194954977135290
+      RoomBox_R4_C4: 2107359945245040582
+      RoomBox_R4_C5: -8696794292259931771
+      RoomBox_R5_C1: 2814776782053848246
+      RoomBox_R5_C2: 7897186093855067440
+      RoomBox_R5_C3: -770187206752437454
+      RoomBox_R5_C4: 2750031960580599472
+      RoomBox_R5_C5: 534125614393240876
+      RoomPattern_Stripes_Light: -8021076672825426688
+      RoomPattern_Stripes_Warm: 9174991049144840371
+      WallDecal_Brick: 4513650909105161905
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

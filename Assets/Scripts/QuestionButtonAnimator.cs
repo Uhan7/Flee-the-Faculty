@@ -39,12 +39,20 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     [SerializeField] private Color hoverColor = new Color(1f, 0.97f, 0.76f, 1f);
     [SerializeField] private Color pressedColor = new Color(1f, 0.86f, 0.56f, 1f);
 
+    [Header("Click Juice")]
+    [SerializeField, Min(0.01f)] private float clickJuiceDuration = 0.24f;
+    [SerializeField, Min(0f)] private float clickPunchScale = 0.16f;
+    [SerializeField, Min(0f)] private float clickBurstLift = 0.1f;
+    [SerializeField] private float clickWobbleAngle = 8f;
+    [SerializeField, Range(0f, 1f)] private float clickFlashBlend = 0.2f;
+
     private RectTransform rectTransform;
     private Vector2 baseAnchoredPosition;
     private Vector3 baseScale;
     private Quaternion baseRotation;
     private float showStartTime;
     private float bobOffsetSeed;
+    private float clickJuiceElapsed = float.MaxValue;
     private bool isHovered;
     private bool isPressed;
 
@@ -87,7 +95,19 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
 
     private void OnEnable()
     {
+        if (button == null)
+        {
+            button = GetComponent<Button>();
+        }
+
+        if (button != null)
+        {
+            button.onClick.RemoveListener(HandleButtonClicked);
+            button.onClick.AddListener(HandleButtonClicked);
+        }
+
         showStartTime = Time.unscaledTime;
+        clickJuiceElapsed = clickJuiceDuration;
         isPressed = false;
         isHovered = false;
 
@@ -106,6 +126,12 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
 
     private void OnDisable()
     {
+        if (button != null)
+        {
+            button.onClick.RemoveListener(HandleButtonClicked);
+        }
+
+        clickJuiceElapsed = clickJuiceDuration;
         isPressed = false;
         isHovered = false;
 
@@ -130,6 +156,7 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
         }
 
         float deltaTime = Time.unscaledDeltaTime;
+        clickJuiceElapsed += deltaTime;
         float bobWave = Mathf.Sin((Time.unscaledTime + bobOffsetSeed) * bobCyclesPerSecond * Mathf.PI * 2f);
         float bobOffset = bobWave * bobAmplitude;
         float stateOffset = isHovered ? hoverLift : 0f;
@@ -137,6 +164,15 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
         {
             stateOffset -= pressedSink;
         }
+
+        float clickProgress = clickJuiceDuration <= 0f
+            ? 1f
+            : Mathf.Clamp01(clickJuiceElapsed / clickJuiceDuration);
+        float clickEnvelope = 1f - clickProgress;
+        float clickPulse = Mathf.Sin(clickProgress * Mathf.PI) * clickPunchScale;
+        float clickLift = Mathf.Sin(clickProgress * Mathf.PI) * clickBurstLift;
+        float clickWobble = Mathf.Sin(clickProgress * Mathf.PI * 2.35f) * clickWobbleAngle * clickEnvelope;
+        stateOffset += clickLift;
 
         Vector2 targetPosition = baseAnchoredPosition + Vector2.up * (bobOffset + stateOffset);
         rectTransform.anchoredPosition = Vector2.Lerp(
@@ -158,6 +194,8 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
             interactionScale *= hoverScaleMultiplier;
         }
 
+        interactionScale *= 1f + clickPulse;
+
         Vector3 targetScale = baseScale * (appearScale * bounceScale * interactionScale);
         rectTransform.localScale = Vector3.Lerp(
             rectTransform.localScale,
@@ -169,6 +207,8 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
         {
             targetAngle = hoverTilt;
         }
+
+        targetAngle += clickWobble;
 
         Quaternion desiredRotation = baseRotation * Quaternion.Euler(0f, 0f, targetAngle);
         rectTransform.localRotation = Quaternion.Lerp(
@@ -187,6 +227,8 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
             {
                 targetColor = hoverColor;
             }
+
+            targetColor = Color.Lerp(targetColor, Color.white, Mathf.Sin(clickProgress * Mathf.PI) * clickFlashBlend);
 
             targetGraphic.color = Color.Lerp(
                 targetGraphic.color,
@@ -224,6 +266,20 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     public void OnDeselect(BaseEventData eventData)
     {
         isHovered = false;
+        isPressed = false;
+    }
+
+    private void OnDestroy()
+    {
+        if (button != null)
+        {
+            button.onClick.RemoveListener(HandleButtonClicked);
+        }
+    }
+
+    private void HandleButtonClicked()
+    {
+        clickJuiceElapsed = 0f;
         isPressed = false;
     }
 

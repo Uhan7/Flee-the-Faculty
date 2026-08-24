@@ -2,8 +2,10 @@ using UnityEngine;
 
 public interface IDialogueView
 {
+    bool IsRevealComplete { get; }
     void SetVisible(bool visible);
     void DisplayLine(IDialogueLine line, string visibleText, bool canAdvance);
+    void CompleteReveal();
 }
 
 [DisallowMultipleComponent]
@@ -22,6 +24,8 @@ public sealed class DialogueView : MonoBehaviour, IDialogueView
     private GUIStyle continueStyle;
     private Texture2D panelTexture;
 
+    public bool IsRevealComplete => true;
+
     public void SetVisible(bool visible)
     {
         isVisible = visible;
@@ -32,6 +36,10 @@ public sealed class DialogueView : MonoBehaviour, IDialogueView
         speaker = line != null ? line.SpeakerName : string.Empty;
         body = visibleText ?? string.Empty;
         canAdvance = lineCanAdvance;
+    }
+
+    public void CompleteReveal()
+    {
     }
 
     private void OnGUI()

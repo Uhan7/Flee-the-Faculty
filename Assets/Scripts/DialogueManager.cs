@@ -27,7 +27,7 @@ public sealed class DialogueManager : MonoBehaviour
     public IDialogueSequence ActiveDialogue => activeDialogue;
     public IDialogueLine ActiveLine => activeLine;
     public bool IsPlaying => activeDialogue != null;
-    public bool IsTyping => false;
+    public bool IsTyping => view != null && !view.IsRevealComplete;
 
     public event Action<IDialogueSequence> DialogueStarted;
     public event Action<IDialogueLine, int> LineChanged;
@@ -119,6 +119,12 @@ public sealed class DialogueManager : MonoBehaviour
     {
         if (!IsPlaying)
         {
+            return;
+        }
+
+        if (!view.IsRevealComplete)
+        {
+            view.CompleteReveal();
             return;
         }
 

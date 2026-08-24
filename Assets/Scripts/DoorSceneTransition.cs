@@ -33,6 +33,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     // Look
     [Header("Look")]
+    [SerializeField] private Sprite doorSprite;
     [SerializeField] private Color doorColor = new Color(0.08f, 0.11f, 0.15f, 1f);
     [SerializeField, Min(0f)] private float doorOvershoot = 28f;
     [SerializeField] private Vector2 referenceResolution = new Vector2(1600f, 900f);
@@ -381,8 +382,22 @@ public sealed class DoorSceneTransition : MonoBehaviour
     private RectTransform GetOrCreateDoor(string objectName)
     {
         Image doorImage = GetOrCreateImage(objectName, doorColor, Vector2.zero, Vector2.one, false);
+        ApplyDoorImageStyle(doorImage);
         doorImage.rectTransform.sizeDelta = Vector2.zero;
         return doorImage.rectTransform;
+    }
+
+    private void ApplyDoorImageStyle(Image doorImage)
+    {
+        if (doorImage == null)
+        {
+            return;
+        }
+
+        doorImage.sprite = doorSprite;
+        doorImage.type = doorSprite != null ? Image.Type.Sliced : Image.Type.Simple;
+        doorImage.preserveAspect = false;
+        doorImage.color = doorColor;
     }
 
     private void RefreshDoorLayoutIfNeeded()

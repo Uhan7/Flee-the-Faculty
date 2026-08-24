@@ -1590,14 +1590,14 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2000000402}
         m_TargetAssemblyTypeName: DoorSceneTransition, Assembly-CSharp
-        m_MethodName: TransitionToConfiguredScene
-        m_Mode: 1
+        m_MethodName: TransitionToScene
+        m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: 
+          m_StringArgument: Sample Classroom
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!114 &1819749276
@@ -2028,7 +2028,8 @@ MonoBehaviour:
   postLoadDelay: 0
   playOpenOnStart: 1
   startupHoldClosedDuration: 0.5
-  doorColor: {r: 0.08, g: 0.11, b: 0.15, a: 1}
+  doorSprite: {fileID: 8134440435907778650, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  doorColor: {r: 1, g: 1, b: 1, a: 1}
   doorOvershoot: 28
   referenceResolution: {x: 1600, y: 900}
   sortingOrder: 5000

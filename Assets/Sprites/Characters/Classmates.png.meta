@@ -1,0 +1,1222 @@
+fileFormatVersion: 2
+guid: 9446ea99dfc3642cab8daaeac5b0efa8
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2751265622576238680
+    second: Shared_Face_Medium_Eye_Left
+  - first:
+      213: -1225837997865047407
+    second: Shared_Face_Medium_Eye_Right
+  - first:
+      213: -4336975927102254165
+    second: Shared_Pin_Pink
+  - first:
+      213: 5254614751483787903
+    second: Shared_Glasses_Clear
+  - first:
+      213: -5339983630433867965
+    second: Mary_Head
+  - first:
+      213: 1206223121888189090
+    second: Megan_Head
+  - first:
+      213: -7045477177610352759
+    second: Reanne_Head
+  - first:
+      213: 8891529227105149759
+    second: Shared_Face_Dark_Eye_Left
+  - first:
+      213: -2058849022356411140
+    second: Shared_Face_Dark_Eye_Right
+  - first:
+      213: -6850556470261432179
+    second: Shared_Pin_Purple
+  - first:
+      213: -5892235771979205788
+    second: Shared_ID_Lanyard
+  - first:
+      213: -927211428604057802
+    second: Shared_Handbag_Pink
+  - first:
+      213: 2399990394437209062
+    second: Emmie_Head
+  - first:
+      213: 3411317713635469176
+    second: Zion_Head
+  - first:
+      213: -3595887047804246757
+    second: Shared_Face_Light_Eye_Left
+  - first:
+      213: 179281568760384008
+    second: Shared_Face_Light_Eye_Right
+  - first:
+      213: -7507126951150155029
+    second: Shared_Pin_Light_Blue
+  - first:
+      213: 2840691271281075884
+    second: Shared_Face_Mole
+  - first:
+      213: 1978166309607927974
+    second: Shared_Face_Medium_Mouth
+  - first:
+      213: 8985679554099182431
+    second: Shared_Glasses_Purple
+  - first:
+      213: 8592975035041426680
+    second: Mary_Body
+  - first:
+      213: -3551646856575865428
+    second: Megan_Body
+  - first:
+      213: -4818878404001550396
+    second: Shared_Face_Dark_Mouth
+  - first:
+      213: -8781683805437557969
+    second: Zion_Body
+  - first:
+      213: -2950321096984496344
+    second: Reanne_Body
+  - first:
+      213: 4467093881464212916
+    second: Shared_Face_Light_Mouth
+  - first:
+      213: -7011235936748061985
+    second: Shared_Crossbody_Bag_Purple
+  - first:
+      213: -1247895109958577515
+    second: Shared_Necktie_Brown
+  - first:
+      213: -3995746085792250977
+    second: Emmie_Body
+  - first:
+      213: 4681034347646045570
+    second: Shared_Glasses_Pink
+  - first:
+      213: 7536547664826611829
+    second: Shared_Glasses_Plum
+  - first:
+      213: 4758094662780031764
+    second: Ayanah_Head
+  - first:
+      213: -2273310478230796429
+    second: Jairus_Head
+  - first:
+      213: 8975222368691301385
+    second: Jan_Head
+  - first:
+      213: -4878973536852531392
+    second: Maria_Head
+  - first:
+      213: -5998030615637379963
+    second: Ruben_Head
+  - first:
+      213: -1373036728019600513
+    second: Ayanah_Body
+  - first:
+      213: 8528751879862048406
+    second: Jairus_Body
+  - first:
+      213: 4029915953837478939
+    second: Jan_Body
+  - first:
+      213: 2843108412479036413
+    second: Maria_Body
+  - first:
+      213: -9215722024879528336
+    second: Ruben_Body
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 230
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 8192
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Shared_Face_Medium_Eye_Left
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 1405
+        width: 37
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8509664c1857e2620800000000000000
+      internalID: 2751265622576238680
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Medium_Eye_Right
+      rect:
+        serializedVersion: 2
+        x: 131
+        y: 1400
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 19ae311f5d2fcfee0800000000000000
+      internalID: -1225837997865047407
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Pin_Pink
+      rect:
+        serializedVersion: 2
+        x: 529
+        y: 1387
+        width: 34
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ba356a16f57ffc3c0800000000000000
+      internalID: -4336975927102254165
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Glasses_Clear
+      rect:
+        serializedVersion: 2
+        x: 787
+        y: 1396
+        width: 205
+        height: 92
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7af7bdb6442ce840800000000000000
+      internalID: 5254614751483787903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mary_Head
+      rect:
+        serializedVersion: 2
+        x: 1306
+        y: 1225
+        width: 266
+        height: 325
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 347a6993e2194e5b0800000000000000
+      internalID: -5339983630433867965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Megan_Head
+      rect:
+        serializedVersion: 2
+        x: 2459
+        y: 1211
+        width: 268
+        height: 304
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2aa120cd98d5db010800000000000000
+      internalID: 1206223121888189090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Reanne_Head
+      rect:
+        serializedVersion: 2
+        x: 2872
+        y: 1165
+        width: 266
+        height: 405
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 987c963e5df693e90800000000000000
+      internalID: -7045477177610352759
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Dark_Eye_Left
+      rect:
+        serializedVersion: 2
+        x: 29
+        y: 1331
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f332b9309be056b70800000000000000
+      internalID: 8891529227105149759
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Dark_Eye_Right
+      rect:
+        serializedVersion: 2
+        x: 127
+        y: 1327
+        width: 37
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cfc2940f8bf7d63e0800000000000000
+      internalID: -2058849022356411140
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Pin_Purple
+      rect:
+        serializedVersion: 2
+        x: 524
+        y: 1322
+        width: 32
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d804054af2fede0a0800000000000000
+      internalID: -6850556470261432179
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_ID_Lanyard
+      rect:
+        serializedVersion: 2
+        x: 597
+        y: 1257
+        width: 80
+        height: 133
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4637456a8c29a3ea0800000000000000
+      internalID: -5892235771979205788
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Handbag_Pink
+      rect:
+        serializedVersion: 2
+        x: 809
+        y: 1175
+        width: 276
+        height: 183
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6376f564e12e123f0800000000000000
+      internalID: -927211428604057802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Emmie_Head
+      rect:
+        serializedVersion: 2
+        x: 1686
+        y: 1093
+        width: 263
+        height: 294
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6eb87cc4c8a7e4120800000000000000
+      internalID: 2399990394437209062
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Zion_Head
+      rect:
+        serializedVersion: 2
+        x: 2080
+        y: 1142
+        width: 255
+        height: 234
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8776d39f26f675f20800000000000000
+      internalID: 3411317713635469176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Light_Eye_Left
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1251
+        width: 36
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b15233728c7d81ec0800000000000000
+      internalID: -3595887047804246757
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Light_Eye_Right
+      rect:
+        serializedVersion: 2
+        x: 120
+        y: 1247
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80accbc03afec7200800000000000000
+      internalID: 179281568760384008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Pin_Light_Blue
+      rect:
+        serializedVersion: 2
+        x: 522
+        y: 1267
+        width: 29
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bea0fe8ffc351d790800000000000000
+      internalID: -7507126951150155029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Mole
+      rect:
+        serializedVersion: 2
+        x: 532
+        y: 1224
+        width: 10
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ca6e24d19a92c6720800000000000000
+      internalID: 2840691271281075884
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Medium_Mouth
+      rect:
+        serializedVersion: 2
+        x: 21
+        y: 1149
+        width: 113
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6a073de17cbd37b10800000000000000
+      internalID: 1978166309607927974
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Glasses_Purple
+      rect:
+        serializedVersion: 2
+        x: 541
+        y: 1100
+        width: 212
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f5b729f32fb83bc70800000000000000
+      internalID: 8985679554099182431
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Mary_Body
+      rect:
+        serializedVersion: 2
+        x: 1315
+        y: 856
+        width: 245
+        height: 353
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8fca17f4441604770800000000000000
+      internalID: 8592975035041426680
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Megan_Body
+      rect:
+        serializedVersion: 2
+        x: 2470
+        y: 859
+        width: 244
+        height: 334
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cada92a500406bec0800000000000000
+      internalID: -3551646856575865428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Dark_Mouth
+      rect:
+        serializedVersion: 2
+        x: 20
+        y: 1110
+        width: 114
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4cfafa18f97ef1db0800000000000000
+      internalID: -4818878404001550396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Zion_Body
+      rect:
+        serializedVersion: 2
+        x: 2092
+        y: 852
+        width: 245
+        height: 261
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2308173b11312680800000000000000
+      internalID: -8781683805437557969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Reanne_Body
+      rect:
+        serializedVersion: 2
+        x: 2877
+        y: 853
+        width: 242
+        height: 292
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 827f5e0089a5e07d0800000000000000
+      internalID: -2950321096984496344
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Face_Light_Mouth
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 1071
+        width: 115
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4bdcefea73e4efd30800000000000000
+      internalID: 4467093881464212916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Crossbody_Bag_Purple
+      rect:
+        serializedVersion: 2
+        x: 887
+        y: 950
+        width: 251
+        height: 159
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fdabda9001613be90800000000000000
+      internalID: -7011235936748061985
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Necktie_Brown
+      rect:
+        serializedVersion: 2
+        x: 540
+        y: 981
+        width: 53
+        height: 72
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 592d8f552069eaee0800000000000000
+      internalID: -1247895109958577515
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Emmie_Body
+      rect:
+        serializedVersion: 2
+        x: 1695
+        y: 843
+        width: 242
+        height: 220
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9302b7fa124c88c0800000000000000
+      internalID: -3995746085792250977
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Glasses_Pink
+      rect:
+        serializedVersion: 2
+        x: 740
+        y: 826
+        width: 207
+        height: 69
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28d48d020ff56f040800000000000000
+      internalID: 4681034347646045570
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Shared_Glasses_Plum
+      rect:
+        serializedVersion: 2
+        x: 405
+        y: 735
+        width: 208
+        height: 69
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5783acabb22379860800000000000000
+      internalID: 7536547664826611829
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ayanah_Head
+      rect:
+        serializedVersion: 2
+        x: 1243
+        y: 305
+        width: 278
+        height: 295
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4139fa6e2e5280240800000000000000
+      internalID: 4758094662780031764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jairus_Head
+      rect:
+        serializedVersion: 2
+        x: 1649
+        y: 323
+        width: 286
+        height: 242
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 37741e02a249370e0800000000000000
+      internalID: -2273310478230796429
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jan_Head
+      rect:
+        serializedVersion: 2
+        x: 2089
+        y: 298
+        width: 267
+        height: 323
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90c2cf901356e8c70800000000000000
+      internalID: 8975222368691301385
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Maria_Head
+      rect:
+        serializedVersion: 2
+        x: 2471
+        y: 353
+        width: 264
+        height: 266
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 047af5b0b676a4cb0800000000000000
+      internalID: -4878973536852531392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ruben_Head
+      rect:
+        serializedVersion: 2
+        x: 2876
+        y: 318
+        width: 281
+        height: 268
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 584340b1fe6b2cca0800000000000000
+      internalID: -5998030615637379963
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ayanah_Body
+      rect:
+        serializedVersion: 2
+        x: 1250
+        y: 14
+        width: 245
+        height: 256
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7bb3dade5ef1fce0800000000000000
+      internalID: -1373036728019600513
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jairus_Body
+      rect:
+        serializedVersion: 2
+        x: 1672
+        y: 31
+        width: 245
+        height: 271
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6965f90c5a63c5670800000000000000
+      internalID: 8528751879862048406
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jan_Body
+      rect:
+        serializedVersion: 2
+        x: 2096
+        y: 30
+        width: 244
+        height: 238
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b14992765332de730800000000000000
+      internalID: 4029915953837478939
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Maria_Body
+      rect:
+        serializedVersion: 2
+        x: 2488
+        y: 22
+        width: 244
+        height: 310
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dfbdcb7a900c47720800000000000000
+      internalID: 2843108412479036413
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Ruben_Body
+      rect:
+        serializedVersion: 2
+        x: 2892
+        y: 43
+        width: 243
+        height: 251
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 076ef4635ad2b1080800000000000000
+      internalID: -9215722024879528336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Ayanah_Body: -1373036728019600513
+      Ayanah_Head: 4758094662780031764
+      Emmie_Body: -3995746085792250977
+      Emmie_Head: 2399990394437209062
+      Jairus_Body: 8528751879862048406
+      Jairus_Head: -2273310478230796429
+      Jan_Body: 4029915953837478939
+      Jan_Head: 8975222368691301385
+      Maria_Body: 2843108412479036413
+      Maria_Head: -4878973536852531392
+      Mary_Body: 8592975035041426680
+      Mary_Head: -5339983630433867965
+      Megan_Body: -3551646856575865428
+      Megan_Head: 1206223121888189090
+      Reanne_Body: -2950321096984496344
+      Reanne_Head: -7045477177610352759
+      Ruben_Body: -9215722024879528336
+      Ruben_Head: -5998030615637379963
+      Shared_Crossbody_Bag_Purple: -7011235936748061985
+      Shared_Face_Dark_Eye_Left: 8891529227105149759
+      Shared_Face_Dark_Eye_Right: -2058849022356411140
+      Shared_Face_Dark_Mouth: -4818878404001550396
+      Shared_Face_Light_Eye_Left: -3595887047804246757
+      Shared_Face_Light_Eye_Right: 179281568760384008
+      Shared_Face_Light_Mouth: 4467093881464212916
+      Shared_Face_Medium_Eye_Left: 2751265622576238680
+      Shared_Face_Medium_Eye_Right: -1225837997865047407
+      Shared_Face_Medium_Mouth: 1978166309607927974
+      Shared_Face_Mole: 2840691271281075884
+      Shared_Glasses_Clear: 5254614751483787903
+      Shared_Glasses_Pink: 4681034347646045570
+      Shared_Glasses_Plum: 7536547664826611829
+      Shared_Glasses_Purple: 8985679554099182431
+      Shared_Handbag_Pink: -927211428604057802
+      Shared_ID_Lanyard: -5892235771979205788
+      Shared_Necktie_Brown: -1247895109958577515
+      Shared_Pin_Light_Blue: -7507126951150155029
+      Shared_Pin_Pink: -4336975927102254165
+      Shared_Pin_Purple: -6850556470261432179
+      Zion_Body: -8781683805437557969
+      Zion_Head: 3411317713635469176
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
