@@ -2,26 +2,25 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "New Dialogue", menuName = "Dialogue/Conversation")]
-public sealed class Dialogue : ScriptableObject, IDialogueSequence
+[DisallowMultipleComponent]
+public sealed class SceneDialogueConversation : MonoBehaviour, IDialogueSequence
 {
     [SerializeField] private string conversationId;
-    [SerializeField] private List<DialogueLine> lines = new List<DialogueLine>();
+    [SerializeField] private List<SceneDialogueLine> lines = new List<SceneDialogueLine>();
 
     public string ConversationId => conversationId;
-    public IReadOnlyList<DialogueLine> Lines => lines;
+    public IReadOnlyList<SceneDialogueLine> Lines => lines;
     public bool HasLines => lines != null && lines.Count > 0;
 
     IReadOnlyList<IDialogueLine> IDialogueSequence.Lines => lines;
 }
 
 [Serializable]
-public sealed class DialogueLine : IDialogueLine
+public sealed class SceneDialogueLine : IDialogueLine
 {
-    [SerializeField] private DialogueSpeaker speaker;
+    [SerializeField] private DialogueActor speaker;
     [SerializeField, TextArea(2, 8)] private string text;
 
-    public DialogueSpeaker Speaker => speaker;
     public UnityEngine.Object SpeakerReference => speaker;
     public string SpeakerName => speaker != null ? speaker.DisplayName : string.Empty;
     public string Text => text ?? string.Empty;

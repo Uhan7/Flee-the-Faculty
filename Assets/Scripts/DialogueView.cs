@@ -3,7 +3,7 @@ using UnityEngine;
 public interface IDialogueView
 {
     void SetVisible(bool visible);
-    void DisplayLine(DialogueLine line, string visibleText, bool canAdvance);
+    void DisplayLine(IDialogueLine line, string visibleText, bool canAdvance);
 }
 
 [DisallowMultipleComponent]
@@ -27,9 +27,9 @@ public sealed class DialogueView : MonoBehaviour, IDialogueView
         isVisible = visible;
     }
 
-    public void DisplayLine(DialogueLine line, string visibleText, bool lineCanAdvance)
+    public void DisplayLine(IDialogueLine line, string visibleText, bool lineCanAdvance)
     {
-        speaker = line != null ? line.Speaker : string.Empty;
+        speaker = line != null ? line.SpeakerName : string.Empty;
         body = visibleText ?? string.Empty;
         canAdvance = lineCanAdvance;
     }

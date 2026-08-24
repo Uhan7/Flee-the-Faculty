@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,31 +13,25 @@ public sealed class DialogueManager : MonoBehaviour
     [Header("Presentation")]
     [Tooltip("Optional component implementing IDialogueView. A temporary view is created when empty.")]
     [SerializeField] private MonoBehaviour viewProvider;
-    [SerializeField] private AudioSource voiceAudioSource;
-
-    [Header("Typing")]
-    [SerializeField, Min(0f)] private float defaultCharactersPerSecond = 40f;
-    [SerializeField, Min(0f)] private float punctuationPause = 0.08f;
 
     [Header("Input")]
     [SerializeField] private bool advanceWithKeyboard = true;
     [SerializeField] private bool advanceWithLeftClick = true;
 
     private IDialogueView view;
-    private Coroutine typingRoutine;
-    private Dialogue activeDialogue;
-    private DialogueLine activeLine;
+    private IDialogueSequence activeDialogue;
+    private IDialogueLine activeLine;
     private int activeLineIndex = -1;
-    private bool isTyping;
 
     public static DialogueManager Instance { get; private set; }
-    public Dialogue ActiveDialogue => activeDialogue;
+    public IDialogueSequence ActiveDialogue => activeDialogue;
+    public IDialogueLine ActiveLine => activeLine;
     public bool IsPlaying => activeDialogue != null;
-    public bool IsTyping => isTyping;
+    public bool IsTyping => false;
 
-    public event Action<Dialogue> DialogueStarted;
-    public event Action<DialogueLine, int> LineChanged;
-    public event Action<Dialogue> DialogueEnded;
+    public event Action<IDialogueSequence> DialogueStarted;
+    public event Action<IDialogueLine, int> LineChanged;
+    public event Action<IDialogueSequence> DialogueEnded;
 
     public static DialogueManager GetOrCreate()
     {
@@ -92,9 +85,19 @@ public sealed class DialogueManager : MonoBehaviour
 
     public bool Play(Dialogue dialogue)
     {
+        return PlayInternal(dialogue);
+    }
+
+    public bool Play(SceneDialogueConversation dialogue)
+    {
+        return PlayInternal(dialogue);
+    }
+
+    private bool PlayInternal(IDialogueSequence dialogue)
+    {
         if (dialogue == null || !dialogue.HasLines)
         {
-            Debug.LogWarning("Cannot play an empty dialogue.", dialogue);
+            Debug.LogWarning("Cannot play an empty dialogue.");
             return false;
         }
 
@@ -104,6 +107,7 @@ public sealed class DialogueManager : MonoBehaviour
         }
 
         activeDialogue = dialogue;
+        activeLine = null;
         activeLineIndex = -1;
         view.SetVisible(true);
         DialogueStarted?.Invoke(activeDialogue);
@@ -118,12 +122,6 @@ public sealed class DialogueManager : MonoBehaviour
             return;
         }
 
-        if (isTyping)
-        {
-            RevealActiveLine();
-            return;
-        }
-
         ShowNextLine();
     }
 
@@ -134,8 +132,7 @@ public sealed class DialogueManager : MonoBehaviour
             return;
         }
 
-        Dialogue finishedDialogue = activeDialogue;
-        StopTyping();
+        IDialogueSequence finishedDialogue = activeDialogue;
         activeDialogue = null;
         activeLine = null;
         activeLineIndex = -1;
@@ -145,7 +142,7 @@ public sealed class DialogueManager : MonoBehaviour
 
     private void ShowNextLine()
     {
-        IReadOnlyList<DialogueLine> lines = activeDialogue.Lines;
+        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
         do
         {
             activeLineIndex++;
@@ -160,75 +157,7 @@ public sealed class DialogueManager : MonoBehaviour
 
         activeLine = lines[activeLineIndex];
         LineChanged?.Invoke(activeLine, activeLineIndex);
-
-        if (activeLine.VoiceClip != null)
-        {
-            if (voiceAudioSource == null)
-            {
-                voiceAudioSource = GetComponent<AudioSource>();
-                if (voiceAudioSource == null)
-                {
-                    voiceAudioSource = gameObject.AddComponent<AudioSource>();
-                }
-            }
-
-            voiceAudioSource.Stop();
-            voiceAudioSource.PlayOneShot(activeLine.VoiceClip);
-        }
-
-        float charactersPerSecond = activeLine.CharactersPerSecond >= 0f
-            ? activeLine.CharactersPerSecond
-            : defaultCharactersPerSecond;
-
-        if (charactersPerSecond <= 0f || string.IsNullOrEmpty(activeLine.Text))
-        {
-            isTyping = false;
-            view.DisplayLine(activeLine, activeLine.Text, true);
-            return;
-        }
-
-        StopTyping();
-        typingRoutine = StartCoroutine(TypeLine(activeLine, charactersPerSecond));
-    }
-
-    private IEnumerator TypeLine(DialogueLine line, float charactersPerSecond)
-    {
-        isTyping = true;
-        view.DisplayLine(line, string.Empty, false);
-
-        string fullText = line.Text;
-        float characterDelay = 1f / charactersPerSecond;
-        for (int characterIndex = 1; characterIndex <= fullText.Length; characterIndex++)
-        {
-            view.DisplayLine(line, fullText.Substring(0, characterIndex), false);
-
-            char character = fullText[characterIndex - 1];
-            float delay = IsPunctuation(character)
-                ? characterDelay + punctuationPause
-                : characterDelay;
-            yield return new WaitForSecondsRealtime(delay);
-        }
-
-        typingRoutine = null;
-        isTyping = false;
-        view.DisplayLine(line, fullText, true);
-    }
-
-    private void RevealActiveLine()
-    {
-        StopTyping();
         view.DisplayLine(activeLine, activeLine.Text, true);
-    }
-
-    private void StopTyping()
-    {
-        if (typingRoutine != null)
-        {
-            StopCoroutine(typingRoutine);
-            typingRoutine = null;
-        }
-
-        isTyping = false;
     }
 
     private void ResolveView()
@@ -316,10 +245,5 @@ public sealed class DialogueManager : MonoBehaviour
 #endif
 
         return pressed;
-    }
-
-    private static bool IsPunctuation(char character)
-    {
-        return character == '.' || character == ',' || character == '!' || character == '?' || character == ';' || character == ':';
     }
 }

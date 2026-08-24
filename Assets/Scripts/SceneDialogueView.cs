@@ -37,7 +37,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
     }
 
-    public void DisplayLine(DialogueLine line, string visibleText, bool canAdvance)
+    public void DisplayLine(IDialogueLine line, string visibleText, bool canAdvance)
     {
         if (dialogueContainer != null && !dialogueContainer.activeSelf)
         {
@@ -46,7 +46,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         if (speakerText != null)
         {
-            speakerText.text = line != null ? line.Speaker : string.Empty;
+            speakerText.text = line != null ? line.SpeakerName : string.Empty;
         }
 
         if (bodyText != null)

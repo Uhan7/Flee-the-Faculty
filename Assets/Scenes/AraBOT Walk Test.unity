@@ -146,7 +146,7 @@ Transform:
   m_GameObject: {fileID: 69203647}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.3, y: 0.45, z: 0}
+  m_LocalPosition: {x: -0.3, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -336,7 +336,7 @@ Transform:
   m_GameObject: {fileID: 335849352}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.72, z: 0}
+  m_LocalPosition: {x: 0, y: 1.49, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1279,13 +1279,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 871152096}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0.078459114, w: 0.99691737}
   m_LocalPosition: {x: 0, y: -0.2, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1305446243}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 9}
 --- !u!212 &871152098
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2158,7 +2158,7 @@ Transform:
   m_GameObject: {fileID: 1328337091}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -1.2, z: 0}
+  m_LocalPosition: {x: 0, y: -1.4, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2294,7 +2294,7 @@ Transform:
   m_GameObject: {fileID: 1645354363}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.4, z: 0}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2595,6 +2595,8 @@ GameObject:
   - component: {fileID: 1927900126}
   - component: {fileID: 1927900128}
   - component: {fileID: 1927900127}
+  - component: {fileID: 1927900129}
+  - component: {fileID: 1927900130}
   m_Layer: 0
   m_Name: AraBOT
   m_TagString: Untagged
@@ -2745,12 +2747,12 @@ MonoBehaviour:
   eyeLookDistance: 0.075
   eyeLookSmoothTime: 0.08
   idleBobAmount: 0.035
-  movingBobAmount: 0.06
+  movingBobAmount: 0.05
   idleBobSpeed: 1.2
-  movingBobSpeed: 3
+  movingBobSpeed: 2.7
   idleTorsoBobAmount: 0.01
   movingTorsoBobAmount: 0.028
-  movingTorsoLeanAngle: 2
+  movingTorsoLeanAngle: 2.4
   torsoLeanSmoothTime: 0.12
   speedForFullMovementAnimation: 3.5
   movementBlendSpeed: 5
@@ -2783,8 +2785,42 @@ SortingGroup:
   m_Enabled: 1
   m_SortingLayerID: 126519104
   m_SortingLayer: 4
-  m_SortingOrder: 317
+  m_SortingOrder: 337
   m_SortAtRoot: 0
+--- !u!114 &1927900129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1927900120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f95f51c98474b8ca7c0d8d5ed310f8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speaker: {fileID: 1927900130}
+  mouth: {fileID: 871152097}
+  talkCyclesPerSecond: 5
+  leanAngle: 0
+  closedScaleY: 0.6
+  openScaleY: 5
+  wideScaleX: 1.1
+  narrowScaleX: 0.3
+  smoothing: 30
+--- !u!114 &1927900130
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1927900120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b586b805ff3a49a8af0f3dc2c5950dc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  displayName: AraBOT
 --- !u!1 &1939476196
 GameObject:
   m_ObjectHideFlags: 0
@@ -3393,6 +3429,8 @@ GameObject:
   - component: {fileID: 2037450751}
   - component: {fileID: 2037450750}
   - component: {fileID: 2037450749}
+  - component: {fileID: 2037450760}
+  - component: {fileID: 2037450761}
   m_Layer: 0
   m_Name: Base Student
   m_TagString: Untagged
@@ -3455,9 +3493,9 @@ MonoBehaviour:
   eyeLookDistance: 0.075
   eyeLookSmoothTime: 0.08
   idleBobAmount: 0.035
-  movingBobAmount: 0.06
-  idleBobSpeed: 1.2
-  movingBobSpeed: 3
+  movingBobAmount: 0.04
+  idleBobSpeed: 1.1
+  movingBobSpeed: 2.5
   idleTorsoBobAmount: 0.01
   movingTorsoBobAmount: 0.028
   movingTorsoLeanAngle: 2
@@ -3569,6 +3607,7 @@ GameObject:
   - component: {fileID: 2037450757}
   - component: {fileID: 2037450758}
   - component: {fileID: 2037450759}
+  - component: {fileID: 2037450762}
   m_Layer: 0
   m_Name: Interaction Zone
   m_TagString: Untagged
@@ -3649,10 +3688,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9152f61d4f947d4a45deec2364f7d7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dialogue: {fileID: 11400000, guid: a26cc18950be4f0184bbbde2a2284666, type: 2}
+  dialogue: {fileID: 2037450762}
   activator: {fileID: 1927900123}
   questionButton: {fileID: 1064531342}
   questionButtonRoot: {fileID: 1064531340}
+--- !u!114 &2037450760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037450748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f95f51c98474b8ca7c0d8d5ed310f8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speaker: {fileID: 2037450761}
+  mouth: {fileID: 1658866135}
+  talkCyclesPerSecond: 5.5
+  leanAngle: 12
+  closedScaleY: 0.8
+  openScaleY: 1.8
+  wideScaleX: 1.02
+  narrowScaleX: 0.95
+  smoothing: 18
+--- !u!114 &2037450761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037450748}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b586b805ff3a49a8af0f3dc2c5950dc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  displayName: Base Student
+--- !u!114 &2037450762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2037450756}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 602dc5ebcf334401850dd1219f6de7dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  conversationId: base_student_intro
+  lines:
+  - speaker: {fileID: 2037450761}
+    text: Hey, AraBOT. I am standing in for the real conversation while we wire this
+      area up.
+  - speaker: {fileID: 1927900130}
+    text: Nice. The question button worked, and the dialogue box actually showed
+      up.
+  - speaker: {fileID: 2037450761}
+    text: Perfect. After this chat I will stay quiet until you plug in the final
+      lines.
 --- !u!1 &2044316899
 GameObject:
   m_ObjectHideFlags: 0
@@ -3680,7 +3776,7 @@ Transform:
   m_GameObject: {fileID: 2044316899}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.3, y: 0.45, z: 0}
+  m_LocalPosition: {x: 0.3, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

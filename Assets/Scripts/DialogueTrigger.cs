@@ -105,7 +105,7 @@ public sealed class DialogueTrigger : MonoBehaviour
         return movingRoot == activator || movingRoot.IsChildOf(activator) || activator.IsChildOf(movingRoot);
     }
 
-    private void HandleDialogueEnded(Dialogue finishedDialogue)
+    private void HandleDialogueEnded(IDialogueSequence finishedDialogue)
     {
         if (finishedDialogue != dialogue)
         {

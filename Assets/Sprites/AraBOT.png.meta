@@ -166,12 +166,12 @@ TextureImporter:
       name: AraBOT_0
       rect:
         serializedVersion: 2
-        x: 347
-        y: 660
-        width: 34
-        height: 117
-      alignment: 9
-      pivot: {x: 0.46629784, y: 0.04948334}
+        x: 367
+        y: 760
+        width: 35
+        height: 133
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -188,12 +188,12 @@ TextureImporter:
       name: AraBOT_1
       rect:
         serializedVersion: 2
-        x: 525
-        y: 660
-        width: 33
-        height: 112
-      alignment: 9
-      pivot: {x: 0.43055308, y: 0.049833026}
+        x: 537
+        y: 756
+        width: 36
+        height: 137
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -210,12 +210,12 @@ TextureImporter:
       name: AraBOT_2
       rect:
         serializedVersion: 2
-        x: 14
-        y: 553
-        width: 26
-        height: 27
+        x: 15
+        y: 584
+        width: 25
+        height: 25
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -232,12 +232,12 @@ TextureImporter:
       name: AraBOT_3
       rect:
         serializedVersion: 2
-        x: 156
-        y: 542
-        width: 27
-        height: 27
+        x: 157
+        y: 573
+        width: 24
+        height: 25
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -254,12 +254,12 @@ TextureImporter:
       name: AraBOT_4
       rect:
         serializedVersion: 2
-        x: 287
-        y: 403
-        width: 342
-        height: 252
+        x: 294
+        y: 462
+        width: 343
+        height: 270
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -276,12 +276,12 @@ TextureImporter:
       name: AraBOT_5
       rect:
         serializedVersion: 2
-        x: 27
-        y: 475
-        width: 129
-        height: 29
+        x: 28
+        y: 506
+        width: 134
+        height: 12
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -298,12 +298,12 @@ TextureImporter:
       name: AraBOT_6
       rect:
         serializedVersion: 2
-        x: 297
-        y: 100
+        x: 299
+        y: 132
         width: 325
-        height: 294
+        height: 315
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -320,12 +320,12 @@ TextureImporter:
       name: AraBOT_7
       rect:
         serializedVersion: 2
-        x: 319
-        y: 13
-        width: 83
-        height: 85
+        x: 306
+        y: 14
+        width: 97
+        height: 109
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -342,12 +342,12 @@ TextureImporter:
       name: AraBOT_8
       rect:
         serializedVersion: 2
-        x: 519
-        y: 12
-        width: 82
-        height: 87
+        x: 521
+        y: 16
+        width: 93
+        height: 106
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []

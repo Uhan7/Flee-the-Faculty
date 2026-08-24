@@ -6,7 +6,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Collider2D))]
 public sealed class StudentDialogueInteraction : MonoBehaviour
 {
-    [SerializeField] private Dialogue dialogue;
+    [SerializeField] private SceneDialogueConversation dialogue;
     [SerializeField] private Transform activator;
     [SerializeField] private Button questionButton;
     [SerializeField] private GameObject questionButtonRoot;
@@ -145,7 +145,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
     }
 
-    private void HandleDialogueEnded(Dialogue finishedDialogue)
+    private void HandleDialogueEnded(IDialogueSequence finishedDialogue)
     {
         if (finishedDialogue != dialogue)
         {

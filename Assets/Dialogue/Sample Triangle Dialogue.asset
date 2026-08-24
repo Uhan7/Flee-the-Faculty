@@ -14,18 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   conversationId: base_student_intro
   lines:
-  - speaker: Base Student
+  - speaker: {fileID: 11400000, guid: f8ff74ebfac1458bb2d7627af5849a5f, type: 2}
     text: Hey, AraBOT. I am standing in for the real conversation while we wire this area up.
-    portrait: {fileID: 0}
-    voiceClip: {fileID: 0}
-    charactersPerSecond: -1
-  - speaker: AraBOT
+  - speaker: {fileID: 11400000, guid: 4aed448587f746c799c7c621ffb5f8c9, type: 2}
     text: Nice. The question button worked, and the dialogue box actually showed up.
-    portrait: {fileID: 0}
-    voiceClip: {fileID: 0}
-    charactersPerSecond: -1
-  - speaker: Base Student
+  - speaker: {fileID: 11400000, guid: f8ff74ebfac1458bb2d7627af5849a5f, type: 2}
     text: Perfect. After this chat I will stay quiet until you plug in the final lines.
-    portrait: {fileID: 0}
-    voiceClip: {fileID: 0}
-    charactersPerSecond: -1
