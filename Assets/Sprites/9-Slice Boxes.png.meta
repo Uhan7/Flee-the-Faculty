@@ -1,0 +1,468 @@
+fileFormatVersion: 2
+guid: d5d2e541cce3d45a0b99ad5fd2fc0175
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2324279168075296673
+    second: 9-Slice Boxes_0
+  - first:
+      213: -5899845438966311964
+    second: 9-Slice Boxes_1
+  - first:
+      213: -6472250180003560894
+    second: 9-Slice Boxes_2
+  - first:
+      213: -7817049306326278550
+    second: 9-Slice Boxes_3
+  - first:
+      213: -5116634123570496115
+    second: 9-Slice Boxes_4
+  - first:
+      213: -6844855711077257918
+    second: 9-Slice Boxes_5
+  - first:
+      213: 8134440435907778650
+    second: 9-Slice Boxes_6
+  - first:
+      213: 3818451802908550763
+    second: 9-Slice Boxes_7
+  - first:
+      213: 2789391964635392886
+    second: 9-Slice Boxes_8
+  - first:
+      213: 8802578047352362421
+    second: 9-Slice Boxes_9
+  - first:
+      213: -7208227220096516806
+    second: 9-Slice Boxes_10
+  - first:
+      213: -7282508970104320643
+    second: 9-Slice Boxes_11
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 300
+  spriteBorder: {x: 44, y: 48, z: 44, w: 44}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: 9-Slice Boxes_0
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 1458
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 44, y: 48, z: 44, w: 44}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1afe7fbb69f714020800000000000000
+      internalID: 2324279168075296673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_1
+      rect:
+        serializedVersion: 2
+        x: 811
+        y: 1459
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 43, y: 48, z: 46, w: 43}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e354bcf4d98f1ea0800000000000000
+      internalID: -5899845438966311964
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_2
+      rect:
+        serializedVersion: 2
+        x: 1633
+        y: 1428
+        width: 625
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 95, y: 93, z: 91, w: 95}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2420e63b0c2fd26a0800000000000000
+      internalID: -6472250180003560894
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_3
+      rect:
+        serializedVersion: 2
+        x: 2541
+        y: 1440
+        width: 625
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 93, y: 95, z: 93, w: 93}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6e55b88213448390800000000000000
+      internalID: -7817049306326278550
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_4
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 775
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 43, y: 48, z: 46, w: 44}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d8d30faaf501ef8b0800000000000000
+      internalID: -5116634123570496115
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_5
+      rect:
+        serializedVersion: 2
+        x: 810
+        y: 776
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 44, y: 48, z: 46, w: 44}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 24daf621fff2201a0800000000000000
+      internalID: -6844855711077257918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_6
+      rect:
+        serializedVersion: 2
+        x: 1646
+        y: 728
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 95, y: 97, z: 91, w: 91}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a585bd47a7653e070800000000000000
+      internalID: 8134440435907778650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_7
+      rect:
+        serializedVersion: 2
+        x: 2554
+        y: 740
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 93, y: 97, z: 93, w: 91}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b6660580fadddf430800000000000000
+      internalID: 3818451802908550763
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_8
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 46
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 42, y: 48, z: 47, w: 44}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 67beb678639e5b620800000000000000
+      internalID: 2789391964635392886
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_9
+      rect:
+        serializedVersion: 2
+        x: 811
+        y: 47
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 43, y: 48, z: 46, w: 44}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b5d614981a092a70800000000000000
+      internalID: 8802578047352362421
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_10
+      rect:
+        serializedVersion: 2
+        x: 1646
+        y: 16
+        width: 624
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 97, y: 98, z: 89, w: 90}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3d78ddb88b37fb90800000000000000
+      internalID: -7208227220096516806
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 9-Slice Boxes_11
+      rect:
+        serializedVersion: 2
+        x: 2569
+        y: 14
+        width: 625
+        height: 624
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 93, y: 97, z: 93, w: 91}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d7d06531da45fea90800000000000000
+      internalID: -7282508970104320643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      9-Slice Boxes_0: 2324279168075296673
+      9-Slice Boxes_1: -5899845438966311964
+      9-Slice Boxes_10: -7208227220096516806
+      9-Slice Boxes_11: -7282508970104320643
+      9-Slice Boxes_2: -6472250180003560894
+      9-Slice Boxes_3: -7817049306326278550
+      9-Slice Boxes_4: -5116634123570496115
+      9-Slice Boxes_5: -6844855711077257918
+      9-Slice Boxes_6: 8134440435907778650
+      9-Slice Boxes_7: 3818451802908550763
+      9-Slice Boxes_8: 2789391964635392886
+      9-Slice Boxes_9: 8802578047352362421
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
