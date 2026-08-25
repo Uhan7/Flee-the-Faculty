@@ -260,6 +260,7 @@ GameObject:
   - component: {fileID: 399008326}
   - component: {fileID: 399008328}
   - component: {fileID: 399008327}
+  - component: {fileID: 399008329}
   m_Layer: 5
   m_Name: Name Box
   m_TagString: Untagged
@@ -284,7 +285,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -360, y: 186.43}
+  m_AnchoredPosition: {x: -360, y: 175.8}
   m_SizeDelta: {x: -1320, y: 104}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &399008327
@@ -307,7 +308,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 8802578047352362421, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  m_Sprite: {fileID: -6844855711077257918, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -325,6 +326,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 399008325}
   m_CullTransparentMesh: 1
+--- !u!114 &399008329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 399008325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0.19690533, g: 0.13697046, b: 0.3584906, a: 0.5}
+  m_EffectDistance: {x: 10, y: -10}
+  m_UseGraphicAlpha: 1
 --- !u!1 &462117899
 GameObject:
   m_ObjectHideFlags: 0
@@ -637,8 +653,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4283711763
+  m_fontColor: {r: 0.076317206, g: 0.25483415, b: 0.3301887, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -802,6 +818,7 @@ GameObject:
   - component: {fileID: 718829256}
   - component: {fileID: 718829258}
   - component: {fileID: 718829257}
+  - component: {fileID: 718829259}
   m_Layer: 5
   m_Name: Dialogue Box
   m_TagString: Untagged
@@ -868,6 +885,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 718829255}
   m_CullTransparentMesh: 1
+--- !u!114 &718829259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 718829255}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0.19690533, g: 0.13697046, b: 0.3584906, a: 0.5}
+  m_EffectDistance: {x: 10, y: -10}
+  m_UseGraphicAlpha: 1
 --- !u!1 &911261808
 GameObject:
   m_ObjectHideFlags: 0
@@ -1120,7 +1152,7 @@ GameObject:
   - component: {fileID: 1217466993}
   - component: {fileID: 1217466992}
   m_Layer: 5
-  m_Name: Dialogue Text
+  m_Name: Name Text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1142,8 +1174,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 10}
-  m_SizeDelta: {x: 0, y: -20}
+  m_AnchoredPosition: {x: 0, y: 25}
+  m_SizeDelta: {x: 0, y: -35}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1217466992
 MonoBehaviour:
@@ -1174,8 +1206,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+    rgba: 4282923804
+  m_fontColor: {r: 0.11080456, g: 0.23267937, b: 0.2830189, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1198,7 +1230,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 16
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -1401,7 +1433,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1859726876
 RectTransform:
   m_ObjectHideFlags: 0

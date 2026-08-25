@@ -72,7 +72,8 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     public static bool TryRegisterLoadingTask(string taskId, string status, float progress = 0f, float weight = 1f)
     {
-        return Instance != null && Instance.RegisterLoadingTask(taskId, status, progress, weight);
+        DoorSceneTransition transition = EnsureInstance();
+        return transition != null && transition.RegisterLoadingTask(taskId, status, progress, weight);
     }
 
     public static void UpdateLoadingTask(string taskId, float progress, string status = null)
