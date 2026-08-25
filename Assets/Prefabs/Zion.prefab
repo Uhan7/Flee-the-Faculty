@@ -64,6 +64,14 @@ PrefabInstance:
       propertyPath: displayName
       value: Zion
       objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs concrete explanations that feel solid enough to say out loud right away.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: 'Answers first and loudest, then says it again smaller in case somebody jumps on him.'
+      objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
       value: 

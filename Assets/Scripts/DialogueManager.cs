@@ -10,6 +10,9 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public sealed class DialogueManager : MonoBehaviour
 {
+    private const float MinimumLineDisplaySeconds = 0.35f;
+    private const float RevealSkipDebounceSeconds = 0.45f;
+
     [Header("Presentation")]
     [Tooltip("Optional component implementing IDialogueView. A temporary view is created when empty.")]
     [SerializeField] private MonoBehaviour viewProvider;
@@ -18,16 +21,23 @@ public sealed class DialogueManager : MonoBehaviour
     [SerializeField] private bool advanceWithKeyboard = true;
     [SerializeField] private bool advanceWithLeftClick = true;
 
+    [Header("Voice Ticks")]
+    [SerializeField, Min(1)] private int lettersPerVoiceTick = 3;
+
     private IDialogueView view;
     private IDialogueSequence activeDialogue;
     private IDialogueLine activeLine;
+    private StudentPersonality activeSpeakerPersonality;
     private int activeLineIndex = -1;
+    private int lettersSinceVoiceTick;
+    private float advanceAllowedAt;
 
     public static DialogueManager Instance { get; private set; }
     public IDialogueSequence ActiveDialogue => activeDialogue;
     public IDialogueLine ActiveLine => activeLine;
     public bool IsPlaying => activeDialogue != null;
     public bool IsTyping => view != null && !view.IsRevealComplete;
+    public int LettersPerVoiceTick => Mathf.Max(1, lettersPerVoiceTick);
 
     public event Action<IDialogueSequence> DialogueStarted;
     public event Action<IDialogueLine, int> LineChanged;
@@ -93,6 +103,11 @@ public sealed class DialogueManager : MonoBehaviour
         return PlayInternal(dialogue);
     }
 
+    public bool Play(IDialogueSequence dialogue)
+    {
+        return PlayInternal(dialogue);
+    }
+
     private bool PlayInternal(IDialogueSequence dialogue)
     {
         if (dialogue == null || !dialogue.HasLines)
@@ -117,7 +132,7 @@ public sealed class DialogueManager : MonoBehaviour
 
     public void Advance()
     {
-        if (!IsPlaying)
+        if (!IsPlaying || Time.unscaledTime < advanceAllowedAt)
         {
             return;
         }
@@ -125,6 +140,7 @@ public sealed class DialogueManager : MonoBehaviour
         if (!view.IsRevealComplete)
         {
             view.CompleteReveal();
+            advanceAllowedAt = Time.unscaledTime + RevealSkipDebounceSeconds;
             return;
         }
 
@@ -142,8 +158,27 @@ public sealed class DialogueManager : MonoBehaviour
         activeDialogue = null;
         activeLine = null;
         activeLineIndex = -1;
+        activeSpeakerPersonality = null;
+        lettersSinceVoiceTick = 0;
         view.SetVisible(false);
         DialogueEnded?.Invoke(finishedDialogue);
+    }
+
+    public void NotifyCharacterRevealed(char revealedCharacter)
+    {
+        if (activeSpeakerPersonality == null || !char.IsLetter(revealedCharacter))
+        {
+            return;
+        }
+
+        lettersSinceVoiceTick++;
+        if (lettersSinceVoiceTick < LettersPerVoiceTick)
+        {
+            return;
+        }
+
+        lettersSinceVoiceTick = 0;
+        activeSpeakerPersonality.PlayVoiceTick();
     }
 
     private void ShowNextLine()
@@ -162,8 +197,41 @@ public sealed class DialogueManager : MonoBehaviour
         }
 
         activeLine = lines[activeLineIndex];
+        activeSpeakerPersonality = ResolveStudentPersonality(activeLine);
+        lettersSinceVoiceTick = 0;
+        advanceAllowedAt = Time.unscaledTime + MinimumLineDisplaySeconds;
         LineChanged?.Invoke(activeLine, activeLineIndex);
         view.DisplayLine(activeLine, activeLine.Text, true);
+    }
+
+    private static StudentPersonality ResolveStudentPersonality(IDialogueLine line)
+    {
+        if (line == null || line.SpeakerReference == null)
+        {
+            return null;
+        }
+
+        if (line.SpeakerReference is StudentPersonality personality)
+        {
+            return personality;
+        }
+
+        if (line.SpeakerReference is DialogueActor actor)
+        {
+            return actor.GetComponent<StudentPersonality>();
+        }
+
+        if (line.SpeakerReference is Component component)
+        {
+            return component.GetComponent<StudentPersonality>();
+        }
+
+        if (line.SpeakerReference is GameObject gameObject)
+        {
+            return gameObject.GetComponent<StudentPersonality>();
+        }
+
+        return null;
     }
 
     private void ResolveView()

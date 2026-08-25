@@ -84,6 +84,14 @@ PrefabInstance:
       propertyPath: displayName
       value: Reanne
       objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs the point up front and gets impatient if the explanation circles before landing.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: 'Tells you that you are wrong before you have finished, and brings up something Zion got wrong last week.'
+      objectReference: {fileID: 0}
     - target: {fileID: 5195349869047736649, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder
       value: 5

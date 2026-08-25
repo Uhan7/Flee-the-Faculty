@@ -64,6 +64,14 @@ PrefabInstance:
       propertyPath: displayName
       value: Jairus
       objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs the short answer quickly or he stops tracking and starts needling the gaps.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: 'Says "why? why?" the way you say it when you have stopped listening.'
+      objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
       value: 

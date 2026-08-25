@@ -85,6 +85,7 @@ public class CharacterProceduralAnimation : MonoBehaviour
     private float wheelSpinAngle;
     private float wheelDirection = 1f;
     private bool isBlinking;
+    private Transform lookTargetOverride;
 
     private void Awake()
     {
@@ -227,7 +228,16 @@ public class CharacterProceduralAnimation : MonoBehaviour
     private void UpdateEyeLook(float movementSpeed, float deltaTime)
     {
         Vector2 targetOffset = Vector2.zero;
-        if (detectedVelocity.sqrMagnitude > 0.0025f)
+        if (lookTargetOverride != null)
+        {
+            Vector2 toLookTarget = (Vector2)(lookTargetOverride.position - transform.position);
+            if (toLookTarget.sqrMagnitude > 0.0001f)
+            {
+                Vector3 localDirection = transform.InverseTransformDirection(toLookTarget.normalized);
+                targetOffset = new Vector2(localDirection.x, localDirection.y) * eyeLookDistance;
+            }
+        }
+        else if (detectedVelocity.sqrMagnitude > 0.0025f)
         {
             Vector3 localDirection = transform.InverseTransformDirection(detectedVelocity.normalized);
             float lookStrength = Mathf.Clamp01(movementSpeed / speedForFullMovementAnimation);
@@ -366,5 +376,20 @@ public class CharacterProceduralAnimation : MonoBehaviour
         {
             rightWheel.localRotation = rightWheelBaseLocalRotation;
         }
+    }
+
+    public void SetLookTarget(Transform lookTarget)
+    {
+        lookTargetOverride = lookTarget;
+    }
+
+    public void ClearLookTarget(Transform lookTarget = null)
+    {
+        if (lookTarget != null && lookTargetOverride != lookTarget)
+        {
+            return;
+        }
+
+        lookTargetOverride = null;
     }
 }

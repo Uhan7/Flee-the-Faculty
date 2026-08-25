@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using TMPro;
 using UnityEngine;
@@ -28,6 +29,42 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private string currentTranscript = string.Empty;
     private bool isListening;
     private bool isPendingSubmit;
+    private bool hasSubmittedCurrentTranscript;
+
+    public bool IsListening => isListening;
+    public bool RequiresTypedFallbackMode
+    {
+        get
+        {
+#if UNITY_EDITOR_OSX
+            if (CanUseMacEditorSpeech())
+            {
+                return false;
+            }
+#endif
+            return IsEditorSimulationMode() || !IsSpeechRecognitionSupported();
+        }
+    }
+
+    public string CurrentTranscript => currentTranscript;
+    public string CurrentDisplayTranscript
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(currentTranscript))
+            {
+                return currentTranscript.Trim();
+            }
+
+            return GetFallbackText();
+        }
+    }
+
+    public TMP_InputField FallbackInputField => fallbackInputField;
+
+    public event Action<string> TranscriptSubmitted;
+    public event Action<string> TranscriptChanged;
+    public event Action<bool> ListeningStateChanged;
 
 #if UNITY_EDITOR_OSX
     private string macEditorEventFilePath = string.Empty;
@@ -49,11 +86,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 
     private void Awake()
     {
-        UpdateSupportText();
-        UpdateStatus("Ready. Click Start Listening to begin.");
-        UpdateLiveTranscript(string.Empty);
-        UpdateSubmittedTranscript("Nothing submitted yet.");
-        RefreshButtons();
+        ResetForReuse();
     }
 
     private void Update()
@@ -93,6 +126,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         TMP_Text liveTranscriptTextReference,
         TMP_Text submittedTranscriptTextReference)
     {
+        UnregisterFallbackInputCallbacks();
         startListeningButton = startButtonReference;
         submitButton = submitButtonReference;
         statusText = statusTextReference;
@@ -100,10 +134,39 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         fallbackInputField = fallbackInputFieldReference;
         liveTranscriptText = liveTranscriptTextReference;
         submittedTranscriptText = submittedTranscriptTextReference;
+        RegisterFallbackInputCallbacks();
+        UpdateSupportText();
+        RefreshButtons();
+    }
+
+    public void ResetForReuse(
+        string readyMessage = "Ready. Click Start Listening to begin.",
+        string waitingMessage = "Waiting for speech...",
+        string submittedMessage = "Nothing submitted yet.")
+    {
+        currentTranscript = string.Empty;
+        isListening = false;
+        isPendingSubmit = false;
+        hasSubmittedCurrentTranscript = false;
+
+        if (fallbackInputField != null)
+        {
+            fallbackInputField.text = string.Empty;
+        }
+
+        UpdateSupportText();
+        UpdateStatus(readyMessage);
+        UpdateLiveTranscript(string.Empty, waitingMessage);
+        UpdateSubmittedTranscript(submittedMessage);
+        RefreshButtons();
+        NotifyTranscriptChanged();
+        NotifyListeningStateChanged();
     }
 
     public void StartListening()
     {
+        hasSubmittedCurrentTranscript = false;
+
 #if UNITY_EDITOR_OSX
         if (CanUseMacEditorSpeech())
         {
@@ -123,6 +186,8 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
             UpdateStatus("Speech is not available here. Use the fallback text field, then click Submit.");
             FocusFallbackInput();
             RefreshButtons();
+            NotifyTranscriptChanged();
+            NotifyListeningStateChanged();
             return;
         }
 
@@ -133,6 +198,8 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         UpdateStatus("Listening. Speak into your mic, then click Submit when you are done.");
         UpdateLiveTranscript(string.Empty);
         RefreshButtons();
+        NotifyTranscriptChanged();
+        NotifyListeningStateChanged();
         BeginSpeechRecognition();
     }
 
@@ -161,11 +228,49 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         FinalizeSubmission();
     }
 
+    public void StopListeningWithoutSubmitting()
+    {
+#if UNITY_EDITOR_OSX
+        if (IsMacEditorSpeechActive())
+        {
+            isListening = false;
+            isPendingSubmit = false;
+            UpdateStatus("Mac speech capture stopped. Type instead or start again.");
+            RefreshButtons();
+            NotifyListeningStateChanged();
+            RequestMacEditorSpeechStop();
+            return;
+        }
+#endif
+
+        if (isListening && IsSpeechRecognitionSupported())
+        {
+            isListening = false;
+            isPendingSubmit = false;
+            UpdateStatus("Speech capture stopped. Type instead or start again.");
+            RefreshButtons();
+            NotifyListeningStateChanged();
+            EndSpeechRecognition();
+            return;
+        }
+
+        isListening = false;
+        isPendingSubmit = false;
+        RefreshButtons();
+        NotifyListeningStateChanged();
+    }
+
+    public void FocusFallbackInputField()
+    {
+        FocusFallbackInput();
+    }
+
     public void HandleTranscriptUpdated(string transcript)
     {
         currentTranscript = transcript == null ? string.Empty : transcript.Trim();
         UpdateLiveTranscript(currentTranscript);
         RefreshButtons();
+        NotifyTranscriptChanged();
     }
 
     public void HandleSpeechStatus(string status)
@@ -179,11 +284,13 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
             case "started":
                 isListening = true;
                 UpdateStatus("Listening. Speak into your mic, then click Submit when you are done.");
+                NotifyListeningStateChanged();
                 break;
 
             case "already-listening":
                 isListening = true;
                 UpdateStatus("Speech recognition is already running.");
+                NotifyListeningStateChanged();
                 break;
 
             case "stopped":
@@ -195,6 +302,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
                 }
 
                 UpdateStatus("Speech capture stopped. You can start again or submit the current transcript.");
+                NotifyListeningStateChanged();
                 break;
 
             case "ended":
@@ -206,6 +314,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
                 }
 
                 UpdateStatus("Speech capture ended. You can start again or submit the current transcript.");
+                NotifyListeningStateChanged();
                 break;
         }
 
@@ -220,6 +329,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         string safeError = string.IsNullOrWhiteSpace(error) ? "unknown error" : error.Trim();
         UpdateStatus("Speech recognition error: " + safeError);
         RefreshButtons();
+        NotifyListeningStateChanged();
     }
 
     public void HandleFallbackInputChanged(string value)
@@ -231,6 +341,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
             currentTranscript = normalizedValue;
             UpdateLiveTranscript(currentTranscript);
             RefreshButtons();
+            NotifyTranscriptChanged();
             return;
         }
 
@@ -238,11 +349,18 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         {
             UpdateLiveTranscript(normalizedValue);
             RefreshButtons();
+            NotifyTranscriptChanged();
         }
     }
 
     private void FinalizeSubmission()
     {
+        if (hasSubmittedCurrentTranscript)
+        {
+            return;
+        }
+
+        hasSubmittedCurrentTranscript = true;
         isListening = false;
         isPendingSubmit = false;
 
@@ -253,6 +371,9 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         UpdateSubmittedTranscript(submittedTranscript);
         UpdateStatus("Submitted. Check the transcript below and the Console output.");
         RefreshButtons();
+        NotifyListeningStateChanged();
+        NotifyTranscriptChanged();
+        TranscriptSubmitted?.Invoke(submittedTranscript);
 
         if (!hasSubmittedWords)
         {
@@ -297,7 +418,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         }
     }
 
-    private void UpdateLiveTranscript(string transcript)
+    private void UpdateLiveTranscript(string transcript, string emptyStateMessage = "Waiting for speech...")
     {
         if (liveTranscriptText == null)
         {
@@ -305,7 +426,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         }
 
         liveTranscriptText.text = string.IsNullOrWhiteSpace(transcript)
-            ? "Waiting for speech..."
+            ? emptyStateMessage
             : transcript;
     }
 
@@ -395,6 +516,8 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         UpdateStatus("Editor test mode: type your pretend speech into the fallback box, then click Submit.");
         UpdateLiveTranscript(string.Empty);
         RefreshButtons();
+        NotifyTranscriptChanged();
+        NotifyListeningStateChanged();
         FocusFallbackInput();
     }
 
@@ -428,6 +551,16 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         }
 
         fallbackInputField.onValueChanged.RemoveListener(HandleFallbackInputChanged);
+    }
+
+    private void NotifyTranscriptChanged()
+    {
+        TranscriptChanged?.Invoke(CurrentDisplayTranscript);
+    }
+
+    private void NotifyListeningStateChanged()
+    {
+        ListeningStateChanged?.Invoke(isListening);
     }
 
     private bool IsMacEditorSpeechEnabled()

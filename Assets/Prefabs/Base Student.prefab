@@ -190,6 +190,9 @@ GameObject:
   - component: {fileID: 5228395516302923419}
   - component: {fileID: 146004818964390229}
   - component: {fileID: 5088951843667480379}
+  - component: {fileID: 6219858393812804444}
+  - component: {fileID: 938998892657910632}
+  - component: {fileID: 7194483652100386412}
   m_Layer: 0
   m_Name: Base Student
   m_TagString: Untagged
@@ -299,8 +302,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b3f84ac97c8e4bb1977e45272c75e923, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   head: {fileID: 5554999724883098399}
   antennaRoot: {fileID: 0}
   torso: {fileID: 9193948351990745245}
@@ -315,12 +318,12 @@ MonoBehaviour:
   eyeLookDistance: 0.075
   eyeLookSmoothTime: 0.08
   idleBobAmount: 0.035
-  movingBobAmount: 0.04
-  idleBobSpeed: 1.1
-  movingBobSpeed: 2.5
+  movingBobAmount: 0.05
+  idleBobSpeed: 1.2
+  movingBobSpeed: 2.7
   idleTorsoBobAmount: 0.01
   movingTorsoBobAmount: 0.028
-  movingTorsoLeanAngle: 2
+  movingTorsoLeanAngle: 7.5
   torsoLeanSmoothTime: 0.12
   speedForFullMovementAnimation: 3.5
   movementBlendSpeed: 5
@@ -348,8 +351,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71d81ac279e24638bc3c115e4bd4a84c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   sortPoint: {fileID: 0}
   localSortPointOffset: {x: 0, y: 0}
   orderOffset: 0
@@ -370,11 +373,11 @@ MonoBehaviour:
   speaker: {fileID: 5088951843667480379}
   mouth: {fileID: 9113725882395993898}
   talkCyclesPerSecond: 5.5
-  leanAngle: 12
+  leanAngle: 0
   closedScaleY: 0.8
-  openScaleY: 1.8
+  openScaleY: 4
   wideScaleX: 1.02
-  narrowScaleX: 0.95
+  narrowScaleX: 0.5
   smoothing: 18
 --- !u!114 &5088951843667480379
 MonoBehaviour:
@@ -389,6 +392,92 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Base Student
+--- !u!114 &7194483652100386412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 857086986703676108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2a1c399ae7d48989e6799c6627cd2ad, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  actor: {fileID: 5088951843667480379}
+  bubbleRoot: {fileID: 6872391054837216042}
+  dotContainer: {fileID: 6324157890234617780}
+  dotSprite: {fileID: -7843262372209666615, guid: 92d949def08ea42779301e90a5816150, type: 3}
+  dotColor: {r: 1, g: 1, b: 1, a: 1}
+  dotSize: 0.12
+  dotSpacing: 0.18
+  dotsOffset: {x: 0, y: 0.08}
+  bounceHeight: 0.09
+  bounceCyclesPerSecond: 1.8
+  dotPhaseOffset: 0.18
+  minimumDotScale: 0.82
+  showWhileSpeaking: 0
+--- !u!114 &6219858393812804444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 857086986703676108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb533da80b4d4cf8986773ce5ed56e86, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  actor: {fileID: 5088951843667480379}
+  explanationNeed:
+  quirk:
+  voiceClip: {fileID: 0}
+  voiceAudioSource: {fileID: 0}
+  voiceVolume: 1
+--- !u!114 &938998892657910632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 857086986703676108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a08f7b7b3134960a447d77f38f4ea71, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  roamArea: {fileID: 0}
+  manualBoundsCenter: {fileID: 4831806537853651990}
+  manualBoundsOffset: {x: 0, y: 0}
+  manualBoundsSize: {x: 4, y: 2}
+  anchorManualBoundsToSpawn: 1
+  destinationSampleAttempts: 12
+  boundaryPadding: 0.15
+  waitIntervalRange: {x: 1, y: 2.25}
+  repathIntervalSeconds: 0.35
+  slowDownRadius: 0.85
+  cornerReachDistance: 0.08
+  stoppingDistance: 0.05
+  destinationSampleDistance: 1
+  partialPathErrorAllowance: 0.35
+  moveSpeed: 1
+  acceleration: 6
+  deceleration: 8
+  collisionSkin: 0.02
+  wallSlideStrength: 1
+  dynamicBlockerAvoidanceDistance: 0.9
+  dynamicBlockerAvoidanceStrength: 0.7
+  dynamicBlockerClearance: 0.12
+  blockedMoveThreshold: 0.01
+  blockedRepickDelay: 0.4
+  collisionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  flipSpriteWithMovement: 0
+  pauseWhileInteracting: 1
+  activatorYieldRadius: 0.85
+  activatorResumeDelay: 0.35
 --- !u!1 &2371908322108556685
 GameObject:
   m_ObjectHideFlags: 0
@@ -485,6 +574,15 @@ MonoBehaviour:
   activator: {fileID: 0}
   questionButton: {fileID: 3255658466205299809}
   questionButtonRoot: {fileID: 2461117383281765137}
+  useSpeechReplyFlow: 1
+  studentActor: {fileID: 5088951843667480379}
+  fallbackQuestionText: Hey, AraBOT. What should I say to the teacher?
+  speechPromptTitle: AraBOT's Reply
+  speechPromptInstructions: Tap the mic above AraBOT, speak your answer, then continue when you are done.
+  repeatLineFormat: 'Okay, so you said: "{0}"'
+  emptyTranscriptFallback: I did not catch AraBOT's reply.
+  useBackendReplyFlow: 0
+  backendPupilName: Mary
 --- !u!114 &554563037739883886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -500,8 +598,7 @@ MonoBehaviour:
   conversationId: base_student_intro
   lines:
   - speaker: {fileID: 5088951843667480379}
-    text: Hey, AraBOT. I am standing in for the real conversation while we wire this
-      area up.
+    text: Hey, AraBOT. What should I say to the teacher?
   - speaker: {fileID: 0}
     text: Nice. The question button worked, and the dialogue box actually showed
       up.
@@ -565,8 +662,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -1398,6 +1495,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2286507845813759275}
+  - {fileID: 6324157890234617780}
   m_Father: {fileID: 4831806537853651990}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1468,6 +1566,81 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!1 &6872391054837216042
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6324157890234617780}
+  - component: {fileID: 8471903654210786325}
+  - component: {fileID: 3654219078632541780}
+  m_Layer: 5
+  m_Name: Popup Thinking
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &6324157890234617780
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6872391054837216042}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7977162340837593692}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 1.9}
+  m_SizeDelta: {x: 1, y: 1}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &8471903654210786325
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6872391054837216042}
+  m_CullTransparentMesh: 1
+--- !u!114 &3654219078632541780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6872391054837216042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 455036487064219887, guid: 92d949def08ea42779301e90a5816150, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &7844497087266671182
 GameObject:
   m_ObjectHideFlags: 0

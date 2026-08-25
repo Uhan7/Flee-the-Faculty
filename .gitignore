@@ -34,3 +34,7 @@ Recordings/
 
 # OS files
 .DS_Store
+
+# Local token bundled only for API test builds
+Assets/Resources/FleeApiClientToken.txt
+Assets/Resources/FleeApiClientToken.txt.meta

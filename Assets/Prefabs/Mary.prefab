@@ -104,6 +104,22 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: displayName
+      value: Mary
+      objectReference: {fileID: 0}
+    - target: {fileID: 1068831040524902323, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: useBackendReplyFlow
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs concrete, explicit explanations with clear examples.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: 'Says every version of it, muddled or clear, as though somebody had already agreed with her.'
+      objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
       value: 

@@ -56,6 +56,14 @@ PrefabInstance:
       propertyPath: displayName
       value: Ruben
       objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs enough detail to retell the explanation in his own words without flattening it.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: 'Repeats your explanation back at twice the length, with one piece added that you never said.'
+      objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
       value: 

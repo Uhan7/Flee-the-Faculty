@@ -1,23 +1,31 @@
 using System.Collections;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 #if UNITY_EDITOR
 using System.IO;
+using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
 [DisallowMultipleComponent]
 public sealed class DoorSceneTransition : MonoBehaviour
 {
+    private const string TransitionPrefabResourcePath = "Prefabs/Door Scene Transition";
+
     // Singleton
     public static DoorSceneTransition Instance { get; private set; }
 
     // Destination
     [Header("Destination")]
-    [SerializeField] private string targetSceneName = "AraBOT Walk Test";
-    [SerializeField] private string targetScenePath = "Assets/Scenes/AraBOT Walk Test.unity";
+#if UNITY_EDITOR
+    [SerializeField] private SceneAsset targetSceneAsset;
+#endif
+    [SerializeField, HideInInspector] private string targetSceneName = "Sample Classroom";
+    [SerializeField, HideInInspector] private string targetScenePath = "Assets/Scenes/Sample Classroom.unity";
 
     // Timing
     [Header("Timing")]
@@ -39,6 +47,13 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [SerializeField] private Vector2 referenceResolution = new Vector2(1600f, 900f);
     [SerializeField] private int sortingOrder = 5000;
 
+    [Header("Loading Text")]
+    [SerializeField] private TMP_FontAsset loadingFont;
+    [SerializeField] private Color loadingTextColor = new Color(0.88f, 0.97f, 1f, 1f);
+    [SerializeField, Min(12f)] private float loadingFontSize = 34f;
+    [SerializeField] private Vector2 loadingTextOffset = new Vector2(0f, -8f);
+    [SerializeField, Min(0f)] private float deferredLoadRegistrationGraceSeconds = 0.08f;
+
     private Canvas canvas;
     private CanvasScaler canvasScaler;
     private GraphicRaycaster graphicRaycaster;
@@ -46,16 +61,47 @@ public sealed class DoorSceneTransition : MonoBehaviour
     private Image blocker;
     private RectTransform topDoor;
     private RectTransform bottomDoor;
+    private TMP_Text loadingText;
     private bool isTransitioning;
     private bool isWaitingForSceneLoad;
     private bool hasLoadedRequestedScene;
     private bool hasPlayedStartupOpen;
     private float currentCoverage;
     private Vector2 lastCanvasSize;
+    private readonly Dictionary<string, DeferredLoadTask> deferredLoadTasks = new Dictionary<string, DeferredLoadTask>();
+
+    public static bool TryRegisterLoadingTask(string taskId, string status, float progress = 0f, float weight = 1f)
+    {
+        return Instance != null && Instance.RegisterLoadingTask(taskId, status, progress, weight);
+    }
+
+    public static void UpdateLoadingTask(string taskId, float progress, string status = null)
+    {
+        Instance?.UpdateRegisteredTask(taskId, progress, status);
+    }
+
+    public static void CompleteLoadingTask(string taskId, string status = null)
+    {
+        Instance?.CompleteRegisteredTask(taskId, status);
+    }
 
     public void TransitionToConfiguredScene()
     {
         BeginTransition(targetSceneName, targetScenePath);
+    }
+
+    public static DoorSceneTransition EnsureExists()
+    {
+        return EnsureInstance();
+    }
+
+    public static void LoadConfiguredScene()
+    {
+        DoorSceneTransition transition = EnsureInstance();
+        if (transition != null)
+        {
+            transition.TransitionToConfiguredScene();
+        }
     }
 
     public void TransitionToScene(string sceneName)
@@ -86,10 +132,28 @@ public sealed class DoorSceneTransition : MonoBehaviour
             return existingInstance;
         }
 
-        GameObject transitionObject = new GameObject("Door Scene Transition");
-        DoorSceneTransition createdInstance = transitionObject.AddComponent<DoorSceneTransition>();
+        DoorSceneTransition createdInstance = CreateInstanceFromPrefab();
+        if (createdInstance == null)
+        {
+            GameObject transitionObject = new GameObject("Door Scene Transition");
+            createdInstance = transitionObject.AddComponent<DoorSceneTransition>();
+        }
+
         createdInstance.InitializeVisuals();
         return createdInstance;
+    }
+
+    private static DoorSceneTransition CreateInstanceFromPrefab()
+    {
+        GameObject transitionPrefab = Resources.Load<GameObject>(TransitionPrefabResourcePath);
+        if (transitionPrefab == null)
+        {
+            return null;
+        }
+
+        GameObject transitionInstance = Instantiate(transitionPrefab);
+        transitionInstance.name = transitionPrefab.name;
+        return transitionInstance.GetComponent<DoorSceneTransition>();
     }
 
     private void Awake()
@@ -106,6 +170,35 @@ public sealed class DoorSceneTransition : MonoBehaviour
         SetDoorCoverage(1f);
         SetInputBlocked(false);
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        SyncTargetSceneMetadata();
+    }
+
+    private void Reset()
+    {
+        SyncTargetSceneMetadata();
+    }
+
+    private void SyncTargetSceneMetadata()
+    {
+        if (targetSceneAsset == null)
+        {
+            return;
+        }
+
+        string assetPath = AssetDatabase.GetAssetPath(targetSceneAsset);
+        if (string.IsNullOrWhiteSpace(assetPath))
+        {
+            return;
+        }
+
+        targetScenePath = assetPath;
+        targetSceneName = Path.GetFileNameWithoutExtension(assetPath);
+    }
+#endif
 
     private void Start()
     {
@@ -125,9 +218,14 @@ public sealed class DoorSceneTransition : MonoBehaviour
         SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
+    private void OnRectTransformDimensionsChange()
+    {
+        RefreshDoorLayout(forceRefresh: true);
+    }
+
     private void LateUpdate()
     {
-        RefreshDoorLayoutIfNeeded();
+        RefreshDoorLayout();
     }
 
     private void OnDisable()
@@ -165,7 +263,10 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield return WaitForSecondsRealtime(startupHoldClosedDuration);
         }
 
+        yield return WaitForDeferredLoadsAtStartup();
+
         yield return AnimateDoors(1f, 0f, openDuration);
+        SetLoadingTextVisible(false);
         SetInputBlocked(false);
     }
 
@@ -173,6 +274,8 @@ public sealed class DoorSceneTransition : MonoBehaviour
     {
         isTransitioning = true;
         SetInputBlocked(true);
+        deferredLoadTasks.Clear();
+        UpdateLoadingText(0f, "Closing doors...");
 
         yield return AnimateDoors(0f, 1f, closeDuration);
 
@@ -191,6 +294,8 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield return null;
         }
 
+        yield return WaitForDeferredLoadsAfterSceneLoad();
+
         if (postLoadDelay > 0f)
         {
             yield return WaitForSecondsRealtime(postLoadDelay);
@@ -198,8 +303,10 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
         yield return AnimateDoors(1f, 0f, openDuration);
 
+        SetLoadingTextVisible(false);
         SetInputBlocked(false);
         isTransitioning = false;
+        deferredLoadTasks.Clear();
     }
 
     private IEnumerator AnimateDoors(float fromCoverage, float toCoverage, float duration)
@@ -253,13 +360,22 @@ public sealed class DoorSceneTransition : MonoBehaviour
                 "DoorSceneTransition could not load the requested scene. " +
                 "Pass a valid scene path for editor play mode or add the scene to Build Settings.");
             isWaitingForSceneLoad = false;
+            SetLoadingTextVisible(false);
             yield break;
         }
 
+        UpdateLoadingText(0f, "Loading scene...");
+
         while (!loadOperation.isDone)
         {
+            float normalizedProgress = loadOperation.progress >= 0.9f
+                ? 1f
+                : Mathf.Clamp01(loadOperation.progress / 0.9f);
+            UpdateLoadingText(normalizedProgress * 0.85f, "Loading scene...");
             yield return null;
         }
+
+        UpdateLoadingText(0.85f, "Scene loaded.");
     }
 
     private void InitializeVisuals()
@@ -306,12 +422,14 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
         topDoor = GetOrCreateDoor("Top Door");
         bottomDoor = GetOrCreateDoor("Bottom Door");
+        loadingText = GetOrCreateLoadingText();
 
         Canvas.ForceUpdateCanvases();
         lastCanvasSize = Vector2.zero;
-        RefreshDoorLayoutIfNeeded();
+        RefreshDoorLayout(forceRefresh: true);
         SetDoorCoverage(1f);
         SetInputBlocked(false);
+        SetLoadingTextVisible(false);
     }
 
     private void SetDoorCoverage(float coverage)
@@ -379,6 +497,35 @@ public sealed class DoorSceneTransition : MonoBehaviour
         return image;
     }
 
+    private TMP_Text GetOrCreateLoadingText()
+    {
+        Transform existingChild = transform.Find("Loading Text");
+        TextMeshProUGUI textComponent = existingChild != null ? existingChild.GetComponent<TextMeshProUGUI>() : null;
+        if (textComponent == null)
+        {
+            GameObject textObject = new GameObject("Loading Text");
+            textObject.transform.SetParent(transform, false);
+            textComponent = textObject.AddComponent<TextMeshProUGUI>();
+        }
+
+        RectTransform rectTransform = textComponent.rectTransform;
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = loadingTextOffset;
+        rectTransform.sizeDelta = new Vector2(720f, 140f);
+        rectTransform.localScale = Vector3.one;
+
+        textComponent.font = loadingFont != null ? loadingFont : TMP_Settings.defaultFontAsset;
+        textComponent.fontSize = loadingFontSize;
+        textComponent.color = loadingTextColor;
+        textComponent.alignment = TextAlignmentOptions.Center;
+        textComponent.enableWordWrapping = true;
+        textComponent.raycastTarget = false;
+        textComponent.text = string.Empty;
+        return textComponent;
+    }
+
     private RectTransform GetOrCreateDoor(string objectName)
     {
         Image doorImage = GetOrCreateImage(objectName, doorColor, Vector2.zero, Vector2.one, false);
@@ -400,10 +547,10 @@ public sealed class DoorSceneTransition : MonoBehaviour
         doorImage.color = doorColor;
     }
 
-    private void RefreshDoorLayoutIfNeeded()
+    private void RefreshDoorLayout(bool forceRefresh = false)
     {
         Vector2 canvasSize = GetCanvasSize();
-        if ((canvasSize - lastCanvasSize).sqrMagnitude <= 0.01f)
+        if (!forceRefresh && (canvasSize - lastCanvasSize).sqrMagnitude <= 0.01f)
         {
             return;
         }
@@ -414,23 +561,26 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     private Vector2 GetCanvasSize()
     {
+        Canvas activeCanvas = canvas != null && canvas.rootCanvas != null
+            ? canvas.rootCanvas
+            : canvas;
+        if (activeCanvas != null)
+        {
+            Rect pixelRect = activeCanvas.pixelRect;
+            float scaleFactor = Mathf.Max(activeCanvas.scaleFactor, 0.0001f);
+            Vector2 scaledSize = new Vector2(pixelRect.width / scaleFactor, pixelRect.height / scaleFactor);
+            if (scaledSize.x > 1f && scaledSize.y > 1f)
+            {
+                return scaledSize;
+            }
+        }
+
         if (rootRect != null)
         {
             Vector2 rectSize = rootRect.rect.size;
             if (rectSize.x > 1f && rectSize.y > 1f)
             {
                 return rectSize;
-            }
-        }
-
-        if (canvas != null)
-        {
-            Rect pixelRect = canvas.pixelRect;
-            float scaleFactor = Mathf.Max(canvas.scaleFactor, 1f);
-            Vector2 scaledSize = new Vector2(pixelRect.width / scaleFactor, pixelRect.height / scaleFactor);
-            if (scaledSize.x > 1f && scaledSize.y > 1f)
-            {
-                return scaledSize;
             }
         }
 
@@ -475,6 +625,185 @@ public sealed class DoorSceneTransition : MonoBehaviour
         isWaitingForSceneLoad = false;
     }
 
+    private bool RegisterLoadingTask(string taskId, string status, float progress, float weight)
+    {
+        if (string.IsNullOrWhiteSpace(taskId))
+        {
+            return false;
+        }
+
+        deferredLoadTasks[taskId] = new DeferredLoadTask(
+            Mathf.Clamp01(progress),
+            Mathf.Max(0.01f, weight),
+            false,
+            string.IsNullOrWhiteSpace(status) ? "Loading..." : status.Trim());
+        return true;
+    }
+
+    private void UpdateRegisteredTask(string taskId, float progress, string status)
+    {
+        if (string.IsNullOrWhiteSpace(taskId) || !deferredLoadTasks.TryGetValue(taskId, out DeferredLoadTask task))
+        {
+            return;
+        }
+
+        task.Progress = Mathf.Clamp01(progress);
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            task.Status = status.Trim();
+        }
+
+        deferredLoadTasks[taskId] = task;
+    }
+
+    private void CompleteRegisteredTask(string taskId, string status)
+    {
+        if (string.IsNullOrWhiteSpace(taskId))
+        {
+            return;
+        }
+
+        if (!deferredLoadTasks.TryGetValue(taskId, out DeferredLoadTask task))
+        {
+            task = new DeferredLoadTask(1f, 1f, true, string.Empty);
+        }
+
+        task.Progress = 1f;
+        task.IsComplete = true;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            task.Status = status.Trim();
+        }
+
+        deferredLoadTasks[taskId] = task;
+    }
+
+    private IEnumerator WaitForDeferredLoadsAtStartup()
+    {
+        float graceEndTime = Time.unscaledTime + deferredLoadRegistrationGraceSeconds;
+        while (Time.unscaledTime < graceEndTime && deferredLoadTasks.Count == 0)
+        {
+            UpdateLoadingText(0f, "Preparing classroom...");
+            yield return null;
+        }
+
+        if (deferredLoadTasks.Count == 0)
+        {
+            SetLoadingTextVisible(false);
+            yield break;
+        }
+
+        while (HasPendingDeferredLoads())
+        {
+            UpdateLoadingText(CalculateDeferredLoadProgress(), GetPrimaryDeferredLoadStatus("Preparing classroom..."));
+            yield return null;
+        }
+    }
+
+    private IEnumerator WaitForDeferredLoadsAfterSceneLoad()
+    {
+        float graceEndTime = Time.unscaledTime + deferredLoadRegistrationGraceSeconds;
+        while (Time.unscaledTime < graceEndTime && deferredLoadTasks.Count == 0)
+        {
+            UpdateLoadingText(0.85f, "Preparing classroom...");
+            yield return null;
+        }
+
+        if (deferredLoadTasks.Count == 0)
+        {
+            SetLoadingTextVisible(false);
+            yield break;
+        }
+
+        while (HasPendingDeferredLoads())
+        {
+            float overallProgress = Mathf.Lerp(0.85f, 1f, CalculateDeferredLoadProgress());
+            UpdateLoadingText(overallProgress, GetPrimaryDeferredLoadStatus("Preparing classroom..."));
+            yield return null;
+        }
+
+        UpdateLoadingText(1f, "Ready.");
+    }
+
+    private bool HasPendingDeferredLoads()
+    {
+        foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
+        {
+            if (!entry.Value.IsComplete)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private float CalculateDeferredLoadProgress()
+    {
+        if (deferredLoadTasks.Count == 0)
+        {
+            return 1f;
+        }
+
+        float weightedProgress = 0f;
+        float totalWeight = 0f;
+        foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
+        {
+            weightedProgress += entry.Value.Progress * entry.Value.Weight;
+            totalWeight += entry.Value.Weight;
+        }
+
+        if (totalWeight <= 0.0001f)
+        {
+            return 1f;
+        }
+
+        return Mathf.Clamp01(weightedProgress / totalWeight);
+    }
+
+    private string GetPrimaryDeferredLoadStatus(string fallbackStatus)
+    {
+        foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
+        {
+            if (!entry.Value.IsComplete && !string.IsNullOrWhiteSpace(entry.Value.Status))
+            {
+                return entry.Value.Status;
+            }
+        }
+
+        foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
+        {
+            if (!string.IsNullOrWhiteSpace(entry.Value.Status))
+            {
+                return entry.Value.Status;
+            }
+        }
+
+        return fallbackStatus;
+    }
+
+    private void UpdateLoadingText(float progress, string status)
+    {
+        if (loadingText == null)
+        {
+            return;
+        }
+
+        SetLoadingTextVisible(true);
+
+        int percent = Mathf.RoundToInt(Mathf.Clamp01(progress) * 100f);
+        string safeStatus = string.IsNullOrWhiteSpace(status) ? "Loading..." : status.Trim();
+        loadingText.text = safeStatus + "\n" + percent + "%";
+    }
+
+    private void SetLoadingTextVisible(bool visible)
+    {
+        if (loadingText != null)
+        {
+            loadingText.gameObject.SetActive(visible);
+        }
+    }
+
     private T GetOrAddComponent<T>() where T : Component
     {
         T component = GetComponent<T>();
@@ -505,5 +834,21 @@ public sealed class DoorSceneTransition : MonoBehaviour
             elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
+    }
+
+    private struct DeferredLoadTask
+    {
+        public DeferredLoadTask(float progress, float weight, bool isComplete, string status)
+        {
+            Progress = progress;
+            Weight = weight;
+            IsComplete = isComplete;
+            Status = status;
+        }
+
+        public float Progress;
+        public float Weight;
+        public bool IsComplete;
+        public string Status;
     }
 }

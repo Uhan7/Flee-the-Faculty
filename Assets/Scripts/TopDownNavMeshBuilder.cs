@@ -257,6 +257,11 @@ public sealed class TopDownNavMeshBuilder : MonoBehaviour
                 return false;
             }
 
+            if (attachedBody.TryGetComponent(out StudentRoamingController _))
+            {
+                return false;
+            }
+
             if (attachedBody.gameObject == gameObject)
             {
                 return false;

@@ -17,6 +17,7 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
     private Vector3 baseScale;
     private Quaternion baseRotation;
     private Quaternion talkingBaseRotation;
+    private bool isCurrentSpeaker;
     private bool isTalking;
 
     private void Awake()
@@ -55,6 +56,7 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
             dialogueManager.DialogueEnded -= HandleDialogueEnded;
         }
 
+        isCurrentSpeaker = false;
         isTalking = false;
         ResetMouthPose();
     }
@@ -66,13 +68,23 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
             return;
         }
 
-        if (!isTalking)
+        bool shouldTalk = isCurrentSpeaker
+            && dialogueManager != null
+            && dialogueManager.IsPlaying
+            && dialogueManager.IsTyping;
+
+        if (!shouldTalk)
         {
-            mouth.localScale = Vector3.Lerp(mouth.localScale, baseScale, GetLerpFactor(Time.unscaledDeltaTime));
-            mouth.localRotation = Quaternion.Lerp(mouth.localRotation, baseRotation, GetLerpFactor(Time.unscaledDeltaTime));
+            if (isTalking)
+            {
+                isTalking = false;
+                ResetMouthPose();
+            }
+
             return;
         }
 
+        isTalking = true;
         float wave = Mathf.Sin(Time.unscaledTime * talkCyclesPerSecond * Mathf.PI * 2f);
         float talkBlend = (wave + 1f) * 0.5f;
 
@@ -89,12 +101,19 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
 
     private void HandleLineChanged(IDialogueLine line, int _)
     {
-        isTalking = line != null && line.SpeakerReference == speaker;
+        isCurrentSpeaker = line != null && line.SpeakerReference == speaker;
+        if (!isCurrentSpeaker)
+        {
+            isTalking = false;
+            ResetMouthPose();
+        }
     }
 
     private void HandleDialogueEnded(IDialogueSequence _)
     {
+        isCurrentSpeaker = false;
         isTalking = false;
+        ResetMouthPose();
     }
 
     private void ResetMouthPose()
