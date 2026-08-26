@@ -55,8 +55,10 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private bool hasDestination;
     private bool hitDynamicBlockerThisFrame;
     private bool isDetouringAroundDynamicBlocker;
+    private bool isConversationMovementLocked;
 
     public Vector2 CurrentVelocity => currentVelocity;
+    public bool IsConversationMovementLocked => isConversationMovementLocked;
 
     private void Awake()
     {
@@ -106,13 +108,30 @@ public sealed class AraBotClickToMove : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (isConversationMovementLocked)
+        {
+            StopForConversation();
+            return;
+        }
+
         UpdateMovement(Time.fixedDeltaTime);
+    }
+
+    public void SetConversationMovementLocked(bool locked)
+    {
+        isConversationMovementLocked = locked;
+        if (locked)
+        {
+            StopForConversation();
+        }
     }
 
     // Converts left-clicks into 2D world targets sampled against the runtime NavMesh.
     private void HandleClick()
     {
-        if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
+        if (isConversationMovementLocked
+            || Mouse.current == null
+            || !Mouse.current.leftButton.wasPressedThisFrame)
         {
             return;
         }
@@ -134,6 +153,19 @@ public sealed class AraBotClickToMove : MonoBehaviour
             ToNavMeshPosition(worldTarget),
             clearPathOnFailure: true,
             setAsFinalDestination: true);
+    }
+
+    private void StopForConversation()
+    {
+        currentVelocity = Vector2.zero;
+        blockedTimer = 0f;
+        ClearPath();
+
+        if (body != null)
+        {
+            body.linearVelocity = Vector2.zero;
+            body.angularVelocity = 0f;
+        }
     }
 
     private void UpdateMovement(float deltaTime)

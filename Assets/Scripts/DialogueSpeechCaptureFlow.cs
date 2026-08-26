@@ -542,27 +542,65 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private bool WasAdvancePressed()
     {
-        bool pressed = false;
+        bool keyboardPressed = false;
+        bool pointerPressed = false;
+        Vector2 pointerPosition = Vector2.zero;
 
 #if ENABLE_INPUT_SYSTEM
         if (Mouse.current != null)
         {
-            pressed |= Mouse.current.leftButton.wasPressedThisFrame;
+            pointerPressed |= Mouse.current.leftButton.wasPressedThisFrame;
+            pointerPosition = Mouse.current.position.ReadValue();
         }
 
         if (Keyboard.current != null)
         {
-            pressed |= Keyboard.current.spaceKey.wasPressedThisFrame;
-            pressed |= Keyboard.current.enterKey.wasPressedThisFrame;
+            keyboardPressed |= Keyboard.current.spaceKey.wasPressedThisFrame;
+            keyboardPressed |= Keyboard.current.enterKey.wasPressedThisFrame;
         }
 #endif
 
 #if ENABLE_LEGACY_INPUT_MANAGER
-        pressed |= Input.GetMouseButtonDown(0);
-        pressed |= Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
+        if (Input.GetMouseButtonDown(0))
+        {
+            pointerPressed = true;
+            pointerPosition = Input.mousePosition;
+        }
+
+        keyboardPressed |= Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
 #endif
 
-        return pressed;
+        return keyboardPressed || (pointerPressed && !IsPointerOverPromptButton(pointerPosition));
+    }
+
+    private bool IsPointerOverPromptButton(Vector2 screenPosition)
+    {
+        promptButtons = ResolvePromptButtons();
+        for (int index = 0; index < promptButtons.Length; index++)
+        {
+            AraBotPromptButton promptButton = promptButtons[index];
+            if (promptButton == null || !promptButton.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            RectTransform buttonRect = promptButton.transform as RectTransform;
+            if (buttonRect == null)
+            {
+                continue;
+            }
+
+            Canvas canvas = promptButton.GetComponentInParent<Canvas>();
+            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera != null ? canvas.worldCamera : Camera.main
+                : null;
+            if (RectTransformUtility.RectangleContainsScreenPoint(buttonRect, screenPosition, eventCamera))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private enum PromptState

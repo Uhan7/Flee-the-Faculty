@@ -7,25 +7,24 @@ using UnityEngine.UI;
 
 #if UNITY_EDITOR
 using System.IO;
-using UnityEditor;
 using UnityEditor.SceneManagement;
 #endif
 
 [DisallowMultipleComponent]
 public sealed class DoorSceneTransition : MonoBehaviour
 {
-    private const string TransitionPrefabResourcePath = "Prefabs/Door Scene Transition";
+    private const string TransitionPrefabResourcePath = "Door Scene Transition";
 
     // Singleton
     public static DoorSceneTransition Instance { get; private set; }
 
-    // Destination
-    [Header("Destination")]
-#if UNITY_EDITOR
-    [SerializeField] private SceneAsset targetSceneAsset;
-#endif
-    [SerializeField, HideInInspector] private string targetSceneName = "Sample Classroom";
-    [SerializeField, HideInInspector] private string targetScenePath = "Assets/Scenes/Sample Classroom.unity";
+    [Header("Prefab References")]
+    [SerializeField] private Canvas canvas;
+    [SerializeField] private RectTransform rootRect;
+    [SerializeField] private Image blocker;
+    [SerializeField] private RectTransform topDoor;
+    [SerializeField] private RectTransform bottomDoor;
+    [SerializeField] private TMP_Text loadingText;
 
     // Timing
     [Header("Timing")]
@@ -39,29 +38,13 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [SerializeField] private bool playOpenOnStart = true;
     [SerializeField, Min(0f)] private float startupHoldClosedDuration = 0.1f;
 
-    // Look
-    [Header("Look")]
-    [SerializeField] private Sprite doorSprite;
-    [SerializeField] private Color doorColor = new Color(0.08f, 0.11f, 0.15f, 1f);
+    [Header("Animation Layout")]
     [SerializeField, Min(0f)] private float doorOvershoot = 28f;
     [SerializeField] private Vector2 referenceResolution = new Vector2(1600f, 900f);
-    [SerializeField] private int sortingOrder = 5000;
 
-    [Header("Loading Text")]
-    [SerializeField] private TMP_FontAsset loadingFont;
-    [SerializeField] private Color loadingTextColor = new Color(0.88f, 0.97f, 1f, 1f);
-    [SerializeField, Min(12f)] private float loadingFontSize = 34f;
-    [SerializeField] private Vector2 loadingTextOffset = new Vector2(0f, -8f);
+    [Header("Loading")]
     [SerializeField, Min(0f)] private float deferredLoadRegistrationGraceSeconds = 0.08f;
 
-    private Canvas canvas;
-    private CanvasScaler canvasScaler;
-    private GraphicRaycaster graphicRaycaster;
-    private RectTransform rootRect;
-    private Image blocker;
-    private RectTransform topDoor;
-    private RectTransform bottomDoor;
-    private TMP_Text loadingText;
     private bool isTransitioning;
     private bool isWaitingForSceneLoad;
     private bool hasLoadedRequestedScene;
@@ -86,23 +69,9 @@ public sealed class DoorSceneTransition : MonoBehaviour
         Instance?.CompleteRegisteredTask(taskId, status);
     }
 
-    public void TransitionToConfiguredScene()
-    {
-        BeginTransition(targetSceneName, targetScenePath);
-    }
-
     public static DoorSceneTransition EnsureExists()
     {
         return EnsureInstance();
-    }
-
-    public static void LoadConfiguredScene()
-    {
-        DoorSceneTransition transition = EnsureInstance();
-        if (transition != null)
-        {
-            transition.TransitionToConfiguredScene();
-        }
     }
 
     public void TransitionToScene(string sceneName)
@@ -136,8 +105,10 @@ public sealed class DoorSceneTransition : MonoBehaviour
         DoorSceneTransition createdInstance = CreateInstanceFromPrefab();
         if (createdInstance == null)
         {
-            GameObject transitionObject = new GameObject("Door Scene Transition");
-            createdInstance = transitionObject.AddComponent<DoorSceneTransition>();
+            Debug.LogError(
+                "Door scene transition prefab is missing or has no DoorSceneTransition component. " +
+                "Expected Resources/Door Scene Transition.prefab.");
+            return null;
         }
 
         createdInstance.InitializeVisuals();
@@ -172,34 +143,52 @@ public sealed class DoorSceneTransition : MonoBehaviour
         SetInputBlocked(false);
     }
 
-#if UNITY_EDITOR
     private void OnValidate()
     {
-        SyncTargetSceneMetadata();
+        ResolvePrefabReferences();
     }
 
     private void Reset()
     {
-        SyncTargetSceneMetadata();
+        ResolvePrefabReferences();
     }
 
-    private void SyncTargetSceneMetadata()
+    private void ResolvePrefabReferences()
     {
-        if (targetSceneAsset == null)
+        if (canvas == null)
         {
-            return;
+            canvas = GetComponent<Canvas>();
         }
 
-        string assetPath = AssetDatabase.GetAssetPath(targetSceneAsset);
-        if (string.IsNullOrWhiteSpace(assetPath))
+        if (rootRect == null)
         {
-            return;
+            rootRect = transform as RectTransform;
         }
 
-        targetScenePath = assetPath;
-        targetSceneName = Path.GetFileNameWithoutExtension(assetPath);
+        if (blocker == null)
+        {
+            Transform blockerTransform = transform.Find("Blocker");
+            blocker = blockerTransform != null ? blockerTransform.GetComponent<Image>() : null;
+        }
+
+        if (topDoor == null)
+        {
+            Transform topDoorTransform = transform.Find("Top Door");
+            topDoor = topDoorTransform as RectTransform;
+        }
+
+        if (bottomDoor == null)
+        {
+            Transform bottomDoorTransform = transform.Find("Bottom Door");
+            bottomDoor = bottomDoorTransform as RectTransform;
+        }
+
+        if (loadingText == null)
+        {
+            Transform loadingTextTransform = transform.Find("Loading Text");
+            loadingText = loadingTextTransform != null ? loadingTextTransform.GetComponent<TMP_Text>() : null;
+        }
     }
-#endif
 
     private void Start()
     {
@@ -381,49 +370,22 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     private void InitializeVisuals()
     {
-        if (canvas != null &&
-            canvasScaler != null &&
-            graphicRaycaster != null &&
-            rootRect != null &&
-            blocker != null &&
-            topDoor != null &&
-            bottomDoor != null)
+        ResolvePrefabReferences();
+        if (canvas == null ||
+            rootRect == null ||
+            blocker == null ||
+            topDoor == null ||
+            bottomDoor == null ||
+            loadingText == null)
         {
+            Debug.LogError(
+                "DoorSceneTransition is missing prefab references. " +
+                "Assign the Canvas, doors, blocker, and loading text in the transition prefab.",
+                this);
             return;
         }
 
         DontDestroyOnLoad(gameObject);
-
-        canvas = GetOrAddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = sortingOrder;
-
-        canvasScaler = GetOrAddComponent<CanvasScaler>();
-        canvasScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        canvasScaler.referenceResolution = referenceResolution;
-        canvasScaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        canvasScaler.matchWidthOrHeight = 0.5f;
-
-        graphicRaycaster = GetOrAddComponent<GraphicRaycaster>();
-        rootRect = transform as RectTransform;
-        if (rootRect == null)
-        {
-            rootRect = gameObject.AddComponent<RectTransform>();
-        }
-
-        rootRect.anchorMin = Vector2.zero;
-        rootRect.anchorMax = Vector2.one;
-        rootRect.offsetMin = Vector2.zero;
-        rootRect.offsetMax = Vector2.zero;
-        rootRect.anchoredPosition = Vector2.zero;
-
-        blocker = GetOrCreateImage("Blocker", new Color(0f, 0f, 0f, 0f), Vector2.zero, Vector2.one, true);
-        blocker.rectTransform.offsetMin = Vector2.zero;
-        blocker.rectTransform.offsetMax = Vector2.zero;
-
-        topDoor = GetOrCreateDoor("Top Door");
-        bottomDoor = GetOrCreateDoor("Bottom Door");
-        loadingText = GetOrCreateLoadingText();
 
         Canvas.ForceUpdateCanvases();
         lastCanvasSize = Vector2.zero;
@@ -465,87 +427,6 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
         blocker.enabled = isBlocked;
         blocker.raycastTarget = isBlocked;
-    }
-
-    private Image GetOrCreateImage(
-        string objectName,
-        Color color,
-        Vector2 anchorMin,
-        Vector2 anchorMax,
-        bool shouldBlockRaycasts)
-    {
-        Transform existingChild = transform.Find(objectName);
-        Image image = existingChild != null ? existingChild.GetComponent<Image>() : null;
-        RectTransform rectTransform;
-
-        if (image == null)
-        {
-            GameObject imageObject = new GameObject(objectName);
-            imageObject.transform.SetParent(transform, false);
-            image = imageObject.AddComponent<Image>();
-        }
-
-        rectTransform = image.rectTransform;
-        rectTransform.anchorMin = anchorMin;
-        rectTransform.anchorMax = anchorMax;
-        rectTransform.offsetMin = Vector2.zero;
-        rectTransform.offsetMax = Vector2.zero;
-        rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        rectTransform.localScale = Vector3.one;
-        image.color = color;
-        image.raycastTarget = shouldBlockRaycasts;
-
-        return image;
-    }
-
-    private TMP_Text GetOrCreateLoadingText()
-    {
-        Transform existingChild = transform.Find("Loading Text");
-        TextMeshProUGUI textComponent = existingChild != null ? existingChild.GetComponent<TextMeshProUGUI>() : null;
-        if (textComponent == null)
-        {
-            GameObject textObject = new GameObject("Loading Text");
-            textObject.transform.SetParent(transform, false);
-            textComponent = textObject.AddComponent<TextMeshProUGUI>();
-        }
-
-        RectTransform rectTransform = textComponent.rectTransform;
-        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-        rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        rectTransform.anchoredPosition = loadingTextOffset;
-        rectTransform.sizeDelta = new Vector2(720f, 140f);
-        rectTransform.localScale = Vector3.one;
-
-        textComponent.font = loadingFont != null ? loadingFont : TMP_Settings.defaultFontAsset;
-        textComponent.fontSize = loadingFontSize;
-        textComponent.color = loadingTextColor;
-        textComponent.alignment = TextAlignmentOptions.Center;
-        textComponent.enableWordWrapping = true;
-        textComponent.raycastTarget = false;
-        textComponent.text = string.Empty;
-        return textComponent;
-    }
-
-    private RectTransform GetOrCreateDoor(string objectName)
-    {
-        Image doorImage = GetOrCreateImage(objectName, doorColor, Vector2.zero, Vector2.one, false);
-        ApplyDoorImageStyle(doorImage);
-        doorImage.rectTransform.sizeDelta = Vector2.zero;
-        return doorImage.rectTransform;
-    }
-
-    private void ApplyDoorImageStyle(Image doorImage)
-    {
-        if (doorImage == null)
-        {
-            return;
-        }
-
-        doorImage.sprite = doorSprite;
-        doorImage.type = doorSprite != null ? Image.Type.Sliced : Image.Type.Simple;
-        doorImage.preserveAspect = false;
-        doorImage.color = doorColor;
     }
 
     private void RefreshDoorLayout(bool forceRefresh = false)
@@ -803,17 +684,6 @@ public sealed class DoorSceneTransition : MonoBehaviour
         {
             loadingText.gameObject.SetActive(visible);
         }
-    }
-
-    private T GetOrAddComponent<T>() where T : Component
-    {
-        T component = GetComponent<T>();
-        if (component == null)
-        {
-            component = gameObject.AddComponent<T>();
-        }
-
-        return component;
     }
 
     private static float EaseInOutCubic(float value)

@@ -22,13 +22,15 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     [Header("Backend API Test")]
     [SerializeField] private bool useBackendReplyFlow;
+    [SerializeField, HideInInspector] private string backendPupilId;
     [SerializeField] private string backendPupilName = "Mary";
 
     private Coroutine beginDialogueRoutine;
-    private Coroutine backendPreloadRoutine;
     private Collider2D interactionZone;
     private DialogueManager dialogueManager;
     private StudentRoamingController roamingController;
+    private AraBotClickToMove activeActivatorMovement;
+    private Transform activeActivatorTransform;
     private CharacterActivityBubble activityBubble;
     private DialogueSpeechCaptureFlow speechCaptureFlow;
     private RuntimeDialogueSequence activeQuestionDialogue;
@@ -41,11 +43,31 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private bool isActivatorInside;
     private bool isBackendQuestionLoading;
     private bool isBackendQuestionReady;
+    private bool isConversationModeActive;
     private bool isSpeechFlowActive;
-    private bool retrySpeechAfterReply;
+    private bool requestAnotherSpeechReply;
+    private bool canRevisitAfterInteraction;
     private string lastCapturedSpeech = string.Empty;
 
     public string LastCapturedSpeech => lastCapturedSpeech;
+
+    public void ConfigureBackendPupil(FleePupilSession pupil)
+    {
+        if (pupil == null)
+        {
+            return;
+        }
+
+        useSpeechReplyFlow = true;
+        useBackendReplyFlow = true;
+        backendPupilId = pupil.PupilId;
+        backendPupilName = pupil.Name;
+        activeEncounter = null;
+        isBackendQuestionReady = false;
+        backendPreloadFailure = null;
+        canRevisitAfterInteraction = false;
+        preloadedQuestionDialogue = BuildQuestionDialogue();
+    }
 
     private void Reset()
     {
@@ -98,11 +120,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         dialogueManager = DialogueManager.GetOrCreate();
         if (dialogueManager != null)
         {
+            dialogueManager.DialogueStarted += HandleDialogueStarted;
             dialogueManager.DialogueEnded += HandleDialogueEnded;
         }
 
         preloadedQuestionDialogue = BuildQuestionDialogue();
-        StartBackendQuestionPreloadIfNeeded();
         RefreshQuestionButton();
     }
 
@@ -115,6 +137,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (dialogueManager != null)
         {
+            dialogueManager.DialogueStarted -= HandleDialogueStarted;
             dialogueManager.DialogueEnded -= HandleDialogueEnded;
         }
 
@@ -122,14 +145,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         {
             StopCoroutine(beginDialogueRoutine);
             beginDialogueRoutine = null;
-        }
-
-        if (backendPreloadRoutine != null)
-        {
-            StopCoroutine(backendPreloadRoutine);
-            backendPreloadRoutine = null;
-            isBackendQuestionLoading = false;
-            DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Loading skipped.");
+            if (isBackendQuestionLoading)
+            {
+                isBackendQuestionLoading = false;
+                DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Loading skipped.");
+            }
         }
 
         if (speechCaptureFlow != null)
@@ -137,6 +157,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             speechCaptureFlow.Hide();
         }
 
+        EndConversationMode();
         SetThinkingBubbleVisible(false);
 
         ClearInteractionTargetFocus();
@@ -162,7 +183,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
 
         isActivatorInside = false;
-        ClearInteractionTargetFocus(other);
+        if (!isConversationModeActive)
+        {
+            ClearInteractionTargetFocus(other);
+        }
+
         RefreshQuestionButton();
     }
 
@@ -174,6 +199,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
 
         SetQuestionButtonVisible(false);
+        BeginConversationMode();
 
         if (beginDialogueRoutine != null)
         {
@@ -192,6 +218,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (!CanStartDefaultDialogue())
         {
+            EndConversationMode();
             RefreshQuestionButton();
             yield break;
         }
@@ -203,6 +230,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (dialogueManager == null || !dialogueManager.Play(dialogue))
         {
+            EndConversationMode();
             RefreshQuestionButton();
         }
     }
@@ -210,10 +238,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private IEnumerator BeginSpeechReplyFlowNextFrame()
     {
         yield return null;
-        beginDialogueRoutine = null;
 
         if (!CanStartSpeechReplyFlow())
         {
+            beginDialogueRoutine = null;
+            EndConversationMode();
             RefreshQuestionButton();
             yield break;
         }
@@ -225,25 +254,38 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (useBackendReplyFlow && !isBackendQuestionReady)
         {
-            StartBackendQuestionPreloadIfNeeded();
-            RefreshQuestionButton();
-            yield break;
+            SetThinkingBubbleVisible(true);
+            yield return PreloadBackendQuestion();
+            SetThinkingBubbleVisible(false);
+            if (!isBackendQuestionReady)
+            {
+                beginDialogueRoutine = null;
+                EndConversationMode();
+                RefreshQuestionButton();
+                yield break;
+            }
         }
 
         activeQuestionDialogue = preloadedQuestionDialogue ?? BuildQuestionDialogue();
         if (dialogueManager == null || activeQuestionDialogue == null || !activeQuestionDialogue.HasLines)
         {
+            beginDialogueRoutine = null;
+            EndConversationMode();
             RefreshQuestionButton();
             yield break;
         }
 
         isSpeechFlowActive = true;
         lastCapturedSpeech = string.Empty;
+        requestAnotherSpeechReply = false;
+        canRevisitAfterInteraction = false;
 
+        beginDialogueRoutine = null;
         if (!dialogueManager.Play(activeQuestionDialogue))
         {
             isSpeechFlowActive = false;
             activeQuestionDialogue = null;
+            EndConversationMode();
             RefreshQuestionButton();
         }
     }
@@ -262,9 +304,9 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             if (ReferenceEquals(finishedDialogue, activeRepeatDialogue))
             {
                 activeRepeatDialogue = null;
-                if (retrySpeechAfterReply)
+                if (requestAnotherSpeechReply)
                 {
-                    retrySpeechAfterReply = false;
+                    requestAnotherSpeechReply = false;
                     ShowSpeechCaptureFlow();
                     return;
                 }
@@ -274,10 +316,18 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             }
         }
 
-        if (!useSpeechReplyFlow && finishedDialogue == dialogue)
+        if (!useSpeechReplyFlow && ReferenceEquals(finishedDialogue, dialogue))
         {
             CompleteInteraction();
+            return;
         }
+
+        RefreshQuestionButton();
+    }
+
+    private void HandleDialogueStarted(IDialogueSequence _)
+    {
+        SetQuestionButtonVisible(false);
     }
 
     private void ShowSpeechCaptureFlow()
@@ -305,7 +355,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             }
 
             speechCaptureFlow.ShowProcessing(
-                "Mary Is Thinking",
+                backendPupilName + " Is Thinking",
                 "The AI response can take 15-30 seconds. Please wait and stay in Play mode.");
             SetThinkingBubbleVisible(true);
             beginDialogueRoutine = StartCoroutine(SubmitBackendReply(transcript));
@@ -325,21 +375,6 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
     }
 
-    private void StartBackendQuestionPreloadIfNeeded()
-    {
-        if (!useSpeechReplyFlow || !useBackendReplyFlow || hasCompletedDialogue || isBackendQuestionReady || isBackendQuestionLoading)
-        {
-            return;
-        }
-
-        if (backendPreloadRoutine != null)
-        {
-            return;
-        }
-
-        backendPreloadRoutine = StartCoroutine(PreloadBackendQuestion());
-    }
-
     private IEnumerator PreloadBackendQuestion()
     {
         isBackendQuestionLoading = true;
@@ -347,13 +382,14 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         backendPreloadFailure = null;
         DoorSceneTransition.TryRegisterLoadingTask(
             GetBackendLoadingTaskId(),
-            "Loading Mary's question...",
+            "Loading " + backendPupilName + "'s question...",
             0f);
         apiClient = FleeApiClient.GetOrCreate();
 
         FleeEncounterSession encounter = null;
         FleeApiFailure failure = null;
         yield return apiClient.BeginEncounter(
+            backendPupilId,
             backendPupilName,
             value => encounter = value,
             error => failure = error,
@@ -362,7 +398,6 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
                 progress,
                 status));
 
-        backendPreloadRoutine = null;
         isBackendQuestionLoading = false;
         if (!isActiveAndEnabled || hasCompletedDialogue)
         {
@@ -378,7 +413,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         isBackendQuestionReady = preloadedQuestionDialogue != null && preloadedQuestionDialogue.HasLines;
         if (failure == null && activeEncounter != null && isBackendQuestionReady && preloadedQuestionDialogue != null && preloadedQuestionDialogue.HasLines)
         {
-            DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Mary is ready.");
+            DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), backendPupilName + " is ready.");
         }
         else
         {
@@ -417,6 +452,8 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             yield break;
         }
 
+        canRevisitAfterInteraction = result.EncounterEnded && !result.Satisfied;
+        requestAnotherSpeechReply = ShouldRequestAnotherReply(result);
         activeRepeatDialogue = BuildBackendReplyDialogue(result);
         if (dialogueManager == null || activeRepeatDialogue == null || !dialogueManager.Play(activeRepeatDialogue))
         {
@@ -427,12 +464,13 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private void ShowBackendFailure(FleeApiFailure failure)
     {
         SetThinkingBubbleVisible(false);
-        retrySpeechAfterReply = activeEncounter != null
+        requestAnotherSpeechReply = activeEncounter != null
             && failure != null
             && (failure.StatusCode == 422
                 || failure.StatusCode == 429
                 || failure.StatusCode == 502
                 || failure.StatusCode == 503);
+        canRevisitAfterInteraction = !requestAnotherSpeechReply;
         string line = failure != null
             ? failure.ToDialogueLine()
             : "I couldn't reach the science classroom just now. Can we try again in a moment?";
@@ -554,6 +592,14 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             new[] { result.Restatement, result.FollowUp });
     }
 
+    private static bool ShouldRequestAnotherReply(FleeTurnResult result)
+    {
+        return result != null
+            && !result.EncounterEnded
+            && result.TurnsRemaining > 0
+            && !string.IsNullOrWhiteSpace(result.FollowUp);
+    }
+
     private RuntimeDialogueSequence BuildStudentDialogue(string conversationId, string[] lines)
     {
         if (lines == null || lines.Length == 0)
@@ -624,7 +670,6 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             && isActivatorInside
             && dialogueManager != null
             && !dialogueManager.IsPlaying
-            && (!useBackendReplyFlow || isBackendQuestionReady)
             && (dialogue == null || dialogue.HasLines || !string.IsNullOrWhiteSpace(fallbackQuestionText));
     }
 
@@ -637,7 +682,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (activator == null)
         {
-            return true;
+            return ResolveAraBotMovement(other.attachedRigidbody.transform) != null;
         }
 
         Transform movingRoot = other.attachedRigidbody.transform;
@@ -651,11 +696,6 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             && isActivatorInside
             && dialogueManager != null
             && !dialogueManager.IsPlaying;
-
-        if (useBackendReplyFlow)
-        {
-            shouldShowButton &= isBackendQuestionReady;
-        }
 
         SetQuestionButtonVisible(shouldShowButton);
     }
@@ -675,16 +715,27 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     private void ApplyInteractionTargetFocus(Collider2D other)
     {
-        if (roamingController == null || other == null || other.attachedRigidbody == null)
+        if (other == null || other.attachedRigidbody == null)
         {
             return;
         }
 
-        roamingController.SetInteractionTarget(other.attachedRigidbody.transform);
+        activeActivatorTransform = other.attachedRigidbody.transform;
+        activeActivatorMovement = ResolveAraBotMovement(activeActivatorTransform);
+
+        if (roamingController != null)
+        {
+            roamingController.SetInteractionTarget(activeActivatorTransform);
+        }
     }
 
     private void ClearInteractionTargetFocus(Collider2D other = null)
     {
+        if (isConversationModeActive)
+        {
+            return;
+        }
+
         if (roamingController == null)
         {
             return;
@@ -694,6 +745,57 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             ? other.attachedRigidbody.transform
             : null;
         roamingController.ClearInteractionTarget(target);
+    }
+
+    private void BeginConversationMode()
+    {
+        isConversationModeActive = true;
+
+        if (activeActivatorMovement == null)
+        {
+            activeActivatorMovement = ResolveAraBotMovement(activator);
+        }
+
+        if (activeActivatorMovement == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            activeActivatorMovement = FindFirstObjectByType<AraBotClickToMove>();
+#else
+            activeActivatorMovement = FindObjectOfType<AraBotClickToMove>();
+#endif
+        }
+
+        if (activeActivatorMovement != null)
+        {
+            activeActivatorTransform = activeActivatorMovement.transform;
+            activeActivatorMovement.SetConversationMovementLocked(true);
+        }
+
+        if (roamingController != null && activeActivatorTransform != null)
+        {
+            roamingController.SetInteractionTarget(activeActivatorTransform);
+        }
+    }
+
+    private void EndConversationMode()
+    {
+        if (activeActivatorMovement != null)
+        {
+            activeActivatorMovement.SetConversationMovementLocked(false);
+        }
+
+        isConversationModeActive = false;
+    }
+
+    private static AraBotClickToMove ResolveAraBotMovement(Transform candidate)
+    {
+        if (candidate == null)
+        {
+            return null;
+        }
+
+        AraBotClickToMove movement = candidate.GetComponent<AraBotClickToMove>();
+        return movement != null ? movement : candidate.GetComponentInParent<AraBotClickToMove>();
     }
 
     private DialogueActor ResolveStudentActor()
@@ -721,8 +823,13 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     private void CompleteInteraction()
     {
-        hasCompletedDialogue = true;
-        isActivatorInside = false;
+        bool allowRevisit = useBackendReplyFlow && canRevisitAfterInteraction;
+        hasCompletedDialogue = !allowRevisit;
+        if (!allowRevisit)
+        {
+            isActivatorInside = false;
+        }
+
         isSpeechFlowActive = false;
         activeQuestionDialogue = null;
         activeRepeatDialogue = null;
@@ -730,9 +837,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         activeEncounter = null;
         isBackendQuestionLoading = false;
         isBackendQuestionReady = false;
-        retrySpeechAfterReply = false;
+        requestAnotherSpeechReply = false;
+        canRevisitAfterInteraction = false;
         backendPreloadFailure = null;
         SetThinkingBubbleVisible(false);
+        EndConversationMode();
 
         if (speechCaptureFlow != null)
         {
@@ -740,11 +849,19 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
 
         ClearInteractionTargetFocus();
-        SetQuestionButtonVisible(false);
+        if (allowRevisit)
+        {
+            RefreshQuestionButton();
+        }
+        else
+        {
+            SetQuestionButtonVisible(false);
+        }
     }
 
     private string GetBackendLoadingTaskId()
     {
-        return gameObject.scene.name + "::mary-question";
+        string pupilKey = string.IsNullOrWhiteSpace(backendPupilId) ? backendPupilName : backendPupilId;
+        return gameObject.scene.name + "::pupil-question::" + pupilKey;
     }
 }

@@ -575,9 +575,21 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 #if UNITY_EDITOR_OSX
     private static string GetMacEditorSpeechAppPath()
     {
-        return Path.Combine(
+        string standardPath = Path.Combine(
             Application.dataPath,
             "Plugins",
+            "macOS",
+            "SpeechCaptureHelper.app");
+
+        if (Directory.Exists(standardPath))
+        {
+            return standardPath;
+        }
+
+        return Path.Combine(
+            Application.dataPath,
+            "~Others",
+            "!Plugins",
             "macOS",
             "SpeechCaptureHelper.app");
     }

@@ -13,11 +13,12 @@ public sealed class FleeApiClient : MonoBehaviour
 
     [SerializeField] private string baseUrl = DefaultBaseUrl;
     [SerializeField] private string presetId = "photosynthesis";
-    [SerializeField, Min(1)] private int classroomAttempts = 4;
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
     private static FleeApiClient instance;
     private FleeClassroomResponse activeClassroom;
+
+    public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
 
     public static FleeApiClient GetOrCreate()
     {
@@ -62,51 +63,70 @@ public sealed class FleeApiClient : MonoBehaviour
         }
     }
 
+    public IEnumerator PreparePresetClassroom(
+        Action<FleeClassroomSession> onSuccess,
+        Action<FleeApiFailure> onFailure,
+        Action<float, string> onProgress = null)
+    {
+        if (activeClassroom != null)
+        {
+            onProgress?.Invoke(1f, "Classroom is ready.");
+            onSuccess?.Invoke(ToClassroomSession(activeClassroom));
+            yield break;
+        }
+
+        onProgress?.Invoke(0.08f, "Loading classroom...");
+        FleeClassroomResponse classroom = null;
+        FleeApiFailure failure = null;
+        yield return PostJson<FleeClassroomRequest, FleeClassroomResponse>(
+            "/v1/classrooms",
+            new FleeClassroomRequest
+            {
+                source = "preset",
+                presetId = string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim()
+            },
+            response => classroom = response,
+            error => failure = error);
+
+        if (failure != null)
+        {
+            onFailure?.Invoke(failure);
+            yield break;
+        }
+
+        if (classroom == null || classroom.pupils == null || classroom.pupils.Length == 0)
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The classroom did not include any Pupils."));
+            yield break;
+        }
+
+        activeClassroom = classroom;
+        onProgress?.Invoke(1f, "Classroom is ready.");
+        onSuccess?.Invoke(ToClassroomSession(activeClassroom));
+    }
+
     public IEnumerator BeginEncounter(
+        string requestedPupilId,
         string requestedPupilName,
         Action<FleeEncounterSession> onSuccess,
         Action<FleeApiFailure> onFailure,
         Action<float, string> onProgress = null)
     {
         string safePupilName = SafePupilName(requestedPupilName);
-        onProgress?.Invoke(0.08f, "Loading classroom...");
-        FleePupilResponse pupil = FindPupil(activeClassroom, requestedPupilName);
-        FleeApiFailure failure = null;
-
-        for (int attempt = 0; pupil == null && attempt < Mathf.Max(1, classroomAttempts); attempt++)
-        {
-            onProgress?.Invoke(0.18f, "Finding " + safePupilName + "'s classroom...");
-            FleeClassroomResponse classroom = null;
-            yield return PostJson<FleeClassroomRequest, FleeClassroomResponse>(
-                "/v1/classrooms",
-                new FleeClassroomRequest
-                {
-                    source = "preset",
-                    presetId = string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim()
-                },
-                response => classroom = response,
-                error => failure = error);
-
-            if (failure != null)
-            {
-                onFailure?.Invoke(failure);
-                yield break;
-            }
-
-            activeClassroom = classroom;
-            pupil = FindPupil(activeClassroom, requestedPupilName);
-            onProgress?.Invoke(0.55f, "Finding " + safePupilName + "...");
-        }
+        FleePupilResponse pupil = FindPupil(activeClassroom, requestedPupilId, requestedPupilName);
 
         if (activeClassroom == null || pupil == null)
         {
             onFailure?.Invoke(new FleeApiFailure(
                 0,
-                "The preset classroom did not include " + SafePupilName(requestedPupilName) + "."));
+                activeClassroom == null
+                    ? "There is no active Classroom."
+                    : "The active Classroom did not include " + safePupilName + "."));
             yield break;
         }
 
         FleeEncounterOpening opening = null;
+        FleeApiFailure failure = null;
         onProgress?.Invoke(0.72f, "Loading " + safePupilName + "'s question...");
         yield return PostJson<FleeEncounterRequest, FleeEncounterOpening>(
             "/v1/encounters",
@@ -272,6 +292,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
     private static FleePupilResponse FindPupil(
         FleeClassroomResponse classroom,
+        string requestedPupilId,
         string requestedPupilName)
     {
         if (classroom == null || classroom.pupils == null)
@@ -283,14 +304,53 @@ public sealed class FleeApiClient : MonoBehaviour
         for (int index = 0; index < classroom.pupils.Length; index++)
         {
             FleePupilResponse pupil = classroom.pupils[index];
-            if (pupil != null
-                && string.Equals(pupil.name, safeName, StringComparison.OrdinalIgnoreCase))
+            if (pupil == null)
+            {
+                continue;
+            }
+
+            bool idMatches = !string.IsNullOrWhiteSpace(requestedPupilId)
+                && string.Equals(pupil.pupilId, requestedPupilId.Trim(), StringComparison.Ordinal);
+            bool nameMatches = string.Equals(pupil.name, safeName, StringComparison.OrdinalIgnoreCase);
+            if (idMatches || nameMatches)
             {
                 return pupil;
             }
         }
 
         return null;
+    }
+
+    private static FleeClassroomSession ToClassroomSession(FleeClassroomResponse classroom)
+    {
+        if (classroom == null || classroom.pupils == null)
+        {
+            return null;
+        }
+
+        FleePupilSession[] pupils = new FleePupilSession[classroom.pupils.Length];
+        for (int index = 0; index < classroom.pupils.Length; index++)
+        {
+            FleePupilResponse pupil = classroom.pupils[index];
+            pupils[index] = pupil == null
+                ? null
+                : new FleePupilSession(
+                    pupil.pupilId,
+                    pupil.name,
+                    pupil.personality,
+                    pupil.quirk,
+                    pupil.voice,
+                    pupil.misconception,
+                    pupil.turnBudget,
+                    pupil.turnsUsed,
+                    pupil.satisfied);
+        }
+
+        return new FleeClassroomSession(
+            classroom.classroomId,
+            classroom.topic,
+            classroom.rescueQuota,
+            pupils);
     }
 
     private static string SafePupilName(string pupilName)
@@ -421,6 +481,61 @@ public sealed class FleeEncounterSession
     public string PupilName { get; }
     public string OpeningLine { get; }
     public int TurnsRemaining { get; internal set; }
+}
+
+public sealed class FleeClassroomSession
+{
+    public FleeClassroomSession(
+        string classroomId,
+        string topic,
+        int rescueQuota,
+        FleePupilSession[] pupils)
+    {
+        ClassroomId = classroomId;
+        Topic = topic;
+        RescueQuota = rescueQuota;
+        Pupils = pupils ?? Array.Empty<FleePupilSession>();
+    }
+
+    public string ClassroomId { get; }
+    public string Topic { get; }
+    public int RescueQuota { get; }
+    public FleePupilSession[] Pupils { get; }
+}
+
+public sealed class FleePupilSession
+{
+    public FleePupilSession(
+        string pupilId,
+        string name,
+        string personality,
+        string quirk,
+        string voice,
+        string misconception,
+        int turnBudget,
+        int turnsUsed,
+        bool satisfied)
+    {
+        PupilId = pupilId;
+        Name = name;
+        Personality = personality;
+        Quirk = quirk;
+        Voice = voice;
+        Misconception = misconception;
+        TurnBudget = turnBudget;
+        TurnsUsed = turnsUsed;
+        Satisfied = satisfied;
+    }
+
+    public string PupilId { get; }
+    public string Name { get; }
+    public string Personality { get; }
+    public string Quirk { get; }
+    public string Voice { get; }
+    public string Misconception { get; }
+    public int TurnBudget { get; }
+    public int TurnsUsed { get; }
+    public bool Satisfied { get; }
 }
 
 public sealed class FleeTurnResult

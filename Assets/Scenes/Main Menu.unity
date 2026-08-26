@@ -2020,6 +2020,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 03d1fbc2af6441de8299a2b1db9ed1b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  targetSceneAsset: {fileID: 102900000, guid: f0f2bdab4b308441cac1e6254f74b537, type: 3}
+  targetSceneName: Sample Classroom
+  targetScenePath: Assets/Scenes/Sample Classroom.unity
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
