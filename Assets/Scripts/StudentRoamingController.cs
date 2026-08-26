@@ -27,6 +27,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     [SerializeField] private float stoppingDistance = 0.05f;
     [SerializeField] private float destinationSampleDistance = 1f;
     [SerializeField, Min(0f)] private float partialPathErrorAllowance = 0.35f;
+    [SerializeField, Min(0f)] private float destinationObstacleClearance = 0.12f;
 
     // Movement
     [SerializeField] private float moveSpeed = 1f;
@@ -37,6 +38,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     [SerializeField, Min(0f)] private float dynamicBlockerAvoidanceDistance = 0.9f;
     [SerializeField, Range(0f, 1f)] private float dynamicBlockerAvoidanceStrength = 0.7f;
     [SerializeField, Min(0f)] private float dynamicBlockerClearance = 0.12f;
+    [SerializeField, Min(0f)] private float overlapRecoveryPadding = 0.04f;
     [SerializeField, Min(0f)] private float blockedMoveThreshold = 0.01f;
     [SerializeField, Min(0.1f)] private float blockedRepickDelay = 0.4f;
     [SerializeField] private LayerMask collisionLayers = ~0;
@@ -48,6 +50,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     private static readonly Vector3[] EmptyCorners = Array.Empty<Vector3>();
 
     private readonly List<RaycastHit2D> collisionHits = new List<RaycastHit2D>(8);
+    private readonly List<Collider2D> overlapColliders = new List<Collider2D>(8);
 
     private Rigidbody2D body;
     private Collider2D movementCollider;
@@ -68,6 +71,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     private float activatorYieldTimer;
     private int currentCornerIndex;
     private bool hasDestination;
+    private bool hitStaticBlockerThisFrame;
     private bool isYieldingToActivator;
 
     public Vector2 CurrentVelocity => currentVelocity;
@@ -149,6 +153,14 @@ public sealed class StudentRoamingController : MonoBehaviour
         {
             currentVelocity = Vector2.zero;
             ClearPath();
+            return;
+        }
+
+        if (TryResolveStaticOverlap())
+        {
+            currentVelocity = Vector2.zero;
+            ClearPath();
+            waitTimer = 0f;
             return;
         }
 
@@ -237,6 +249,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     private void UpdateMovement(float deltaTime)
     {
         RefreshPathIfNeeded(deltaTime);
+        hitStaticBlockerThisFrame = false;
 
         Vector2 currentRootPosition = GetRootPosition();
         Vector2 currentNavigationPosition = currentRootPosition + navigationOffset;
@@ -295,6 +308,14 @@ public sealed class StudentRoamingController : MonoBehaviour
             blockedTimer += deltaTime;
             if (blockedTimer >= blockedRepickDelay)
             {
+                if (hitStaticBlockerThisFrame)
+                {
+                    currentVelocity = Vector2.zero;
+                    ClearPath();
+                    waitTimer = 0f;
+                    return;
+                }
+
                 if (!TrySetPathToDestination(currentDestination, clearPathOnFailure: false))
                 {
                     BeginWaiting();
@@ -402,6 +423,11 @@ public sealed class StudentRoamingController : MonoBehaviour
         }
 
         if (!IsPointInsideRoamBounds(ToWorldPosition(sampledDestination.position)))
+        {
+            return HandlePathFailure(clearPathOnFailure);
+        }
+
+        if (!HasPhysicalClearanceAt(ToWorldPosition(sampledDestination.position)))
         {
             return HandlePathFailure(clearPathOnFailure);
         }
@@ -544,6 +570,8 @@ public sealed class StudentRoamingController : MonoBehaviour
             return direction * allowedDynamicDistance;
         }
 
+        hitStaticBlockerThisFrame = true;
+
         float allowedDistance = Mathf.Clamp(blockingHit.distance - collisionSkin, 0f, requestedDistance);
         Vector2 forwardMovement = direction * allowedDistance;
         Vector2 remainingMovement = requestedMovement - forwardMovement;
@@ -567,6 +595,148 @@ public sealed class StudentRoamingController : MonoBehaviour
         }
 
         return forwardMovement + slideDirection * slideDistance;
+    }
+
+    private bool HasPhysicalClearanceAt(Vector2 navigationPosition)
+    {
+        if (movementCollider == null)
+        {
+            return true;
+        }
+
+        Vector2 clearance = Vector2.one * destinationObstacleClearance * 2f;
+        Vector2 testSize = (Vector2)movementCollider.bounds.size + clearance;
+        overlapColliders.Clear();
+        Physics2D.OverlapBox(
+            navigationPosition,
+            testSize,
+            movementCollider.transform.eulerAngles.z,
+            movementContactFilter,
+            overlapColliders);
+
+        for (int index = 0; index < overlapColliders.Count; index++)
+        {
+            Collider2D otherCollider = overlapColliders[index];
+            if (otherCollider == null
+                || otherCollider == movementCollider
+                || otherCollider.isTrigger
+                || otherCollider.attachedRigidbody == body
+                || DynamicMovementBlockerUtility.IsDynamicMovementBlocker(otherCollider, body))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryResolveStaticOverlap()
+    {
+        if (movementCollider == null)
+        {
+            return false;
+        }
+
+        overlapColliders.Clear();
+        movementCollider.Overlap(movementContactFilter, overlapColliders);
+
+        Vector2 strongestCorrection = Vector2.zero;
+        float deepestOverlap = 0f;
+
+        for (int index = 0; index < overlapColliders.Count; index++)
+        {
+            Collider2D otherCollider = overlapColliders[index];
+            if (otherCollider == null
+                || otherCollider == movementCollider
+                || otherCollider.isTrigger
+                || otherCollider.attachedRigidbody == body
+                || DynamicMovementBlockerUtility.IsDynamicMovementBlocker(otherCollider, body))
+            {
+                continue;
+            }
+
+            ColliderDistance2D separation = movementCollider.Distance(otherCollider);
+            if (!separation.isValid || !separation.isOverlapped)
+            {
+                continue;
+            }
+
+            float overlapDepth = -separation.distance;
+            if (overlapDepth <= deepestOverlap)
+            {
+                continue;
+            }
+
+            deepestOverlap = overlapDepth;
+            strongestCorrection = separation.normal
+                * (overlapDepth + Mathf.Max(collisionSkin, overlapRecoveryPadding));
+        }
+
+        if (strongestCorrection.sqrMagnitude <= 0.000001f)
+        {
+            return false;
+        }
+
+        Vector2 correctedRootPosition = GetRootPosition() + strongestCorrection;
+        Vector2 correctedNavigationPosition = correctedRootPosition + navigationOffset;
+        if ((!IsPointInsideRoamBounds(correctedNavigationPosition)
+                || !HasPhysicalClearanceAt(correctedNavigationPosition))
+            && TryFindSafeRecoveryPosition(out Vector2 safeRootPosition))
+        {
+            correctedRootPosition = safeRootPosition;
+        }
+
+        body.position = correctedRootPosition;
+        body.linearVelocity = Vector2.zero;
+        blockedTimer = 0f;
+        repathTimer = 0f;
+        return true;
+    }
+
+    private bool TryFindSafeRecoveryPosition(out Vector2 safeRootPosition)
+    {
+        safeRootPosition = GetRootPosition();
+        Vector2 currentNavigationPosition = GetNavigationWorldPosition();
+        float closestDistanceSquared = float.PositiveInfinity;
+        bool foundPosition = false;
+        int attempts = Mathf.Max(4, destinationSampleAttempts);
+
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Vector2 candidate = roamArea != null
+                ? GetRandomPointInsideCollider(roamArea)
+                : GetRandomPointInsideManualBounds();
+            Vector3 navMeshCandidate = ToNavMeshPosition(candidate);
+            if (!NavMesh.SamplePosition(
+                    navMeshCandidate,
+                    out NavMeshHit sampledPosition,
+                    destinationSampleDistance,
+                    NavMesh.AllAreas))
+            {
+                continue;
+            }
+
+            Vector2 sampledNavigationPosition = ToWorldPosition(sampledPosition.position);
+            if (!IsPointInsideRoamBounds(sampledNavigationPosition)
+                || !HasPhysicalClearanceAt(sampledNavigationPosition))
+            {
+                continue;
+            }
+
+            float distanceSquared = (sampledNavigationPosition - currentNavigationPosition).sqrMagnitude;
+            if (distanceSquared >= closestDistanceSquared)
+            {
+                continue;
+            }
+
+            closestDistanceSquared = distanceSquared;
+            safeRootPosition = sampledNavigationPosition - navigationOffset;
+            foundPosition = true;
+        }
+
+        return foundPosition;
     }
 
     private bool TryGetBlockingHit(Vector2 direction, float distance, out RaycastHit2D blockingHit)
@@ -809,6 +979,8 @@ public sealed class StudentRoamingController : MonoBehaviour
         manualBoundsSize = new Vector2(
             Mathf.Max(0f, manualBoundsSize.x),
             Mathf.Max(0f, manualBoundsSize.y));
+        destinationObstacleClearance = Mathf.Max(0f, destinationObstacleClearance);
+        overlapRecoveryPadding = Mathf.Max(0f, overlapRecoveryPadding);
 
         waitIntervalRange = new Vector2(
             Mathf.Max(0f, waitIntervalRange.x),

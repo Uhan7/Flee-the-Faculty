@@ -6,6 +6,10 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Collider2D))]
 public sealed class StudentDialogueInteraction : MonoBehaviour
 {
+    public static event System.Action<DialogueActor> ConversationStarted;
+    public static event System.Action AraBotResponseRequested;
+    public static event System.Action ConversationEnded;
+
     [SerializeField] private SceneDialogueConversation dialogue;
     [SerializeField] private Transform activator;
     [SerializeField] private Button questionButton;
@@ -278,7 +282,10 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         isSpeechFlowActive = true;
         lastCapturedSpeech = string.Empty;
         requestAnotherSpeechReply = false;
-        canRevisitAfterInteraction = false;
+        canRevisitAfterInteraction = useBackendReplyFlow
+            && activeEncounter != null
+            && !activeEncounter.Satisfied
+            && !activeEncounter.CanAcceptExplanation;
 
         beginDialogueRoutine = null;
         if (!dialogueManager.Play(activeQuestionDialogue))
@@ -297,6 +304,14 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             if (ReferenceEquals(finishedDialogue, activeQuestionDialogue))
             {
                 activeQuestionDialogue = null;
+                if (useBackendReplyFlow
+                    && activeEncounter != null
+                    && !activeEncounter.CanAcceptExplanation)
+                {
+                    CompleteInteraction();
+                    return;
+                }
+
                 ShowSpeechCaptureFlow();
                 return;
             }
@@ -339,6 +354,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             return;
         }
 
+        AraBotResponseRequested?.Invoke();
         speechCaptureFlow.Show(speechPromptTitle, speechPromptInstructions, HandleSpeechCaptured);
     }
 
@@ -408,7 +424,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         backendPreloadFailure = failure;
         activeEncounter = encounter;
         preloadedQuestionDialogue = failure == null && activeEncounter != null
-            ? BuildQuestionDialogue(FormatOpeningAsQuestion(activeEncounter.OpeningLine))
+            ? BuildQuestionDialogue(activeEncounter.OpeningLine)
             : BuildQuestionDialogue();
         isBackendQuestionReady = preloadedQuestionDialogue != null && preloadedQuestionDialogue.HasLines;
         if (failure == null && activeEncounter != null && isBackendQuestionReady && preloadedQuestionDialogue != null && preloadedQuestionDialogue.HasLines)
@@ -534,19 +550,6 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             });
     }
 
-    private static string FormatOpeningAsQuestion(string openingLine)
-    {
-        if (string.IsNullOrWhiteSpace(openingLine))
-        {
-            return string.Empty;
-        }
-
-        string normalizedLine = openingLine.Trim();
-        return normalizedLine.EndsWith("?", System.StringComparison.Ordinal)
-            ? normalizedLine
-            : normalizedLine + " Is that right, AraBOT?";
-    }
-
     private RuntimeDialogueSequence BuildRepeatDialogue(string transcript)
     {
         string normalizedTranscript = NormalizeCapturedSpeech(transcript);
@@ -582,7 +585,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             return null;
         }
 
-        if (string.IsNullOrWhiteSpace(result.FollowUp))
+        if (result.EncounterEnded || string.IsNullOrWhiteSpace(result.FollowUp))
         {
             return BuildStudentDialogue("api-student-reply", new[] { result.Restatement });
         }
@@ -749,6 +752,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     private void BeginConversationMode()
     {
+        bool wasConversationActive = isConversationModeActive;
         isConversationModeActive = true;
 
         if (activeActivatorMovement == null)
@@ -775,16 +779,26 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         {
             roamingController.SetInteractionTarget(activeActivatorTransform);
         }
+
+        if (!wasConversationActive)
+        {
+            ConversationStarted?.Invoke(ResolveStudentActor());
+        }
     }
 
     private void EndConversationMode()
     {
+        bool wasConversationActive = isConversationModeActive;
         if (activeActivatorMovement != null)
         {
             activeActivatorMovement.SetConversationMovementLocked(false);
         }
 
         isConversationModeActive = false;
+        if (wasConversationActive)
+        {
+            ConversationEnded?.Invoke();
+        }
     }
 
     private static AraBotClickToMove ResolveAraBotMovement(Transform candidate)

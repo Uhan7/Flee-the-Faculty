@@ -24,6 +24,7 @@ public sealed class SceneQuickReload : MonoBehaviour
     [SerializeField] private KeyCode reloadKey = KeyCode.R;
 #endif
     [SerializeField] private bool ignoreWhileTyping = true;
+    [SerializeField] private bool resetClassroomSession = true;
 
     private bool isReloading;
 
@@ -87,6 +88,11 @@ public sealed class SceneQuickReload : MonoBehaviour
 
         isReloading = true;
         Time.timeScale = 1f;
+
+        if (resetClassroomSession)
+        {
+            FleeApiClient.ResetClassroomSession();
+        }
 
         AsyncOperation reloadOperation = null;
 

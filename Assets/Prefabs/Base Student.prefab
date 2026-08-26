@@ -474,6 +474,7 @@ MonoBehaviour:
   stoppingDistance: 0.05
   destinationSampleDistance: 1
   partialPathErrorAllowance: 0.35
+  destinationObstacleClearance: 0.12
   moveSpeed: 1
   acceleration: 6
   deceleration: 8
@@ -482,6 +483,7 @@ MonoBehaviour:
   dynamicBlockerAvoidanceDistance: 0.9
   dynamicBlockerAvoidanceStrength: 0.7
   dynamicBlockerClearance: 0.12
+  overlapRecoveryPadding: 0.04
   blockedMoveThreshold: 0.01
   blockedRepickDelay: 0.4
   collisionLayers:

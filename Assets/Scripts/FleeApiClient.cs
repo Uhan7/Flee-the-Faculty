@@ -10,6 +10,7 @@ public sealed class FleeApiClient : MonoBehaviour
     private const string DefaultBaseUrl =
         "https://flee-the-faculty-747438214074.us-central1.run.app";
     private const string TokenResourceName = "FleeApiClientToken";
+    private const string ActiveClassroomIdKey = "Flee.ActiveClassroomId";
 
     [SerializeField] private string baseUrl = DefaultBaseUrl;
     [SerializeField] private string presetId = "photosynthesis";
@@ -19,6 +20,17 @@ public sealed class FleeApiClient : MonoBehaviour
     private FleeClassroomResponse activeClassroom;
 
     public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
+
+    public static void ResetClassroomSession()
+    {
+        if (instance != null)
+        {
+            instance.activeClassroom = null;
+        }
+
+        PlayerPrefs.DeleteKey(ActiveClassroomIdKey);
+        PlayerPrefs.Save();
+    }
 
     public static FleeApiClient GetOrCreate()
     {
@@ -75,6 +87,34 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
+        string savedClassroomId = PlayerPrefs.GetString(ActiveClassroomIdKey, string.Empty).Trim();
+        if (!string.IsNullOrEmpty(savedClassroomId))
+        {
+            onProgress?.Invoke(0.08f, "Rejoining classroom...");
+            FleeClassroomResponse resumedClassroom = null;
+            FleeApiFailure resumeFailure = null;
+            yield return GetJson<FleeClassroomResponse>(
+                "/v1/classrooms/" + UnityWebRequest.EscapeURL(savedClassroomId),
+                response => resumedClassroom = response,
+                error => resumeFailure = error);
+
+            if (resumeFailure == null && IsUsableClassroom(resumedClassroom))
+            {
+                SetActiveClassroom(resumedClassroom);
+                onProgress?.Invoke(1f, "Classroom restored.");
+                onSuccess?.Invoke(ToClassroomSession(activeClassroom));
+                yield break;
+            }
+
+            if (resumeFailure != null && resumeFailure.StatusCode != 404)
+            {
+                onFailure?.Invoke(resumeFailure);
+                yield break;
+            }
+
+            ResetClassroomSession();
+        }
+
         onProgress?.Invoke(0.08f, "Loading classroom...");
         FleeClassroomResponse classroom = null;
         FleeApiFailure failure = null;
@@ -94,13 +134,13 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
-        if (classroom == null || classroom.pupils == null || classroom.pupils.Length == 0)
+        if (!IsUsableClassroom(classroom))
         {
             onFailure?.Invoke(new FleeApiFailure(0, "The classroom did not include any Pupils."));
             yield break;
         }
 
-        activeClassroom = classroom;
+        SetActiveClassroom(classroom);
         onProgress?.Invoke(1f, "Classroom is ready.");
         onSuccess?.Invoke(ToClassroomSession(activeClassroom));
     }
@@ -156,7 +196,11 @@ public sealed class FleeApiClient : MonoBehaviour
             pupil.pupilId,
             pupil.name,
             opening.line.Trim(),
-            opening.turnsRemaining));
+            opening.turnsRemaining,
+            opening.satisfied,
+            opening.firstApproach,
+            pupil.turnBudget,
+            pupil.turnsUsed));
     }
 
     public IEnumerator SubmitTurn(
@@ -171,24 +215,48 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
+        if (!encounter.CanAcceptExplanation)
+        {
+            onFailure?.Invoke(new FleeApiFailure(409, "This Pupil cannot take another explanation."));
+            yield break;
+        }
+
         if (string.IsNullOrWhiteSpace(explanation))
         {
             onFailure?.Invoke(new FleeApiFailure(422, "AraBOT's explanation was empty."));
             yield break;
         }
 
+        string normalizedExplanation = explanation.Trim();
+        string attemptId = Guid.NewGuid().ToString("N");
+        FleeTurnRequest requestPayload = new FleeTurnRequest
+        {
+            classroomId = encounter.ClassroomId,
+            pupilId = encounter.PupilId,
+            explanation = normalizedExplanation,
+            attemptId = attemptId
+        };
+
         FleeTurnResponse response = null;
         FleeApiFailure failure = null;
         yield return PostJson<FleeTurnRequest, FleeTurnResponse>(
             "/v1/turns",
-            new FleeTurnRequest
-            {
-                classroomId = encounter.ClassroomId,
-                pupilId = encounter.PupilId,
-                explanation = explanation.Trim()
-            },
+            requestPayload,
             result => response = result,
             error => failure = error);
+
+        // A connection can drop after the server spends the turn. The same attempt id
+        // makes this one automatic retry return the original result without charging twice.
+        if (failure != null && failure.StatusCode == 0)
+        {
+            response = null;
+            failure = null;
+            yield return PostJson<FleeTurnRequest, FleeTurnResponse>(
+                "/v1/turns",
+                requestPayload,
+                result => response = result,
+                error => failure = error);
+        }
 
         if (failure != null)
         {
@@ -202,13 +270,22 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
-        encounter.TurnsRemaining = response.turnsRemaining;
+        encounter.ApplyTurnResponse(
+            response.turnsRemaining,
+            response.turnsUsed,
+            response.turnBudget,
+            response.satisfied);
+        UpdateCachedPupil(encounter, response);
         onSuccess?.Invoke(new FleeTurnResult(
             response.restatement.Trim(),
             string.IsNullOrWhiteSpace(response.followUp) ? string.Empty : response.followUp.Trim(),
             response.satisfied,
+            response.score,
+            response.turnsUsed,
+            response.turnBudget,
             response.turnsRemaining,
-            response.encounterEnded));
+            response.encounterEnded,
+            ToFindings(response.findings)));
     }
 
     private IEnumerator PostJson<TRequest, TResponse>(
@@ -227,15 +304,38 @@ public sealed class FleeApiClient : MonoBehaviour
             downloadHandler = new DownloadHandlerBuffer(),
             timeout = Mathf.Max(10, requestTimeoutSeconds)
         };
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        string clientToken = ResolveClientToken();
-        if (!string.IsNullOrEmpty(clientToken))
-        {
-            request.SetRequestHeader("X-Client-Token", clientToken);
-        }
+        ApplyRequestHeaders(request, true);
 
         yield return request.SendWebRequest();
+
+        HandleResponse(path, request, onSuccess, onFailure);
+    }
+
+    private IEnumerator GetJson<TResponse>(
+        string path,
+        Action<TResponse> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        UnityWebRequest request = UnityWebRequest.Get(BuildUrl(path));
+        request.timeout = Mathf.Max(10, requestTimeoutSeconds);
+        ApplyRequestHeaders(request, false);
+
+        yield return request.SendWebRequest();
+
+        HandleResponse(path, request, onSuccess, onFailure);
+    }
+
+    private void HandleResponse<TResponse>(
+        string path,
+        UnityWebRequest request,
+        Action<TResponse> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        if (request == null)
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The classroom request could not be created."));
+            return;
+        }
 
         bool succeeded = request.responseCode >= 200
             && request.responseCode < 300
@@ -249,7 +349,7 @@ public sealed class FleeApiClient : MonoBehaviour
                 this);
             onFailure?.Invoke(failure);
             request.Dispose();
-            yield break;
+            return;
         }
 
         try
@@ -267,6 +367,20 @@ public sealed class FleeApiClient : MonoBehaviour
         finally
         {
             request.Dispose();
+        }
+    }
+
+    private static void ApplyRequestHeaders(UnityWebRequest request, bool hasJsonBody)
+    {
+        if (hasJsonBody)
+        {
+            request.SetRequestHeader("Content-Type", "application/json");
+        }
+
+        string clientToken = ResolveClientToken();
+        if (!string.IsNullOrEmpty(clientToken))
+        {
+            request.SetRequestHeader("X-Client-Token", clientToken);
         }
     }
 
@@ -319,6 +433,45 @@ public sealed class FleeApiClient : MonoBehaviour
         }
 
         return null;
+    }
+
+    private static bool IsUsableClassroom(FleeClassroomResponse classroom)
+    {
+        return classroom != null
+            && !string.IsNullOrWhiteSpace(classroom.classroomId)
+            && classroom.pupils != null
+            && classroom.pupils.Length > 0;
+    }
+
+    private void SetActiveClassroom(FleeClassroomResponse classroom)
+    {
+        activeClassroom = classroom;
+        PlayerPrefs.SetString(ActiveClassroomIdKey, classroom.classroomId.Trim());
+        PlayerPrefs.Save();
+    }
+
+    private void UpdateCachedPupil(FleeEncounterSession encounter, FleeTurnResponse response)
+    {
+        FleePupilResponse pupil = FindPupil(activeClassroom, encounter.PupilId, encounter.PupilName);
+        if (pupil == null)
+        {
+            return;
+        }
+
+        pupil.turnsUsed = response.turnsUsed;
+        pupil.turnBudget = response.turnBudget > 0 ? response.turnBudget : pupil.turnBudget;
+        pupil.satisfied = response.satisfied;
+    }
+
+    private static FleeTurnFindings ToFindings(FleeFindingsResponse findings)
+    {
+        return findings == null
+            ? null
+            : new FleeTurnFindings(
+                findings.addressedMisconception,
+                findings.namedKeyMechanism,
+                findings.reachedThisPupil,
+                findings.containedFalseClaim);
     }
 
     private static FleeClassroomSession ToClassroomSession(FleeClassroomResponse classroom)
@@ -433,6 +586,7 @@ public sealed class FleeApiClient : MonoBehaviour
         public string line;
         public int turnsRemaining;
         public bool satisfied;
+        public bool firstApproach;
     }
 
     [Serializable]
@@ -441,16 +595,30 @@ public sealed class FleeApiClient : MonoBehaviour
         public string classroomId;
         public string pupilId;
         public string explanation;
+        public string attemptId;
     }
 
     [Serializable]
     private sealed class FleeTurnResponse
     {
+        public FleeFindingsResponse findings;
         public string restatement;
         public string followUp;
         public bool satisfied;
+        public int score;
+        public int turnsUsed;
+        public int turnBudget;
         public int turnsRemaining;
         public bool encounterEnded;
+    }
+
+    [Serializable]
+    private sealed class FleeFindingsResponse
+    {
+        public bool addressedMisconception;
+        public bool namedKeyMechanism;
+        public bool reachedThisPupil;
+        public string containedFalseClaim;
     }
 
     [Serializable]
@@ -467,13 +635,21 @@ public sealed class FleeEncounterSession
         string pupilId,
         string pupilName,
         string openingLine,
-        int turnsRemaining)
+        int turnsRemaining,
+        bool satisfied,
+        bool firstApproach,
+        int turnBudget,
+        int turnsUsed)
     {
         ClassroomId = classroomId;
         PupilId = pupilId;
         PupilName = pupilName;
         OpeningLine = openingLine;
         TurnsRemaining = turnsRemaining;
+        Satisfied = satisfied;
+        FirstApproach = firstApproach;
+        TurnBudget = turnBudget;
+        TurnsUsed = turnsUsed;
     }
 
     public string ClassroomId { get; }
@@ -481,6 +657,27 @@ public sealed class FleeEncounterSession
     public string PupilName { get; }
     public string OpeningLine { get; }
     public int TurnsRemaining { get; internal set; }
+    public bool Satisfied { get; private set; }
+    public bool FirstApproach { get; }
+    public int TurnBudget { get; private set; }
+    public int TurnsUsed { get; private set; }
+    public bool CanAcceptExplanation => !Satisfied && TurnsRemaining > 0;
+
+    internal void ApplyTurnResponse(
+        int turnsRemaining,
+        int turnsUsed,
+        int turnBudget,
+        bool satisfied)
+    {
+        TurnsRemaining = Mathf.Max(0, turnsRemaining);
+        TurnsUsed = Mathf.Max(0, turnsUsed);
+        if (turnBudget > 0)
+        {
+            TurnBudget = turnBudget;
+        }
+
+        Satisfied = satisfied;
+    }
 }
 
 public sealed class FleeClassroomSession
@@ -544,21 +741,53 @@ public sealed class FleeTurnResult
         string restatement,
         string followUp,
         bool satisfied,
+        int score,
+        int turnsUsed,
+        int turnBudget,
         int turnsRemaining,
-        bool encounterEnded)
+        bool encounterEnded,
+        FleeTurnFindings findings)
     {
         Restatement = restatement;
         FollowUp = followUp;
         Satisfied = satisfied;
+        Score = score;
+        TurnsUsed = turnsUsed;
+        TurnBudget = turnBudget;
         TurnsRemaining = turnsRemaining;
         EncounterEnded = encounterEnded;
+        Findings = findings;
     }
 
     public string Restatement { get; }
     public string FollowUp { get; }
     public bool Satisfied { get; }
+    public int Score { get; }
+    public int TurnsUsed { get; }
+    public int TurnBudget { get; }
     public int TurnsRemaining { get; }
     public bool EncounterEnded { get; }
+    public FleeTurnFindings Findings { get; }
+}
+
+public sealed class FleeTurnFindings
+{
+    public FleeTurnFindings(
+        bool addressedMisconception,
+        bool namedKeyMechanism,
+        bool reachedThisPupil,
+        string containedFalseClaim)
+    {
+        AddressedMisconception = addressedMisconception;
+        NamedKeyMechanism = namedKeyMechanism;
+        ReachedThisPupil = reachedThisPupil;
+        ContainedFalseClaim = containedFalseClaim ?? string.Empty;
+    }
+
+    public bool AddressedMisconception { get; }
+    public bool NamedKeyMechanism { get; }
+    public bool ReachedThisPupil { get; }
+    public string ContainedFalseClaim { get; }
 }
 
 public sealed class FleeApiFailure
@@ -587,6 +816,8 @@ public sealed class FleeApiFailure
                 return "I couldn't think that through just now. Can we try again in a moment?";
             case 422:
                 return "I didn't catch an explanation. Could you say it again?";
+            case 409:
+                return "I don't have another question right now.";
             default:
                 return "I couldn't reach the science classroom just now. Can we try again in a moment?";
         }
