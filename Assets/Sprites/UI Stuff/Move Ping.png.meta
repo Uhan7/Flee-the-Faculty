@@ -198,7 +198,9 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Move Ping_0: -5703960861421736673
+      Move Ping_1: 514565250887079644
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -130,11 +130,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cc6c92d779d2423e9c3bc2e3480a1d02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 4
-  acceleration: 15
-  deceleration: 18
+  moveSpeed: 5
+  acceleration: 18
+  deceleration: 21
   slowDownRadius: 0.85
-  cornerReachDistance: 0.3
+  cornerReachDistance: 0.08
   stoppingDistance: 0.05
   destinationSampleDistance: 1
   repathIntervalSeconds: 0.35
@@ -147,6 +147,8 @@ MonoBehaviour:
   dynamicBlockerDetourForwardBias: 0.35
   dynamicBlockerStopDistance: 0.6
   maxDynamicBlockerRecoveryAttempts: 2
+  maxStaticBlockerRecoveryAttempts: 2
+  overlapRecoveryPadding: 0.04
   blockedMoveThreshold: 0.01
   blockedRepathDelay: 0.3
   collisionLayers:

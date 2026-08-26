@@ -348,7 +348,15 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Popup Buttons_0: -7208838923391932481
+      Popup Buttons_1: -4105186468583094000
+      Popup Buttons_2: -7843262372209666615
+      Popup Buttons_3: 455036487064219887
+      Popup Buttons_4: 177635758186210027
+      Popup Buttons_5: 8136879343986607462
+      Popup Buttons_6: -6400049263735295550
+      Popup Buttons_7: -7821417462254493735
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

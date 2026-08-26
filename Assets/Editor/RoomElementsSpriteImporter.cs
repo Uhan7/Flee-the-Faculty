@@ -11,12 +11,24 @@ internal sealed class RoomElementsSpriteImporter : AssetPostprocessor
 
     public override uint GetVersion()
     {
-        return 1;
+        return 2;
     }
 
     private void OnPreprocessTexture()
     {
         if (assetPath != RoomElementsPath)
+        {
+            return;
+        }
+
+        SpriteDataProviderFactories factories = new SpriteDataProviderFactories();
+        factories.Init();
+
+        ISpriteEditorDataProvider dataProvider = factories.GetSpriteEditorDataProviderFromObject(assetImporter);
+        dataProvider.InitSpriteEditorDataProvider();
+
+        // Sprite Editor applies by reimporting. Only seed a new sheet so later manual edits survive.
+        if (dataProvider.GetSpriteRects().Length > 0)
         {
             return;
         }
@@ -34,11 +46,6 @@ internal sealed class RoomElementsSpriteImporter : AssetPostprocessor
         textureImporter.SetTextureSettings(textureSettings);
 
         SpriteRect[] spriteRects = CreateSpriteRects();
-        SpriteDataProviderFactories factories = new SpriteDataProviderFactories();
-        factories.Init();
-
-        ISpriteEditorDataProvider dataProvider = factories.GetSpriteEditorDataProviderFromObject(assetImporter);
-        dataProvider.InitSpriteEditorDataProvider();
         dataProvider.SetSpriteRects(spriteRects);
 
         ISpriteNameFileIdDataProvider nameProvider = dataProvider.GetDataProvider<ISpriteNameFileIdDataProvider>();

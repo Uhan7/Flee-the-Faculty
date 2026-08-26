@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class AraBotClickToMove : MonoBehaviour
@@ -25,6 +26,8 @@ public sealed class AraBotClickToMove : MonoBehaviour
     [SerializeField, Min(0f)] private float dynamicBlockerDetourForwardBias = 0.35f;
     [SerializeField, Min(0f)] private float dynamicBlockerStopDistance = 0.6f;
     [SerializeField, Min(0)] private int maxDynamicBlockerRecoveryAttempts = 2;
+    [SerializeField, Min(0)] private int maxStaticBlockerRecoveryAttempts = 2;
+    [SerializeField, Min(0f)] private float overlapRecoveryPadding = 0.04f;
     [SerializeField, Min(0f)] private float blockedMoveThreshold = 0.01f;
     [SerializeField, Min(0.1f)] private float blockedRepathDelay = 0.3f;
     [SerializeField] private LayerMask collisionLayers = ~0;
@@ -35,6 +38,8 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private Camera targetCamera;
     private NavMeshPath currentPath;
     private readonly List<RaycastHit2D> collisionHits = new List<RaycastHit2D>(8);
+    private readonly List<Collider2D> overlapColliders = new List<Collider2D>(8);
+    private readonly List<RaycastResult> uiRaycastResults = new List<RaycastResult>(8);
     private Vector3[] currentCorners = EmptyCorners;
     private int currentCornerIndex;
     private Plane clickPlane;
@@ -48,12 +53,15 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private float repathTimer;
     private float blockedTimer;
     private int dynamicBlockerRecoveryAttempts;
+    private int staticBlockerRecoveryAttempts;
     private RaycastHit2D latestDynamicBlockerHit;
+    private RaycastHit2D latestStaticBlockerHit;
     private Vector3 finalDestination;
     private Vector3 currentDestination;
     private bool hasFinalDestination;
     private bool hasDestination;
     private bool hitDynamicBlockerThisFrame;
+    private bool hitStaticBlockerThisFrame;
     private bool isDetouringAroundDynamicBlocker;
     private bool isConversationMovementLocked;
 
@@ -136,13 +144,14 @@ public sealed class AraBotClickToMove : MonoBehaviour
             return;
         }
 
+        Vector2 screenPosition = Mouse.current.position.ReadValue();
         if ((DialogueManager.Instance != null && DialogueManager.Instance.IsPlaying)
-            || (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()))
+            || IsPointerOverInteractiveUi(screenPosition))
         {
             return;
         }
 
-        Ray clickRay = targetCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+        Ray clickRay = targetCamera.ScreenPointToRay(screenPosition);
         if (!clickPlane.Raycast(clickRay, out float enter))
         {
             return;
@@ -153,6 +162,31 @@ public sealed class AraBotClickToMove : MonoBehaviour
             ToNavMeshPosition(worldTarget),
             clearPathOnFailure: true,
             setAsFinalDestination: true);
+    }
+
+    private bool IsPointerOverInteractiveUi(Vector2 screenPosition)
+    {
+        EventSystem eventSystem = EventSystem.current;
+        if (eventSystem == null)
+        {
+            return false;
+        }
+
+        uiRaycastResults.Clear();
+        eventSystem.RaycastAll(
+            new PointerEventData(eventSystem) { position = screenPosition },
+            uiRaycastResults);
+
+        for (int index = 0; index < uiRaycastResults.Count; index++)
+        {
+            GameObject hitObject = uiRaycastResults[index].gameObject;
+            if (hitObject != null && hitObject.GetComponentInParent<Selectable>() != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void StopForConversation()
@@ -172,7 +206,14 @@ public sealed class AraBotClickToMove : MonoBehaviour
     {
         RefreshPathIfNeeded(deltaTime);
         hitDynamicBlockerThisFrame = false;
+        hitStaticBlockerThisFrame = false;
         latestDynamicBlockerHit = default;
+        latestStaticBlockerHit = default;
+
+        if (TryResolveStaticOverlap())
+        {
+            return;
+        }
 
         Vector2 currentRootPosition = GetRootPosition();
         Vector2 currentNavigationPosition = currentRootPosition + navigationOffset;
@@ -231,11 +272,15 @@ public sealed class AraBotClickToMove : MonoBehaviour
             {
                 if (!TryHandleDynamicBlockerStall(desiredVelocity, currentNavigationPosition))
                 {
-                    Vector3 repathDestination = hasFinalDestination ? finalDestination : currentDestination;
-                    TrySetPathToDestination(
-                        repathDestination,
-                        clearPathOnFailure: false,
-                        setAsFinalDestination: !isDetouringAroundDynamicBlocker);
+                    if (!TryHandleStaticBlockerStall())
+                    {
+                        Vector3 repathDestination = hasFinalDestination ? finalDestination : currentDestination;
+                        TrySetPathToDestination(
+                            repathDestination,
+                            clearPathOnFailure: false,
+                            setAsFinalDestination: !isDetouringAroundDynamicBlocker,
+                            resetRecoveryAttempts: false);
+                    }
                 }
 
                 blockedTimer = 0f;
@@ -269,7 +314,8 @@ public sealed class AraBotClickToMove : MonoBehaviour
         TrySetPathToDestination(
             currentDestination,
             clearPathOnFailure: false,
-            setAsFinalDestination: !isDetouringAroundDynamicBlocker);
+            setAsFinalDestination: !isDetouringAroundDynamicBlocker,
+            resetRecoveryAttempts: false);
     }
 
     private Vector2 ApplyDynamicBlockerAvoidance(Vector2 desiredVelocity, float deltaTime)
@@ -328,6 +374,9 @@ public sealed class AraBotClickToMove : MonoBehaviour
             return direction * allowedDynamicDistance;
         }
 
+        hitStaticBlockerThisFrame = true;
+        latestStaticBlockerHit = blockingHit;
+
         float allowedDistance = Mathf.Clamp(blockingHit.distance - collisionSkin, 0f, requestedDistance);
         Vector2 forwardMovement = direction * allowedDistance;
         Vector2 remainingMovement = requestedMovement - forwardMovement;
@@ -352,6 +401,70 @@ public sealed class AraBotClickToMove : MonoBehaviour
         }
 
         return forwardMovement + slideDirection * slideDistance;
+    }
+
+    private bool TryResolveStaticOverlap()
+    {
+        if (movementCollider == null)
+        {
+            return false;
+        }
+
+        overlapColliders.Clear();
+        movementCollider.Overlap(movementContactFilter, overlapColliders);
+
+        Vector2 strongestCorrection = Vector2.zero;
+        float deepestOverlap = 0f;
+
+        for (int index = 0; index < overlapColliders.Count; index++)
+        {
+            Collider2D otherCollider = overlapColliders[index];
+            if (otherCollider == null
+                || otherCollider == movementCollider
+                || otherCollider.isTrigger
+                || DynamicMovementBlockerUtility.IsDynamicMovementBlocker(otherCollider, body))
+            {
+                continue;
+            }
+
+            ColliderDistance2D separation = movementCollider.Distance(otherCollider);
+            if (!separation.isValid || !separation.isOverlapped)
+            {
+                continue;
+            }
+
+            float overlapDepth = -separation.distance;
+            if (overlapDepth <= deepestOverlap)
+            {
+                continue;
+            }
+
+            deepestOverlap = overlapDepth;
+            strongestCorrection = separation.normal
+                * (overlapDepth + Mathf.Max(collisionSkin, overlapRecoveryPadding));
+        }
+
+        if (strongestCorrection.sqrMagnitude <= 0.000001f)
+        {
+            return false;
+        }
+
+        Vector2 correctedPosition = GetRootPosition() + strongestCorrection;
+        currentVelocity = Vector2.zero;
+        blockedTimer = 0f;
+        repathTimer = 0f;
+
+        if (body != null)
+        {
+            body.position = correctedPosition;
+            body.linearVelocity = Vector2.zero;
+        }
+        else
+        {
+            transform.position = new Vector3(correctedPosition.x, correctedPosition.y, cachedZ);
+        }
+
+        return true;
     }
 
     private bool TryGetBlockingHit(Vector2 direction, float distance, out RaycastHit2D blockingHit)
@@ -462,7 +575,8 @@ public sealed class AraBotClickToMove : MonoBehaviour
             && TrySetPathToDestination(
                 finalDestination,
                 clearPathOnFailure: false,
-                setAsFinalDestination: true))
+                setAsFinalDestination: true,
+                resetRecoveryAttempts: false))
         {
             return;
         }
@@ -476,8 +590,11 @@ public sealed class AraBotClickToMove : MonoBehaviour
         currentCornerIndex = 0;
         blockedTimer = 0f;
         dynamicBlockerRecoveryAttempts = 0;
+        staticBlockerRecoveryAttempts = 0;
         hitDynamicBlockerThisFrame = false;
+        hitStaticBlockerThisFrame = false;
         latestDynamicBlockerHit = default;
+        latestStaticBlockerHit = default;
         currentDestination = default;
         hasDestination = false;
         isDetouringAroundDynamicBlocker = false;
@@ -493,7 +610,8 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private bool TrySetPathToDestination(
         Vector3 navMeshDestination,
         bool clearPathOnFailure,
-        bool setAsFinalDestination)
+        bool setAsFinalDestination,
+        bool resetRecoveryAttempts = true)
     {
         if (!NavMesh.SamplePosition(navMeshDestination, out NavMeshHit sampledDestination, destinationSampleDistance, NavMesh.AllAreas))
         {
@@ -528,9 +646,38 @@ public sealed class AraBotClickToMove : MonoBehaviour
         {
             finalDestination = sampledDestination.position;
             hasFinalDestination = true;
-            dynamicBlockerRecoveryAttempts = 0;
+            if (resetRecoveryAttempts)
+            {
+                dynamicBlockerRecoveryAttempts = 0;
+                staticBlockerRecoveryAttempts = 0;
+            }
         }
 
+        return true;
+    }
+
+    private bool TryHandleStaticBlockerStall()
+    {
+        if (!hitStaticBlockerThisFrame || latestStaticBlockerHit.collider == null)
+        {
+            return false;
+        }
+
+        staticBlockerRecoveryAttempts++;
+        if (maxStaticBlockerRecoveryAttempts <= 0
+            || staticBlockerRecoveryAttempts > maxStaticBlockerRecoveryAttempts)
+        {
+            ClearPath();
+            currentVelocity = Vector2.zero;
+            return true;
+        }
+
+        Vector3 repathDestination = hasFinalDestination ? finalDestination : currentDestination;
+        TrySetPathToDestination(
+            repathDestination,
+            clearPathOnFailure: false,
+            setAsFinalDestination: !isDetouringAroundDynamicBlocker,
+            resetRecoveryAttempts: false);
         return true;
     }
 
