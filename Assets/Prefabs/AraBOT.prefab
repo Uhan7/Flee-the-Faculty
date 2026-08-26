@@ -255,6 +255,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: AraBOT
+  voiceClips: []
+  voiceAudioSource: {fileID: 0}
+  voiceVolume: 1
 --- !u!114 &9041865723410914872
 MonoBehaviour:
   m_ObjectHideFlags: 0

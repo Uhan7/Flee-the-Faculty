@@ -22,12 +22,13 @@ public sealed class DialogueManager : MonoBehaviour
     [SerializeField] private bool advanceWithLeftClick = true;
 
     [Header("Voice Ticks")]
+    [Tooltip("Number of revealed letters between gibberish voice clips for every speaker.")]
     [SerializeField, Min(1)] private int lettersPerVoiceTick = 3;
 
     private IDialogueView view;
     private IDialogueSequence activeDialogue;
     private IDialogueLine activeLine;
-    private StudentPersonality activeSpeakerPersonality;
+    private DialogueActor activeSpeakerActor;
     private int activeLineIndex = -1;
     private int lettersSinceVoiceTick;
     private float advanceAllowedAt;
@@ -158,7 +159,8 @@ public sealed class DialogueManager : MonoBehaviour
         activeDialogue = null;
         activeLine = null;
         activeLineIndex = -1;
-        activeSpeakerPersonality = null;
+        activeSpeakerActor?.StopVoice();
+        activeSpeakerActor = null;
         lettersSinceVoiceTick = 0;
         view.SetVisible(false);
         DialogueEnded?.Invoke(finishedDialogue);
@@ -166,7 +168,7 @@ public sealed class DialogueManager : MonoBehaviour
 
     public void NotifyCharacterRevealed(char revealedCharacter)
     {
-        if (activeSpeakerPersonality == null || !char.IsLetter(revealedCharacter))
+        if (activeSpeakerActor == null || !char.IsLetter(revealedCharacter))
         {
             return;
         }
@@ -178,7 +180,7 @@ public sealed class DialogueManager : MonoBehaviour
         }
 
         lettersSinceVoiceTick = 0;
-        activeSpeakerPersonality.PlayVoiceTick();
+        activeSpeakerActor.PlayVoiceTick();
     }
 
     private void ShowNextLine()
@@ -196,39 +198,40 @@ public sealed class DialogueManager : MonoBehaviour
             return;
         }
 
+        activeSpeakerActor?.StopVoice();
         activeLine = lines[activeLineIndex];
-        activeSpeakerPersonality = ResolveStudentPersonality(activeLine);
+        activeSpeakerActor = ResolveDialogueActor(activeLine);
         lettersSinceVoiceTick = 0;
         advanceAllowedAt = Time.unscaledTime + MinimumLineDisplaySeconds;
         LineChanged?.Invoke(activeLine, activeLineIndex);
         view.DisplayLine(activeLine, activeLine.Text, true);
     }
 
-    private static StudentPersonality ResolveStudentPersonality(IDialogueLine line)
+    private static DialogueActor ResolveDialogueActor(IDialogueLine line)
     {
         if (line == null || line.SpeakerReference == null)
         {
             return null;
         }
 
-        if (line.SpeakerReference is StudentPersonality personality)
-        {
-            return personality;
-        }
-
         if (line.SpeakerReference is DialogueActor actor)
         {
-            return actor.GetComponent<StudentPersonality>();
+            return actor;
+        }
+
+        if (line.SpeakerReference is StudentPersonality personality)
+        {
+            return personality.Actor;
         }
 
         if (line.SpeakerReference is Component component)
         {
-            return component.GetComponent<StudentPersonality>();
+            return component.GetComponent<DialogueActor>();
         }
 
         if (line.SpeakerReference is GameObject gameObject)
         {
-            return gameObject.GetComponent<StudentPersonality>();
+            return gameObject.GetComponent<DialogueActor>();
         }
 
         return null;

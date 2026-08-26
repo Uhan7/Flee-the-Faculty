@@ -23,6 +23,20 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField] private TMP_Text bodyText;
     [SerializeField] private GameObject continueIndicator;
 
+    [Header("Speaker Styles")]
+    [SerializeField] private Image dialogueBoxImage;
+    [SerializeField] private Image nameBoxImage;
+    [SerializeField] private Sprite defaultDialogueBoxSprite;
+    [SerializeField] private Sprite defaultNameBoxSprite;
+    [SerializeField] private Sprite studentDialogueBoxSprite;
+    [SerializeField] private Sprite studentNameBoxSprite;
+
+    [Header("Panel Juice")]
+    [SerializeField, Min(0.01f)] private float panelAppearDuration = 0.3f;
+    [SerializeField, Min(0f)] private float panelAppearRiseDistance = 110f;
+    [SerializeField, Range(0.1f, 1f)] private float panelAppearStartScale = 0.88f;
+    [SerializeField, Range(1f, 1.2f)] private float panelAppearOvershootScale = 1.035f;
+
     [Header("Reveal")]
     [SerializeField] private DialogueRevealMode revealMode = DialogueRevealMode.PerLetter;
     [SerializeField, Min(1f)] private float wordsPerSecond = 5f;
@@ -41,6 +55,12 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField, Min(0.1f)] private float continueBounceCyclesPerSecond = 2.4f;
 
     private Coroutine revealRoutine;
+    private Coroutine panelAppearRoutine;
+    private RectTransform dialogueContainerRect;
+    private CanvasGroup dialogueCanvasGroup;
+    private Vector2 dialogueContainerBasePosition;
+    private Vector3 dialogueContainerBaseScale = Vector3.one;
+    private float dialogueContainerBaseAlpha = 1f;
     private RectTransform continueIndicatorRect;
     private Vector2 continueIndicatorBasePosition;
     private string currentFullText = string.Empty;
@@ -65,6 +85,8 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     private void Awake()
     {
         ActiveInstance = this;
+        CacheDialogueContainer();
+        ResolveSpeakerStyleReferences();
 
         if (continueIndicator != null)
         {
@@ -149,41 +171,44 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     public void SetVisible(bool visible)
     {
+        if (visible)
+        {
+            ShowDialogueContainer();
+            return;
+        }
+
+        StopPanelAppearRoutine();
+        RestoreDialogueContainerTransform();
         if (dialogueContainer != null)
         {
-            dialogueContainer.SetActive(visible);
+            dialogueContainer.SetActive(false);
         }
 
-        if (!visible)
+        StopRevealRoutine();
+        ClearActiveGlyphAnimations();
+        IsRevealComplete = true;
+        currentFullText = string.Empty;
+        canAdvance = false;
+        SetExternalInputVisible(false);
+
+        if (speakerText != null)
         {
-            StopRevealRoutine();
-            ClearActiveGlyphAnimations();
-            IsRevealComplete = true;
-            currentFullText = string.Empty;
-            canAdvance = false;
-            SetExternalInputVisible(false);
-
-            if (speakerText != null)
-            {
-                speakerText.text = string.Empty;
-            }
-
-            if (bodyText != null)
-            {
-                bodyText.text = string.Empty;
-                bodyText.maxVisibleCharacters = 0;
-            }
-
-            SetContinueIndicator(false);
+            speakerText.text = string.Empty;
         }
+
+        if (bodyText != null)
+        {
+            bodyText.text = string.Empty;
+            bodyText.maxVisibleCharacters = 0;
+        }
+
+        SetContinueIndicator(false);
     }
 
     public void DisplayLine(IDialogueLine line, string visibleText, bool lineCanAdvance)
     {
-        if (dialogueContainer != null && !dialogueContainer.activeSelf)
-        {
-            dialogueContainer.SetActive(true);
-        }
+        ShowDialogueContainer();
+        ApplySpeakerStyle(IsStudentSpeaker(line));
 
         SetExternalInputVisible(false);
 
@@ -223,10 +248,8 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     public void ShowExternalContent(string speaker, string body, bool lineCanAdvance)
     {
-        if (dialogueContainer != null && !dialogueContainer.activeSelf)
-        {
-            dialogueContainer.SetActive(true);
-        }
+        ShowDialogueContainer();
+        ApplySpeakerStyle(false);
 
         StopRevealRoutine();
         ClearActiveGlyphAnimations();
@@ -250,6 +273,194 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
 
         SetContinueIndicator(canAdvance);
+    }
+
+    private void CacheDialogueContainer()
+    {
+        if (dialogueContainer == null)
+        {
+            return;
+        }
+
+        dialogueContainerRect = dialogueContainer.transform as RectTransform;
+        dialogueCanvasGroup = dialogueContainer.GetComponent<CanvasGroup>();
+
+        if (dialogueContainerRect != null)
+        {
+            dialogueContainerBasePosition = dialogueContainerRect.anchoredPosition;
+            dialogueContainerBaseScale = dialogueContainerRect.localScale;
+        }
+
+        if (dialogueCanvasGroup != null)
+        {
+            dialogueContainerBaseAlpha = dialogueCanvasGroup.alpha;
+        }
+    }
+
+    private void ShowDialogueContainer()
+    {
+        if (dialogueContainer == null)
+        {
+            return;
+        }
+
+        bool shouldAnimate = !dialogueContainer.activeSelf;
+        dialogueContainer.SetActive(true);
+
+        if (!shouldAnimate)
+        {
+            return;
+        }
+
+        StopPanelAppearRoutine();
+        panelAppearRoutine = StartCoroutine(AnimateDialogueContainerIn());
+    }
+
+    private IEnumerator AnimateDialogueContainerIn()
+    {
+        if (dialogueContainerRect == null)
+        {
+            panelAppearRoutine = null;
+            yield break;
+        }
+
+        Vector2 startPosition = dialogueContainerBasePosition + (Vector2.down * panelAppearRiseDistance);
+        float elapsed = 0f;
+
+        while (elapsed < panelAppearDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / Mathf.Max(panelAppearDuration, 0.01f));
+            float easedPosition = 1f - Mathf.Pow(1f - progress, 3f);
+
+            dialogueContainerRect.anchoredPosition = Vector2.LerpUnclamped(
+                startPosition,
+                dialogueContainerBasePosition,
+                easedPosition);
+
+            float scale = EvaluatePanelAppearScale(progress);
+            dialogueContainerRect.localScale = new Vector3(
+                dialogueContainerBaseScale.x * scale,
+                dialogueContainerBaseScale.y * scale,
+                dialogueContainerBaseScale.z);
+
+            if (dialogueCanvasGroup != null)
+            {
+                dialogueCanvasGroup.alpha = dialogueContainerBaseAlpha * easedPosition;
+            }
+
+            yield return null;
+        }
+
+        RestoreDialogueContainerTransform();
+        panelAppearRoutine = null;
+    }
+
+    private float EvaluatePanelAppearScale(float progress)
+    {
+        const float overshootPoint = 0.72f;
+        if (progress < overshootPoint)
+        {
+            float riseProgress = Mathf.SmoothStep(0f, 1f, progress / overshootPoint);
+            return Mathf.LerpUnclamped(panelAppearStartScale, panelAppearOvershootScale, riseProgress);
+        }
+
+        float settleProgress = Mathf.SmoothStep(0f, 1f, (progress - overshootPoint) / (1f - overshootPoint));
+        return Mathf.LerpUnclamped(panelAppearOvershootScale, 1f, settleProgress);
+    }
+
+    private void StopPanelAppearRoutine()
+    {
+        if (panelAppearRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(panelAppearRoutine);
+        panelAppearRoutine = null;
+    }
+
+    private void RestoreDialogueContainerTransform()
+    {
+        if (dialogueContainerRect != null)
+        {
+            dialogueContainerRect.anchoredPosition = dialogueContainerBasePosition;
+            dialogueContainerRect.localScale = dialogueContainerBaseScale;
+        }
+
+        if (dialogueCanvasGroup != null)
+        {
+            dialogueCanvasGroup.alpha = dialogueContainerBaseAlpha;
+        }
+    }
+
+    private void ResolveSpeakerStyleReferences()
+    {
+        if (dialogueBoxImage == null && bodyText != null)
+        {
+            dialogueBoxImage = bodyText.GetComponentInParent<Image>();
+        }
+
+        if (nameBoxImage == null && speakerText != null)
+        {
+            nameBoxImage = speakerText.GetComponentInParent<Image>();
+        }
+
+        if (defaultDialogueBoxSprite == null && dialogueBoxImage != null)
+        {
+            defaultDialogueBoxSprite = dialogueBoxImage.sprite;
+        }
+
+        if (defaultNameBoxSprite == null && nameBoxImage != null)
+        {
+            defaultNameBoxSprite = nameBoxImage.sprite;
+        }
+    }
+
+    private void ApplySpeakerStyle(bool useStudentStyle)
+    {
+        ApplySlicedSprite(
+            dialogueBoxImage,
+            useStudentStyle ? studentDialogueBoxSprite : defaultDialogueBoxSprite);
+        ApplySlicedSprite(
+            nameBoxImage,
+            useStudentStyle ? studentNameBoxSprite : defaultNameBoxSprite);
+    }
+
+    private static void ApplySlicedSprite(Image image, Sprite sprite)
+    {
+        if (image == null || sprite == null)
+        {
+            return;
+        }
+
+        image.sprite = sprite;
+        image.type = Image.Type.Sliced;
+    }
+
+    private static bool IsStudentSpeaker(IDialogueLine line)
+    {
+        if (line == null || line.SpeakerReference == null)
+        {
+            return false;
+        }
+
+        if (line.SpeakerReference is StudentPersonality)
+        {
+            return true;
+        }
+
+        if (line.SpeakerReference is Component component)
+        {
+            return component.GetComponentInParent<StudentPersonality>() != null;
+        }
+
+        if (line.SpeakerReference is GameObject gameObject)
+        {
+            return gameObject.GetComponentInParent<StudentPersonality>() != null;
+        }
+
+        return false;
     }
 
     public void SetExternalBodyText(string body, bool lineCanAdvance)

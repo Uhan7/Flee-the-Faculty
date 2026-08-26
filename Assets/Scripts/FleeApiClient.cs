@@ -127,7 +127,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
         FleeEncounterOpening opening = null;
         FleeApiFailure failure = null;
-        onProgress?.Invoke(0.72f, "Loading " + safePupilName + "'s question...");
+        onProgress?.Invoke(0.72f, "Generating " + safePupilName + "'s question...");
         yield return PostJson<FleeEncounterRequest, FleeEncounterOpening>(
             "/v1/encounters",
             new FleeEncounterRequest

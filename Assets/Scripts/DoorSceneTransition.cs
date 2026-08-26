@@ -24,7 +24,11 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [SerializeField] private Image blocker;
     [SerializeField] private RectTransform topDoor;
     [SerializeField] private RectTransform bottomDoor;
-    [SerializeField] private TMP_Text loadingText;
+    [SerializeField] private GameObject loadingContent;
+    [SerializeField] private RectTransform loadingSpinner;
+    [SerializeField] private TMP_Text loadingStatusText;
+    [SerializeField] private Image loadingProgressFill;
+    [SerializeField] private TMP_Text loadingPercentText;
 
     // Timing
     [Header("Timing")]
@@ -44,6 +48,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     [Header("Loading")]
     [SerializeField, Min(0f)] private float deferredLoadRegistrationGraceSeconds = 0.08f;
+    [SerializeField] private float loadingSpinnerDegreesPerSecond = -120f;
 
     private bool isTransitioning;
     private bool isWaitingForSceneLoad;
@@ -183,10 +188,40 @@ public sealed class DoorSceneTransition : MonoBehaviour
             bottomDoor = bottomDoorTransform as RectTransform;
         }
 
-        if (loadingText == null)
+        Transform loadingContentTransform = loadingContent != null
+            ? loadingContent.transform
+            : transform.Find("Loading UI");
+        if (loadingContent == null && loadingContentTransform != null)
         {
-            Transform loadingTextTransform = transform.Find("Loading Text");
-            loadingText = loadingTextTransform != null ? loadingTextTransform.GetComponent<TMP_Text>() : null;
+            loadingContent = loadingContentTransform.gameObject;
+        }
+
+        if (loadingContentTransform == null)
+        {
+            return;
+        }
+
+        if (loadingSpinner == null)
+        {
+            loadingSpinner = loadingContentTransform.Find("Top Content/AraBOT Spinner") as RectTransform;
+        }
+
+        if (loadingStatusText == null)
+        {
+            Transform statusTransform = loadingContentTransform.Find("Top Content/Loading Status");
+            loadingStatusText = statusTransform != null ? statusTransform.GetComponent<TMP_Text>() : null;
+        }
+
+        if (loadingProgressFill == null)
+        {
+            Transform fillTransform = loadingContentTransform.Find("Bottom Content/Loading Bar/Fill");
+            loadingProgressFill = fillTransform != null ? fillTransform.GetComponent<Image>() : null;
+        }
+
+        if (loadingPercentText == null)
+        {
+            Transform percentTransform = loadingContentTransform.Find("Bottom Content/Loading Percentage");
+            loadingPercentText = percentTransform != null ? percentTransform.GetComponent<TMP_Text>() : null;
         }
     }
 
@@ -216,6 +251,11 @@ public sealed class DoorSceneTransition : MonoBehaviour
     private void LateUpdate()
     {
         RefreshDoorLayout();
+
+        if (loadingSpinner != null && loadingContent != null && loadingContent.activeInHierarchy)
+        {
+            loadingSpinner.Rotate(0f, 0f, loadingSpinnerDegreesPerSecond * Time.unscaledDeltaTime);
+        }
     }
 
     private void OnDisable()
@@ -247,6 +287,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
         hasPlayedStartupOpen = true;
         SetInputBlocked(true);
         SetDoorCoverage(1f);
+        UpdateLoadingText(0f, "Preparing classroom...");
 
         if (startupHoldClosedDuration > 0f)
         {
@@ -376,11 +417,14 @@ public sealed class DoorSceneTransition : MonoBehaviour
             blocker == null ||
             topDoor == null ||
             bottomDoor == null ||
-            loadingText == null)
+            loadingContent == null ||
+            loadingStatusText == null ||
+            loadingProgressFill == null ||
+            loadingPercentText == null)
         {
             Debug.LogError(
                 "DoorSceneTransition is missing prefab references. " +
-                "Assign the Canvas, doors, blocker, and loading text in the transition prefab.",
+                "Assign the Canvas, doors, blocker, and loading UI in the transition prefab.",
                 this);
             return;
         }
@@ -666,23 +710,38 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     private void UpdateLoadingText(float progress, string status)
     {
-        if (loadingText == null)
+        if (loadingContent == null)
         {
             return;
         }
 
         SetLoadingTextVisible(true);
 
-        int percent = Mathf.RoundToInt(Mathf.Clamp01(progress) * 100f);
+        float normalizedProgress = Mathf.Clamp01(progress);
+        int percent = Mathf.RoundToInt(normalizedProgress * 100f);
         string safeStatus = string.IsNullOrWhiteSpace(status) ? "Loading..." : status.Trim();
-        loadingText.text = safeStatus + "\n" + percent + "%";
+
+        if (loadingStatusText != null)
+        {
+            loadingStatusText.text = safeStatus;
+        }
+
+        if (loadingProgressFill != null)
+        {
+            loadingProgressFill.fillAmount = normalizedProgress;
+        }
+
+        if (loadingPercentText != null)
+        {
+            loadingPercentText.text = percent + "%";
+        }
     }
 
     private void SetLoadingTextVisible(bool visible)
     {
-        if (loadingText != null)
+        if (loadingContent != null)
         {
-            loadingText.gameObject.SetActive(visible);
+            loadingContent.SetActive(visible);
         }
     }
 

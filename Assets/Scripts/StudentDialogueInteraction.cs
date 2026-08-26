@@ -356,7 +356,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
             speechCaptureFlow.ShowProcessing(
                 backendPupilName + " Is Thinking",
-                "The AI response can take 15-30 seconds. Please wait and stay in Play mode.");
+                "Thinking about your explanation...");
             SetThinkingBubbleVisible(true);
             beginDialogueRoutine = StartCoroutine(SubmitBackendReply(transcript));
             return;
@@ -382,7 +382,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         backendPreloadFailure = null;
         DoorSceneTransition.TryRegisterLoadingTask(
             GetBackendLoadingTaskId(),
-            "Loading " + backendPupilName + "'s question...",
+            "Generating " + backendPupilName + "'s question...",
             0f);
         apiClient = FleeApiClient.GetOrCreate();
 

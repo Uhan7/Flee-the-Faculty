@@ -603,6 +603,7 @@ GameObject:
   m_Component:
   - component: {fileID: 392015445}
   - component: {fileID: 392015446}
+  - component: {fileID: 392015447}
   - component: {fileID: 392015444}
   - component: {fileID: 392015443}
   - component: {fileID: 392015442}
@@ -712,6 +713,16 @@ MonoBehaviour:
   speakerText: {fileID: 1217466992}
   bodyText: {fileID: 599602274}
   continueIndicator: {fileID: 911261808}
+  dialogueBoxImage: {fileID: 718829257}
+  nameBoxImage: {fileID: 399008327}
+  defaultDialogueBoxSprite: {fileID: -5116634123570496115, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  defaultNameBoxSprite: {fileID: -6844855711077257918, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  studentDialogueBoxSprite: {fileID: -4838281946603112173, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
+  studentNameBoxSprite: {fileID: 1228628871593904614, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
+  panelAppearDuration: 0.3
+  panelAppearRiseDistance: 110
+  panelAppearStartScale: 0.88
+  panelAppearOvershootScale: 1.035
   revealMode: 2
   wordsPerSecond: 12
   lettersPerSecond: 36
@@ -723,6 +734,22 @@ MonoBehaviour:
   letterSpawnScaleBoost: 0.08
   continueBounceDistance: 18
   continueBounceCyclesPerSecond: 0.8
+--- !u!114 &392015447
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 392015441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e52e79843f017410f9911831c284139a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  viewProvider: {fileID: 392015446}
+  advanceWithKeyboard: 1
+  advanceWithLeftClick: 1
+  lettersPerVoiceTick: 3
 --- !u!1 &395694477
 GameObject:
   m_ObjectHideFlags: 0

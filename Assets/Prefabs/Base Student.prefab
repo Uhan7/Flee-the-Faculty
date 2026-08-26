@@ -392,6 +392,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Base Student
+  voiceClips:
+  - {fileID: 8300000, guid: 33f182f4437e54c74a0e215bedba31fb, type: 3}
+  - {fileID: 8300000, guid: bebdf6ef32003453a810bd92dfec9982, type: 3}
+  - {fileID: 8300000, guid: 049587c334133440d8a991c0547c183c, type: 3}
+  - {fileID: 8300000, guid: 0f74a5294a09d4729b73e8311b0887e8, type: 3}
+  - {fileID: 8300000, guid: 133c512b156af456b92d3c25618433b6, type: 3}
+  voiceAudioSource: {fileID: 0}
+  voiceVolume: 1
 --- !u!114 &7194483652100386412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -432,9 +440,14 @@ MonoBehaviour:
   actor: {fileID: 5088951843667480379}
   explanationNeed:
   quirk:
-  voiceClip: {fileID: 0}
-  voiceAudioSource: {fileID: 0}
-  voiceVolume: 1
+  generalVibe:
+  speechStyle:
+  commonPhrases:
+  confusionLine:
+  wrongAnswerLine:
+  understandingLine:
+  preferredExplanationStyle:
+  recognizableHabit:
 --- !u!114 &938998892657910632
 MonoBehaviour:
   m_ObjectHideFlags: 0
