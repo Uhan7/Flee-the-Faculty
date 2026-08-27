@@ -65,6 +65,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     public event Action<string> TranscriptSubmitted;
     public event Action<string> TranscriptChanged;
     public event Action<bool> ListeningStateChanged;
+    public event Action<string> SpeechError;
 
 #if UNITY_EDITOR_OSX
     private string macEditorEventFilePath = string.Empty;
@@ -330,6 +331,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
         UpdateStatus("Speech recognition error: " + safeError);
         RefreshButtons();
         NotifyListeningStateChanged();
+        SpeechError?.Invoke(safeError);
     }
 
     public void HandleFallbackInputChanged(string value)

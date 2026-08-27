@@ -58,11 +58,13 @@ public sealed class AraBotPromptButton : MonoBehaviour
             bubbleImage.type = Image.Type.Simple;
             bubbleImage.preserveAspect = true;
             bubbleImage.color = bubbleColor;
+            bubbleImage.raycastTarget = true;
         }
 
         if (iconImage != null)
         {
             iconImage.color = iconColor;
+            iconImage.raycastTarget = true;
             iconImage.gameObject.SetActive(false);
         }
 
@@ -98,6 +100,20 @@ public sealed class AraBotPromptButton : MonoBehaviour
         if (gameObject.activeSelf)
         {
             gameObject.SetActive(false);
+        }
+    }
+
+    public void ShowVisualOnly()
+    {
+        Show(null);
+
+        Graphic[] graphics = GetComponentsInChildren<Graphic>(true);
+        for (int index = 0; index < graphics.Length; index++)
+        {
+            if (graphics[index] != null)
+            {
+                graphics[index].raycastTarget = false;
+            }
         }
     }
 

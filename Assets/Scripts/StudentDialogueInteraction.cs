@@ -19,10 +19,10 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     [SerializeField] private bool useSpeechReplyFlow = true;
     [SerializeField] private DialogueActor studentActor;
     [SerializeField] private string fallbackQuestionText = "Hey, AraBOT. What should I say to the teacher?";
-    [SerializeField] private string speechPromptTitle = "AraBOT's Reply";
+    [SerializeField] private string speechPromptTitle = "AraBOT";
     [SerializeField, TextArea(2, 4)] private string speechPromptInstructions = "Tap the mic above AraBOT, speak your answer, then continue when you are done.";
     [SerializeField] private string repeatLineFormat = "Okay, so you said: \"{0}\"";
-    [SerializeField] private string emptyTranscriptFallback = "I did not catch AraBOT's reply.";
+    [SerializeField] private string emptyTranscriptFallback = "I did not catch that.";
 
     [Header("Backend API Test")]
     [SerializeField] private bool useBackendReplyFlow;
@@ -53,7 +53,62 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private bool canRevisitAfterInteraction;
     private string lastCapturedSpeech = string.Empty;
 
+    private static StudentDialogueInteraction activeConversation;
+
     public string LastCapturedSpeech => lastCapturedSpeech;
+
+    public static void ExitActiveConversation()
+    {
+        if (activeConversation != null)
+        {
+            activeConversation.ExitConversation();
+        }
+    }
+
+    public void ExitConversation()
+    {
+        if (!isConversationModeActive)
+        {
+            return;
+        }
+
+        if (beginDialogueRoutine != null)
+        {
+            StopCoroutine(beginDialogueRoutine);
+            beginDialogueRoutine = null;
+        }
+
+        if (isBackendQuestionLoading)
+        {
+            isBackendQuestionLoading = false;
+            DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Conversation cancelled.");
+        }
+
+        isSpeechFlowActive = false;
+        activeQuestionDialogue = null;
+        activeRepeatDialogue = null;
+        preloadedQuestionDialogue = null;
+        activeEncounter = null;
+        backendPreloadFailure = null;
+        isBackendQuestionReady = false;
+        requestAnotherSpeechReply = false;
+        canRevisitAfterInteraction = false;
+        SetThinkingBubbleVisible(false);
+
+        if (speechCaptureFlow != null)
+        {
+            speechCaptureFlow.Hide();
+        }
+
+        if (dialogueManager != null && dialogueManager.IsPlaying)
+        {
+            dialogueManager.EndDialogue();
+        }
+
+        EndConversationMode();
+        ClearInteractionTargetFocus();
+        RefreshQuestionButton();
+    }
 
     public void ConfigureBackendPupil(FleePupilSession pupil)
     {
@@ -370,9 +425,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
                 return;
             }
 
-            speechCaptureFlow.ShowProcessing(
-                backendPupilName + " Is Thinking",
-                "Thinking about your explanation...");
+            speechCaptureFlow.ShowProcessing();
             SetThinkingBubbleVisible(true);
             beginDialogueRoutine = StartCoroutine(SubmitBackendReply(transcript));
             return;
@@ -782,6 +835,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (!wasConversationActive)
         {
+            activeConversation = this;
             ConversationStarted?.Invoke(ResolveStudentActor());
         }
     }
@@ -797,6 +851,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         isConversationModeActive = false;
         if (wasConversationActive)
         {
+            if (activeConversation == this)
+            {
+                activeConversation = null;
+            }
+
             ConversationEnded?.Invoke();
         }
     }

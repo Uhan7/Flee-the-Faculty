@@ -15,7 +15,7 @@ public enum DialogueRevealMode
 [DisallowMultipleComponent]
 public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 {
-    private const string DefaultExternalInputPlaceholder = "Type AraBOT's reply here...";
+    private const string DefaultExternalInputPlaceholder = "Type your reply here...";
 
     [Header("References")]
     [SerializeField] private GameObject dialogueContainer;
@@ -26,10 +26,13 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [Header("Speaker Styles")]
     [SerializeField] private Image dialogueBoxImage;
     [SerializeField] private Image nameBoxImage;
+    [SerializeField] private Image pointingArrowImage;
     [SerializeField] private Sprite defaultDialogueBoxSprite;
     [SerializeField] private Sprite defaultNameBoxSprite;
+    [SerializeField] private Sprite defaultPointingArrowSprite;
     [SerializeField] private Sprite studentDialogueBoxSprite;
     [SerializeField] private Sprite studentNameBoxSprite;
+    [SerializeField] private Sprite studentPointingArrowSprite;
 
     [Header("Panel Juice")]
     [SerializeField, Min(0.01f)] private float panelAppearDuration = 0.3f;
@@ -54,6 +57,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField, Min(0f)] private float continueBounceDistance = 18f;
     [SerializeField, Min(0.1f)] private float continueBounceCyclesPerSecond = 2.4f;
 
+    [Header("External Hints")]
+    [SerializeField, Range(0f, 1f)] private float externalHintAlpha = 0.48f;
+
     private Coroutine revealRoutine;
     private Coroutine panelAppearRoutine;
     private RectTransform dialogueContainerRect;
@@ -63,6 +69,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     private float dialogueContainerBaseAlpha = 1f;
     private RectTransform continueIndicatorRect;
     private Vector2 continueIndicatorBasePosition;
+    private Color bodyTextBaseColor = Color.white;
     private string currentFullText = string.Empty;
     private bool canAdvance;
     private TMP_InputField externalInputField;
@@ -87,6 +94,11 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         ActiveInstance = this;
         CacheDialogueContainer();
         ResolveSpeakerStyleReferences();
+
+        if (bodyText != null)
+        {
+            bodyTextBaseColor = bodyText.color;
+        }
 
         if (continueIndicator != null)
         {
@@ -211,6 +223,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         ApplySpeakerStyle(IsStudentSpeaker(line));
 
         SetExternalInputVisible(false);
+        RestoreBodyTextColor();
 
         if (speakerText != null)
         {
@@ -254,6 +267,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         StopRevealRoutine();
         ClearActiveGlyphAnimations();
         SetExternalInputVisible(false);
+        RestoreBodyTextColor();
 
         currentFullText = body ?? string.Empty;
         canAdvance = lineCanAdvance;
@@ -273,6 +287,20 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
 
         SetContinueIndicator(canAdvance);
+    }
+
+    public void ShowExternalHint(string speaker, string hint)
+    {
+        ShowExternalContent(speaker, hint, false);
+
+        if (bodyText != null)
+        {
+            bodyText.color = new Color(
+                bodyTextBaseColor.r,
+                bodyTextBaseColor.g,
+                bodyTextBaseColor.b,
+                bodyTextBaseColor.a * externalHintAlpha);
+        }
     }
 
     private void CacheDialogueContainer()
@@ -394,6 +422,14 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
     }
 
+    private void RestoreBodyTextColor()
+    {
+        if (bodyText != null)
+        {
+            bodyText.color = bodyTextBaseColor;
+        }
+    }
+
     private void ResolveSpeakerStyleReferences()
     {
         if (dialogueBoxImage == null && bodyText != null)
@@ -419,12 +455,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     private void ApplySpeakerStyle(bool useStudentStyle)
     {
-        ApplySlicedSprite(
-            dialogueBoxImage,
-            useStudentStyle ? studentDialogueBoxSprite : defaultDialogueBoxSprite);
-        ApplySlicedSprite(
-            nameBoxImage,
-            useStudentStyle ? studentNameBoxSprite : defaultNameBoxSprite);
+        ApplySlicedSprite(dialogueBoxImage, useStudentStyle ? studentDialogueBoxSprite : defaultDialogueBoxSprite);
+        ApplySlicedSprite(nameBoxImage, useStudentStyle ? studentNameBoxSprite : defaultNameBoxSprite);
+        ApplySlicedSprite(pointingArrowImage, useStudentStyle ? studentPointingArrowSprite : defaultPointingArrowSprite);
     }
 
     private static void ApplySlicedSprite(Image image, Sprite sprite)

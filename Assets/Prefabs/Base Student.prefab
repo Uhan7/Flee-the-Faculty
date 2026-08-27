@@ -592,10 +592,10 @@ MonoBehaviour:
   useSpeechReplyFlow: 1
   studentActor: {fileID: 5088951843667480379}
   fallbackQuestionText: Hey, AraBOT. What should I say to the teacher?
-  speechPromptTitle: AraBOT's Reply
+  speechPromptTitle: AraBOT
   speechPromptInstructions: Tap the mic above AraBOT, speak your answer, then continue when you are done.
   repeatLineFormat: 'Okay, so you said: "{0}"'
-  emptyTranscriptFallback: I did not catch AraBOT's reply.
+  emptyTranscriptFallback: I did not catch that.
   useBackendReplyFlow: 0
   backendPupilName: Mary
 --- !u!114 &554563037739883886
