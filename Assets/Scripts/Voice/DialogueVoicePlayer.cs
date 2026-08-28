@@ -249,9 +249,16 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         {
             if (logMissingClips)
             {
-                Debug.Log(
-                    $"No {VoiceCatalog.ToKey(voice)} clip for \"{Preview(line.Text)}\". "
-                    + $"Key {VoiceKey.For(voice, line.Text)}.",
+                // Editing a line changes its fingerprint, so the clip that was
+                // baked for the old wording stops matching and the Pupil falls
+                // back to the syllable ticks. That is the common case here, and
+                // it is quiet unless this says so.
+                Debug.LogWarning(
+                    $"No {VoiceCatalog.ToKey(voice)} clip for \"{Preview(line.Text)}\", "
+                    + $"so this line falls back to voice ticks. Key "
+                    + $"{VoiceKey.For(voice, line.Text)}. Re-run Flee the Faculty > "
+                    + "Voices > Export Dialogue Lines, then voicelab bake-lines, then "
+                    + "Rebuild Voice Library.",
                     this);
             }
 
