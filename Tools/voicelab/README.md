@@ -122,6 +122,30 @@ Lines that already have a clip are skipped, so a re-run after adding one line
 costs one line. Pass `--force` after a `relift`, because every existing clip was
 baked from the old numbers.
 
+## Who can bake
+
+The voice states are not in this repository. A cloned voice is a portable model
+of a real person: anyone holding `girl.safetensors` can make that person say
+anything, and this repository is public. The people who were recorded agreed to
+voice a game, which is not the same thing. `out-real/` and `samples/` are both
+gitignored for that reason, and the two are the only things `bake` and
+`bake-lines` cannot work without.
+
+So there are two roles.
+
+**If you hold the recordings**, you can run everything here. You are the one who
+turns an edited line back into audio.
+
+**If you do not**, you cannot bake and do not need to. Edit dialogue as normal,
+run **Flee the Faculty > Voices > Export Dialogue Lines**, and commit the updated
+`lines-to-bake.json`. The export tells you how many lines have no clip and lists
+them in the Console. Whoever holds the recordings runs `bake-lines` on that file
+and commits the result.
+
+Nothing is broken in between. A line with no clip falls back to the syllable
+ticks in `DialogueActor`, which is what every line sounded like before any of
+this existed. Only the Console says otherwise.
+
 ## The round trip with Unity
 
 Authored dialogue lives in Unity and the voices live here, so the work list

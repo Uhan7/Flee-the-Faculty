@@ -24,6 +24,16 @@ public static class VoiceLineExporter
 {
     private const string OutputRelativePath = "Tools/voicelab/lines-to-bake.json";
 
+    /// <summary>
+    /// Checked on disk rather than through the AssetDatabase, so a clip that has
+    /// just been baked counts even before Unity has imported it.
+    /// </summary>
+    private static bool HasClip(string key)
+    {
+        return File.Exists(Path.Combine(
+            Application.dataPath, "Audio", "Voices", key + ".wav"));
+    }
+
     [MenuItem("Flee the Faculty/Voices/Export Dialogue Lines", priority = 100)]
     public static void Export()
     {
@@ -43,13 +53,27 @@ public static class VoiceLineExporter
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllText(path, Serialise(collected));
 
-        Debug.Log($"{collected.Count} lines to bake -> {OutputRelativePath}");
+        List<Line> unbaked = collected.FindAll(line => !HasClip(line.Key));
+        Debug.Log(
+            $"{collected.Count} voiced lines -> {OutputRelativePath}"
+            + (unbaked.Count > 0 ? $", {unbaked.Count} with no clip yet" : ", all baked"));
+
+        foreach (Line line in unbaked)
+        {
+            Debug.LogWarning($"No clip for {line.Key}: \"{line.Text}\"");
+        }
+
         EditorUtility.DisplayDialog(
             "Lines exported",
-            $"{collected.Count} lines written to {OutputRelativePath}.\n\n"
-            + "Next, in Tools/voicelab:\n"
-            + "  uv run voicelab bake-lines\n\n"
-            + "Then run Flee the Faculty > Voices > Rebuild Voice Library.",
+            $"{collected.Count} voiced lines written to {OutputRelativePath}.\n\n"
+            + (unbaked.Count == 0
+                ? "Every line already has a clip. Nothing else to do."
+                : $"{unbaked.Count} have no clip and will fall back to voice ticks.\n\n"
+                  + "If you hold the voice recordings, in Tools/voicelab:\n"
+                  + "  uv run voicelab bake-lines\n"
+                  + "then Flee the Faculty > Voices > Rebuild Voice Library.\n\n"
+                  + "If you do not, commit lines-to-bake.json and ask whoever does. "
+                  + "The Console lists which lines are missing."),
             "OK");
     }
 
