@@ -1,0 +1,8 @@
+{
+  "lines": [
+    {"key": "boy_766761c910ddb9c7", "voice": "boy", "text": "Hey, AraBOT. I am standing in for the real conversation while we wire this area up.", "source": "Assets/Prefabs/Jairus.prefab"},
+    {"key": "boy_e717a8fb20f0e824", "voice": "boy", "text": "Perfect. After this chat I will stay quiet until you plug in the final lines.", "source": "Assets/Prefabs/Jairus.prefab"},
+    {"key": "girl_766761c910ddb9c7", "voice": "girl", "text": "Hey, AraBOT. I am standing in for the real conversation while we wire this area up.", "source": "Assets/Prefabs/Ayanah.prefab"},
+    {"key": "girl_e717a8fb20f0e824", "voice": "girl", "text": "Perfect. After this chat I will stay quiet until you plug in the final lines.", "source": "Assets/Prefabs/Ayanah.prefab"}
+  ]
+}
