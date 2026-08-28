@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1490e9890f3cbc4e70d4d70f79d69a12, type: 3}
+  m_Name: Voice Clip Library
+  m_EditorClassIdentifier: 
+  entries:
+  - key: boy_766761c910ddb9c7
+    voice: 2
+    clip: {fileID: 8300000, guid: 841cf8b20b4c4b2615db0d847c69c9af, type: 3}
+    text: "Hey, AraBOT. I am standing in for the real conversation while we wire this area up."
+  - key: boy_e717a8fb20f0e824
+    voice: 2
+    clip: {fileID: 8300000, guid: 3a7810e7ae04d68fa05c9f6b32f71a09, type: 3}
+    text: "Perfect. After this chat I will stay quiet until you plug in the final lines."
+  - key: girl_766761c910ddb9c7
+    voice: 1
+    clip: {fileID: 8300000, guid: 890f5a5c9fea8dc30e699a6bf389780e, type: 3}
+    text: "Hey, AraBOT. I am standing in for the real conversation while we wire this area up."
+  - key: girl_e717a8fb20f0e824
+    voice: 1
+    clip: {fileID: 8300000, guid: 98c0a8ba3db06bef1edc2b9fe2e835ef, type: 3}
+    text: "Perfect. After this chat I will stay quiet until you plug in the final lines."
