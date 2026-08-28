@@ -125,14 +125,28 @@ mergeInto(LibraryManager.library, {
       state.send("HandleVoiceError", "voice worker: " + (error.message || "unknown"));
     };
 
-    state.worker.postMessage({
-      type: "configure",
-      config: {
-        voicesBase: config.voicesBase,
-        voices: config.voices,
-        modelUrl: config.modelUrl || "",
-        tokenizerUrl: config.tokenizerUrl || ""
+    // Prefer the copy sitting next to the build: same origin, no CORS, and no
+    // dependence on anyone else's hosting. VoiceModelPostBuild puts it there.
+    // Fall back to the public weights when a build was made without it.
+    var probe = function (url) {
+      if (!url) {
+        return Promise.resolve(false);
       }
+      return fetch(url, { method: "HEAD" })
+        .then(function (r) { return r.ok; })
+        .catch(function () { return false; });
+    };
+
+    Promise.all([probe(config.modelUrl), probe(config.tokenizerUrl)]).then(function (found) {
+      state.worker.postMessage({
+        type: "configure",
+        config: {
+          voicesBase: config.voicesBase,
+          voices: config.voices,
+          modelUrl: found[0] ? config.modelUrl : (config.fallbackModelUrl || ""),
+          tokenizerUrl: found[1] ? config.tokenizerUrl : (config.fallbackTokenizerUrl || "")
+        }
+      });
     });
   },
 

@@ -26,16 +26,28 @@ using UnityEngine.Networking;
 public sealed class BrowserVoiceSynthesizer : MonoBehaviour
 {
     /// <summary>
-    /// Where the weights come from. Not in the repository: the file is 146MB and
-    /// GitHub rejects anything past 100MB. Point this at your own host once the
-    /// game has one, so the game does not depend on a third party staying up.
+    /// Where the weights come from when the build has its own copy.
+    ///
+    /// The file is 146MB, which GitHub rejects, so it is not in the project. It
+    /// does not have to be: <c>VoiceModelPostBuild</c> copies it into the build
+    /// output after every WebGL build, and the build output is not the
+    /// repository. Loading it from the game's own origin means no CORS and no
+    /// dependence on anyone else's hosting.
+    /// </summary>
+    [SerializeField] private string modelFileName = "model.gguf";
+
+    [SerializeField] private string tokenizerFileName = "tokenizer.model";
+
+    /// <summary>
+    /// Used only when the build has no copy of its own, which happens when
+    /// somebody builds without running the model download first.
     /// </summary>
     [SerializeField]
-    private string modelUrl =
+    private string fallbackModelUrl =
         "https://huggingface.co/lmz/pocket-tts-without-voice-cloning-q8/resolve/main/tts_b6369a24.gguf";
 
     [SerializeField]
-    private string tokenizerUrl =
+    private string fallbackTokenizerUrl =
         "https://huggingface.co/kyutai/pocket-tts-without-voice-cloning/resolve/main/tokenizer.model";
 
     [Tooltip("Seconds to wait for one line before giving up and letting it tick.")]
@@ -111,8 +123,10 @@ public sealed class BrowserVoiceSynthesizer : MonoBehaviour
             + "\"workerUrl\":\"" + root + "/runtime/voice-worker.js\","
             + "\"voicesBase\":\"" + root + "\","
             + "\"voices\":[\"" + VoiceCatalog.GirlKey + "\",\"" + VoiceCatalog.BoyKey + "\"],"
-            + "\"modelUrl\":\"" + modelUrl + "\","
-            + "\"tokenizerUrl\":\"" + tokenizerUrl + "\","
+            + "\"modelUrl\":\"" + root + "/runtime/" + modelFileName + "\","
+            + "\"tokenizerUrl\":\"" + root + "/runtime/" + tokenizerFileName + "\","
+            + "\"fallbackModelUrl\":\"" + fallbackModelUrl + "\","
+            + "\"fallbackTokenizerUrl\":\"" + fallbackTokenizerUrl + "\","
             + "\"quant\":\"q8\"}";
 
         VoiceSynthesis_Begin(gameObject.name, config);
