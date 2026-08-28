@@ -392,6 +392,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   displayName: Base Student
+  voice: 0
   voiceClips:
   - {fileID: 8300000, guid: 33f182f4437e54c74a0e215bedba31fb, type: 3}
   - {fileID: 8300000, guid: bebdf6ef32003453a810bd92dfec9982, type: 3}
