@@ -1,14 +1,14 @@
 .venv/
 uv.lock
 
-# Recordings of real people. The repository is public, and these are the
-# unprocessed references, not the stylised game audio. `samples/*.wav` alone
-# missed `samples/clean/`, which held 55 seconds of two real voices.
+# The reference recordings stay out. `bake-lines` does not need them, only
+# re-cloning does, and re-cloning is non-deterministic anyway: it produces a
+# different voice rather than the same one, so shipping them buys no
+# reproducibility. `samples/*.wav` alone missed `samples/clean/`.
 samples/**
 !samples/README.md
 
-# Voice states. Large, and a clone is still the person who was recorded.
-out-real/
+# Piper stand-in models. Large, and downloaded by the tool on demand.
 voices/
 
 # Generated audio. Every one of these is reproducible from a command.

@@ -205,12 +205,33 @@ brings the girl to zero movement between runs and the boy to about half a
 semitone. His remaining spread, roughly 45Hz against the girl's 20Hz, is the
 short reference and the fix is a longer one.
 
-## Not built yet
+## Lines the model writes
 
-Authored lines play from baked clips today. Lines the model writes during an
-Encounter still have no audio: that needs the service to synthesise and return
-it, which is ADR-0011 and is not implemented. `DialogueVoicePlayer` in the client
-already resolves a clip inside a coroutine so that a download fits there.
+Baking covers authored dialogue. Everything a Pupil says in a real Encounter is
+written by the model at turn time, so it cannot be baked by anyone.
+
+Those are synthesised in the browser instead, by the same two voices in a
+WebAssembly build of Pocket TTS. `voicelab web-voices` converts the states into
+that runtime's layout and writes them to `Assets/StreamingAssets/Voices`, which
+Unity serves from the WebGL build.
+
+```bash
+uv run voicelab web-voices
+```
+
+Measured in that runtime on a 107-character line, single-threaded with only
+`simd128`:
+
+| | Audio | Time | Speed | First audio |
+|---|---|---|---|---|
+| Kyutai's own voice | 5.60s | 1.64s | 3.41x | 0.15s |
+| Our girl | 5.04s | 1.50s | 3.37x | 0.15s |
+| Our boy | 5.28s | 1.57s | 3.36x | 0.15s |
+
+The 146MB model is not in this repository and cannot be: GitHub rejects files
+past 100MB. It is fetched once and cached by the browser, and the game is
+playable while it downloads because unspoken lines fall back to the syllable
+ticks.
 
 ## Appendix: the six-slot offsets
 

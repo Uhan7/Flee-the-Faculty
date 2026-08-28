@@ -1,12 +1,13 @@
 """voicelab: turn two recordings into the two voices the client plays.
 
-Five commands, in the order you use them.
+Six commands, in the order you use them.
 
   check       Read the recordings and say whether they are good enough. No model.
   preview     Speak both voices on real game lines so you can listen.
   bake        Export the two voice states and the manifest the client ships.
   relift      Re-measure saved voice states without re-cloning them.
   bake-lines  Render the client's authored lines into clips it can play.
+  web-voices  Convert the voice states for the browser runtime.
 
 Run `check` before booking a recording session, `preview` to hear both voices
 in the game's own register, and `bake` once you are happy. `bake-lines` then
@@ -28,7 +29,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dsp, keys, lines, piper_engine, voices
+from . import dsp, keys, lines, piper_engine, voices, web
 from .synth import Synth
 
 # librosa and numba are noisy about internals this tool does not control, and
@@ -409,6 +410,62 @@ def cmd_relift(args) -> int:
     return 0
 
 
+def cmd_web_voices(args) -> int:
+    """Convert the baked voice states into the layout the browser runtime reads.
+
+    Baking covers authored dialogue. Everything a Pupil says in a real Encounter
+    is written by the model at turn time and cannot be baked by anyone, so the
+    client synthesises those itself and needs the voices in a form its runtime
+    understands. See `web.py` for what differs and the measurements behind the
+    frame count.
+    """
+    states_dir = Path(args.states)
+    manifest_path = states_dir / "voices.json"
+    if not manifest_path.is_file():
+        raise SystemExit(MISSING_STATES.format(path=manifest_path))
+
+    manifest = json.loads(manifest_path.read_text())
+    stored = manifest.get("voices") or {}
+    if not stored:
+        raise SystemExit(f"{manifest_path} names no voices. Run `voicelab relift` to migrate it.")
+
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"{'voice':<6} {'frames':>14} {'seconds':>8} {'size':>8}")
+    print("-" * 42)
+
+    catalogue = {"frameRateHz": web.FRAME_RATE_HZ, "voices": {}}
+    for spec in voices.VOICES:
+        if spec.name not in stored:
+            continue
+        source = states_dir / stored[spec.name]["file"]
+        if not source.is_file():
+            raise SystemExit(f"Missing voice state {source}. Run `voicelab bake` first.")
+
+        destination = out_dir / f"{spec.name}.safetensors"
+        result = web.to_browser(source, destination, args.frames)
+        catalogue["voices"][spec.name] = {
+            "file": destination.name,
+            "frames": result["framesOut"],
+            "bytes": result["bytes"],
+            "description": spec.description,
+        }
+        print(
+            f"{spec.name:<6} {result['framesIn']:>6} -> {result['framesOut']:<5} "
+            f"{result['secondsOut']:>7.1f}s {result['bytes'] / 1e6:>7.1f}MB"
+        )
+
+    catalogue_path = out_dir / "voices.json"
+    catalogue_path.write_text(json.dumps(catalogue, indent=2) + "\n")
+    total = sum(v["bytes"] for v in catalogue["voices"].values())
+    print(f"\n{len(catalogue['voices'])} voices, {total / 1e6:.1f}MB total")
+    print(f"  -> {out_dir}")
+    print("\nThese ship inside the WebGL build. The model itself does not: it is")
+    print("146MB, past GitHub's 100MB limit, and is fetched once and cached.")
+    return 0
+
+
 def cmd_bake_lines(args) -> int:
     """Render every authored line the client exported, one WAV per line.
 
@@ -592,6 +649,25 @@ def main(argv: list[str] | None = None) -> int:
         "--states", default="out-real", help="Directory holding voices.json and the safetensors."
     )
     p_relift.set_defaults(func=cmd_relift)
+
+    p_web = sub.add_parser(
+        "web-voices", help="Convert the voice states for the browser runtime."
+    )
+    p_web.add_argument(
+        "--states", default="out-real", help="Directory holding voices.json and the safetensors."
+    )
+    p_web.add_argument(
+        "--out",
+        default="../../Assets/StreamingAssets/Voices",
+        help="Where the browser-format voices go. WebGL serves StreamingAssets over HTTP.",
+    )
+    p_web.add_argument(
+        "--frames",
+        type=int,
+        default=web.DEFAULT_FRAMES,
+        help=f"Frames of reference to keep, from the front. Default {web.DEFAULT_FRAMES}, which is 20s.",
+    )
+    p_web.set_defaults(func=cmd_web_voices)
 
     p_bake_lines = sub.add_parser(
         "bake-lines", help="Render the client's authored lines. Needs no gated weights."
