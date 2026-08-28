@@ -89,6 +89,20 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         GetOrCreate();
     }
 
+    /// <summary>
+    /// The synthesiser lives on the same object and starts its download as soon
+    /// as it enables, which is why the player creates it rather than waiting for
+    /// the first unbaked line.
+    /// </summary>
+    private void EnsureSynthesizer()
+    {
+        if (BrowserVoiceSynthesizer.Instance == null
+            && GetComponent<BrowserVoiceSynthesizer>() == null)
+        {
+            gameObject.AddComponent<BrowserVoiceSynthesizer>();
+        }
+    }
+
     private static void HandleSceneLoaded(Scene _, LoadSceneMode __)
     {
         GetOrCreate();
@@ -139,6 +153,8 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         {
             source = gameObject.AddComponent<AudioSource>();
         }
+
+        EnsureSynthesizer();
 
         source.playOnAwake = false;
         source.loop = false;
@@ -236,10 +252,13 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     /// <summary>
     /// Find this line's audio and play it.
     ///
-    /// A coroutine because the clip does not always exist yet. Today the only
-    /// source is the baked library and the lookup returns immediately; the
-    /// service path from ADR-0011 adds a wait here for
-    /// <c>UnityWebRequestMultimedia.GetAudioClip</c> and changes nothing else.
+    /// Two sources, in order. The baked library holds authored dialogue and
+    /// answers instantly. Anything else was written by the model at turn time
+    /// and has to be synthesised, which takes about a second and a half for a
+    /// five-second line.
+    ///
+    /// A line neither can supply plays silent, and the syllable ticks in
+    /// <c>DialogueActor</c> carry it instead.
     /// </summary>
     private IEnumerator Speak(IDialogueLine line, VoiceId voice)
     {
@@ -247,18 +266,32 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         if (clip == null)
         {
+            BrowserVoiceSynthesizer synthesizer = BrowserVoiceSynthesizer.Instance;
+            if (synthesizer != null && synthesizer.IsReady)
+            {
+                AudioClip synthesized = null;
+                yield return synthesizer.Speak(voice, line.Text, result => synthesized = result);
+                clip = synthesized;
+            }
+        }
+
+        if (clip == null)
+        {
             if (logMissingClips)
             {
-                // Editing a line changes its fingerprint, so the clip that was
-                // baked for the old wording stops matching and the Pupil falls
-                // back to the syllable ticks. That is the common case here, and
-                // it is quiet unless this says so.
+                // Two ways to get here. An authored line whose text changed no
+                // longer matches its baked clip, which is fixed by rebaking. A
+                // model-written line has no clip by design and needs the
+                // synthesiser, which is still downloading or unavailable.
+                bool canSynthesize = BrowserVoiceSynthesizer.Instance != null
+                    && BrowserVoiceSynthesizer.Instance.IsReady;
                 Debug.LogWarning(
-                    $"No {VoiceCatalog.ToKey(voice)} clip for \"{Preview(line.Text)}\", "
-                    + $"so this line falls back to voice ticks. Key "
-                    + $"{VoiceKey.For(voice, line.Text)}. Re-run Flee the Faculty > "
-                    + "Voices > Export Dialogue Lines, then voicelab bake-lines, then "
-                    + "Rebuild Voice Library.",
+                    $"No {VoiceCatalog.ToKey(voice)} audio for \"{Preview(line.Text)}\", "
+                    + "so this line falls back to voice ticks. "
+                    + (canSynthesize
+                        ? "Synthesis was available and returned nothing."
+                        : "Synthesis is not ready yet.")
+                    + $" Baked key would be {VoiceKey.For(voice, line.Text)}.",
                     this);
             }
 
