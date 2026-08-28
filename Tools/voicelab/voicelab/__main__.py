@@ -38,6 +38,25 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 CATALOGUE_STAND_INS = {"girl": "mary", "boy": "michael"}
 
+MISSING_STATES = """No {path}.
+
+The voice states are not in this repository and are not meant to be. A cloned
+voice is a portable model of a real person: anyone holding the file can make
+that person say anything, and this repository is public. The people who were
+recorded agreed to voice a game, which is not the same thing.
+
+If you recorded the references, they are yours to rebuild:
+
+  uv run voicelab bake --girl samples/girl.wav --boy samples/boy.wav --out out-real
+
+If you did not, you cannot bake, and you do not need to. Run
+Flee the Faculty > Voices > Export Dialogue Lines in Unity, commit the updated
+lines-to-bake.json, and ask whoever holds the recordings to run bake-lines.
+
+Nothing is broken while you wait. A line with no clip falls back to the
+syllable ticks in DialogueActor, which is what every line said before any of
+this existed.""".strip()
+
 
 def _resolve_paths(args) -> dict[str, Path]:
     out: dict[str, Path] = {}
@@ -417,7 +436,7 @@ def cmd_bake_lines(args) -> int:
     states_dir = Path(args.states)
     manifest_path = states_dir / "voices.json"
     if not manifest_path.is_file():
-        raise SystemExit(f"No {manifest_path}. Run `voicelab bake` first.")
+        raise SystemExit(MISSING_STATES.format(path=manifest_path))
 
     manifest = json.loads(manifest_path.read_text())
     if "voices" not in manifest:
