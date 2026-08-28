@@ -1,0 +1,23 @@
+.venv/
+uv.lock
+
+# Recordings of real people. The repository is public, and these are the
+# unprocessed references, not the stylised game audio. `samples/*.wav` alone
+# missed `samples/clean/`, which held 55 seconds of two real voices.
+samples/**
+!samples/README.md
+
+# Voice states. Large, and a clone is still the person who was recorded.
+out-real/
+voices/
+
+# Generated audio. Every one of these is reproducible from a command.
+out/
+preview*/
+audition*/
+shift/
+clone-slots/
+listen/
+
+__pycache__/
+*.pyc

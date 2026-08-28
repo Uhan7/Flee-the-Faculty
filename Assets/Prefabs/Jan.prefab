@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: voice
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 554563037739883886, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: conversationId
       value: jan_intro

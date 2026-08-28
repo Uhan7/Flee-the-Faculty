@@ -68,10 +68,13 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
             return;
         }
 
+        // Typing is the shorter of the two. A line reveals in about 3.5 seconds
+        // at 24 letters a second and its baked clip runs 5 to 6, so a mouth tied
+        // to the typewriter alone stops moving while the Pupil is still talking.
         bool shouldTalk = isCurrentSpeaker
             && dialogueManager != null
             && dialogueManager.IsPlaying
-            && dialogueManager.IsTyping;
+            && (dialogueManager.IsTyping || IsVoicePlaying());
 
         if (!shouldTalk)
         {
@@ -107,6 +110,11 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
             isTalking = false;
             ResetMouthPose();
         }
+    }
+
+    private bool IsVoicePlaying()
+    {
+        return DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsSpeaking(speaker);
     }
 
     private void HandleDialogueEnded(IDialogueSequence _)

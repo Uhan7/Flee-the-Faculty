@@ -1,9 +1,12 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class DialogueActor : MonoBehaviour
+public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
 {
     [SerializeField] private string displayName = "Speaker";
+
+    [Tooltip("Which recorded voice this Character speaks in. cast.py in the service decides which side of the split they are on.")]
+    [SerializeField] private VoiceId voice = VoiceId.None;
 
     [Header("Dialogue Voice")]
     [SerializeField] private AudioClip[] voiceClips;
@@ -13,6 +16,8 @@ public sealed class DialogueActor : MonoBehaviour
     private AudioClip lastVoiceClip;
 
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
+
+    public VoiceId Voice => voice;
 
     public bool TryGetStudentPersonality(out StudentPersonality personality)
     {
@@ -31,8 +36,21 @@ public sealed class DialogueActor : MonoBehaviour
         return string.Empty;
     }
 
+    /// <summary>
+    /// One syllable blip, played every few letters as the line types out.
+    ///
+    /// Silent while a baked clip is playing. The two are the same job done
+    /// two ways, and the recorded line is the better one when it exists; the
+    /// ticks stay as the fallback, which is what every line the model writes
+    /// during an Encounter will need until the service speaks them.
+    /// </summary>
     public void PlayVoiceTick()
     {
+        if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsSpeaking(this))
+        {
+            return;
+        }
+
         AudioClip voiceClip = GetRandomVoiceClip();
         if (voiceClip == null)
         {
