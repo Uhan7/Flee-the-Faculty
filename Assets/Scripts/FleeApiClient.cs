@@ -9,7 +9,11 @@ public sealed class FleeApiClient : MonoBehaviour
 {
     private const string DefaultBaseUrl =
         "https://flee-the-faculty-747438214074.us-central1.run.app";
-    private const string TokenResourceName = "FleeApiClientToken";
+    /// <summary>
+    /// An editor-only convenience, kept beside the project rather than inside
+    /// it so no build can ever pack it. Gitignored.
+    /// </summary>
+    private const string LocalTokenFileName = "flee-client-token.txt";
     private const string ActiveClassroomIdKey = "Flee.ActiveClassroomId";
 
     [SerializeField] private string baseUrl = DefaultBaseUrl;
@@ -433,10 +437,10 @@ public sealed class FleeApiClient : MonoBehaviour
     /// <summary>
     /// Say what a status code almost always means for this project.
     ///
-    /// A 401 has one cause worth checking first: the token file is not in the
-    /// clone, because it is deliberately not committed. Without this the log
-    /// says only "Bad or missing client token", which reads as a server
-    /// problem rather than a file somebody has to put there.
+    /// A 401 has one cause worth naming: nobody has entered the access code on
+    /// this browser. Without this the log says only "Bad or missing client
+    /// token", which reads as a server fault rather than as a box somebody has
+    /// to fill in.
     /// </summary>
     private static string DescribeLikelyCause(long statusCode)
     {
@@ -445,12 +449,9 @@ public sealed class FleeApiClient : MonoBehaviour
             return string.Empty;
         }
 
-        bool hasToken = !string.IsNullOrEmpty(ResolveClientToken());
-        return hasToken
-            ? " A token was sent, so it does not match the service's CLIENT_TOKEN."
-            : " No token was sent. Put the service's CLIENT_TOKEN in "
-                + "Assets/Resources/" + TokenResourceName + ".txt, which is gitignored "
-                + "and so is missing from a fresh clone.";
+        return string.IsNullOrEmpty(ResolveClientToken())
+            ? " No access code was sent. Enter one under Settings on the main menu."
+            : " The access code that was sent does not match the service's CLIENT_TOKEN.";
     }
 
     private static void ApplyRequestHeaders(UnityWebRequest request, bool hasJsonBody)
@@ -473,18 +474,40 @@ public sealed class FleeApiClient : MonoBehaviour
         return safeBaseUrl.TrimEnd('/') + "/" + path.TrimStart('/');
     }
 
+    /// <summary>
+    /// Find the service's access code.
+    ///
+    /// What the player typed comes first, and in a build it is the only source.
+    /// The code is deliberately not compiled in: a WebGL build is a download,
+    /// so a code inside one belongs to everybody who takes a copy.
+    ///
+    /// The editor keeps two conveniences, so pressing play here does not mean
+    /// typing a code first. Both read from outside <c>Assets</c>, because
+    /// everything under a <c>Resources</c> folder is packed into the build
+    /// whether or not any code still loads it.
+    /// </summary>
     private static string ResolveClientToken()
     {
-#if !UNITY_WEBGL || UNITY_EDITOR
+        if (ClientTokenStore.HasToken)
+        {
+            return ClientTokenStore.Token;
+        }
+
+#if UNITY_EDITOR
         string environmentToken = Environment.GetEnvironmentVariable("FLEE_CLIENT_TOKEN");
         if (!string.IsNullOrWhiteSpace(environmentToken))
         {
             return environmentToken.Trim();
         }
-#endif
 
-        TextAsset tokenAsset = Resources.Load<TextAsset>(TokenResourceName);
-        return tokenAsset == null ? string.Empty : tokenAsset.text.Trim();
+        string path = System.IO.Path.Combine(
+            Application.dataPath, "..", LocalTokenFileName);
+        return System.IO.File.Exists(path)
+            ? System.IO.File.ReadAllText(path).Trim()
+            : string.Empty;
+#else
+        return string.Empty;
+#endif
     }
 
     private static FleePupilResponse FindPupil(
