@@ -109,6 +109,22 @@ for (const [name, ok] of expectations) {
   if (!ok) failed++;
 }
 
+// A caller that arrives after the model has loaded must still be told it is
+// ready. Readiness is announced once, so a second caller — the game walking
+// from the main menu into the Classroom, which rebuilds the Unity side — would
+// otherwise wait for a message that has already been sent to someone else.
+sent.length = 0;
+library.VoiceSynthesis_Begin('Voice Synthesizer', JSON.stringify({
+  workerUrl: 'w.js', voicesBase: 'v', voices: ['girl', 'boy'],
+  modelUrl: 'm.gguf', tokenizerUrl: 't.model', quant: 'q8',
+}));
+await settle();
+const reAnnounced = sent.filter(([m]) => m === 'HandleVoiceReady').map(([, v]) => v);
+console.log(
+  `${JSON.stringify(reAnnounced) === JSON.stringify(['24000']) ? 'PASS' : 'FAIL'}`
+  + '  a later caller is told the model is already loaded');
+if (JSON.stringify(reAnnounced) !== JSON.stringify(['24000'])) failed++;
+
 // A failing line must fail by id and let the queue carry on.
 sent.length = 0;
 generated.length = 0;
