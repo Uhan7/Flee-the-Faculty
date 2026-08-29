@@ -100,17 +100,18 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     }
 
     /// <summary>
-    /// The synthesiser lives on the same object and starts its download as soon
-    /// as it enables, which is why the player creates it rather than waiting for
-    /// the first unbaked line.
+    /// Make sure the synthesiser exists, so its download starts at the first
+    /// scene rather than at the first unbaked line.
+    ///
+    /// It gets its own object and outlives every scene, so this asks for the
+    /// session's one instance rather than adding a component here. Adding it
+    /// here is what broke voices for anyone who walked in from the main menu:
+    /// this player is rebuilt per scene, and the synthesiser was being rebuilt
+    /// with it, losing the readiness the bridge announces only once.
     /// </summary>
     private void EnsureSynthesizer()
     {
-        if (BrowserVoiceSynthesizer.Instance == null
-            && GetComponent<BrowserVoiceSynthesizer>() == null)
-        {
-            gameObject.AddComponent<BrowserVoiceSynthesizer>();
-        }
+        BrowserVoiceSynthesizer.GetOrCreate();
     }
 
     private static void HandleSceneLoaded(Scene _, LoadSceneMode __)

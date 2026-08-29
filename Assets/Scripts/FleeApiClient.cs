@@ -404,7 +404,8 @@ public sealed class FleeApiClient : MonoBehaviour
         {
             FleeApiFailure failure = BuildFailure(request);
             Debug.LogError(
-                "Flee API " + path + " failed (" + failure.StatusCode + "): " + failure.Message,
+                "Flee API " + path + " failed (" + failure.StatusCode + "): " + failure.Message
+                    + DescribeLikelyCause(failure.StatusCode),
                 this);
             onFailure?.Invoke(failure);
             request.Dispose();
@@ -427,6 +428,29 @@ public sealed class FleeApiClient : MonoBehaviour
         {
             request.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Say what a status code almost always means for this project.
+    ///
+    /// A 401 has one cause worth checking first: the token file is not in the
+    /// clone, because it is deliberately not committed. Without this the log
+    /// says only "Bad or missing client token", which reads as a server
+    /// problem rather than a file somebody has to put there.
+    /// </summary>
+    private static string DescribeLikelyCause(long statusCode)
+    {
+        if (statusCode != 401)
+        {
+            return string.Empty;
+        }
+
+        bool hasToken = !string.IsNullOrEmpty(ResolveClientToken());
+        return hasToken
+            ? " A token was sent, so it does not match the service's CLIENT_TOKEN."
+            : " No token was sent. Put the service's CLIENT_TOKEN in "
+                + "Assets/Resources/" + TokenResourceName + ".txt, which is gitignored "
+                + "and so is missing from a fresh clone.";
     }
 
     private static void ApplyRequestHeaders(UnityWebRequest request, bool hasJsonBody)

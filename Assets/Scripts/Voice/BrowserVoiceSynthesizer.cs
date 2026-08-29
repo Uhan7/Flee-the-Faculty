@@ -117,15 +117,58 @@ public sealed class BrowserVoiceSynthesizer : MonoBehaviour
         string requestId, float[] destination, int capacity);
 #endif
 
+    /// <summary>
+    /// Find the one synthesizer for this session, creating it if it is the
+    /// first ask.
+    ///
+    /// It gets its own object rather than sharing the player's, because the two
+    /// have opposite lifetimes: the player is per-scene and this is not.
+    /// </summary>
+    public static BrowserVoiceSynthesizer GetOrCreate()
+    {
+        if (Instance != null)
+        {
+            return Instance;
+        }
+
+#if UNITY_2023_1_OR_NEWER
+        BrowserVoiceSynthesizer existing = FindFirstObjectByType<BrowserVoiceSynthesizer>();
+#else
+        BrowserVoiceSynthesizer existing = FindObjectOfType<BrowserVoiceSynthesizer>();
+#endif
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        return new GameObject("Voice Synthesizer").AddComponent<BrowserVoiceSynthesizer>();
+    }
+
+    /// <summary>
+    /// Live for the whole session, not for one scene.
+    ///
+    /// What this wraps is a Web Worker holding 146MB of weights, which belongs
+    /// to the page rather than to any scene. A per-scene component looked
+    /// harmless and was not: walking from the main menu into the Classroom
+    /// destroyed the one that had been told the model was ready and built a
+    /// fresh one that never would be, because the bridge only announces
+    /// readiness when it loads. Every Pupil then fell back to the ticks, and
+    /// only when reached the way a player reaches them.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            enabled = false;
+            Destroy(gameObject);
             return;
         }
 
         Instance = this;
+
+        if (transform.parent == null)
+        {
+            DontDestroyOnLoad(gameObject);
+        }
     }
 
     private void OnDestroy()

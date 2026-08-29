@@ -24,8 +24,16 @@ mergeInto(LibraryManager.library, {
     var targetName = UTF8ToString(targetNamePointer);
     var config = JSON.parse(UTF8ToString(configPointer));
 
+    // Already running. Point it at whoever is asking now, and tell them the
+    // model is loaded: readiness is announced once, when it finishes loading,
+    // so a caller that arrives after that would otherwise wait for a message
+    // that has already been and gone.
     if (window.FleeVoiceBridge && window.FleeVoiceBridge.worker) {
       window.FleeVoiceBridge.targetName = targetName;
+      if (window.FleeVoiceBridge.ready) {
+        window.FleeVoiceBridge.send(
+          "HandleVoiceReady", String(window.FleeVoiceBridge.sampleRate));
+      }
       return;
     }
 
