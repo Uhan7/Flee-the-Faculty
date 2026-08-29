@@ -59,6 +59,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     [Header("External Hints")]
     [SerializeField, Range(0f, 1f)] private float externalHintAlpha = 0.48f;
+    [SerializeField] private Color externalHintColor = new Color(0.45f, 0.45f, 0.45f, 1f);
 
     private Coroutine revealRoutine;
     private Coroutine panelAppearRoutine;
@@ -70,6 +71,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     private RectTransform continueIndicatorRect;
     private Vector2 continueIndicatorBasePosition;
     private Color bodyTextBaseColor = Color.white;
+    private FontStyles bodyTextBaseFontStyle = FontStyles.Normal;
     private string currentFullText = string.Empty;
     private bool canAdvance;
     private TMP_InputField externalInputField;
@@ -98,6 +100,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         if (bodyText != null)
         {
             bodyTextBaseColor = bodyText.color;
+            bodyTextBaseFontStyle = bodyText.fontStyle;
         }
 
         if (continueIndicator != null)
@@ -220,10 +223,10 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     public void DisplayLine(IDialogueLine line, string visibleText, bool lineCanAdvance)
     {
         ShowDialogueContainer();
-        ApplySpeakerStyle(IsStudentSpeaker(line));
+        ApplySpeakerStyle(UsesBrownSpeakerStyle(line));
 
         SetExternalInputVisible(false);
-        RestoreBodyTextColor();
+        RestoreBodyTextAppearance();
 
         if (speakerText != null)
         {
@@ -259,15 +262,19 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         revealRoutine = StartCoroutine(RevealRoutine());
     }
 
-    public void ShowExternalContent(string speaker, string body, bool lineCanAdvance)
+    public void ShowExternalContent(
+        string speaker,
+        string body,
+        bool lineCanAdvance,
+        bool useStudentStyle = false)
     {
         ShowDialogueContainer();
-        ApplySpeakerStyle(false);
+        ApplySpeakerStyle(useStudentStyle);
 
         StopRevealRoutine();
         ClearActiveGlyphAnimations();
         SetExternalInputVisible(false);
-        RestoreBodyTextColor();
+        RestoreBodyTextAppearance();
 
         currentFullText = body ?? string.Empty;
         canAdvance = lineCanAdvance;
@@ -289,17 +296,22 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         SetContinueIndicator(canAdvance);
     }
 
-    public void ShowExternalHint(string speaker, string hint)
+    public void ShowExternalHint(
+        string speaker,
+        string hint,
+        bool canAdvance = false,
+        bool useStudentStyle = false)
     {
-        ShowExternalContent(speaker, hint, false);
+        ShowExternalContent(speaker, hint, canAdvance, useStudentStyle);
 
         if (bodyText != null)
         {
             bodyText.color = new Color(
-                bodyTextBaseColor.r,
-                bodyTextBaseColor.g,
-                bodyTextBaseColor.b,
+                externalHintColor.r,
+                externalHintColor.g,
+                externalHintColor.b,
                 bodyTextBaseColor.a * externalHintAlpha);
+            bodyText.fontStyle = bodyTextBaseFontStyle | FontStyles.Italic;
         }
     }
 
@@ -422,11 +434,12 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
     }
 
-    private void RestoreBodyTextColor()
+    private void RestoreBodyTextAppearance()
     {
         if (bodyText != null)
         {
             bodyText.color = bodyTextBaseColor;
+            bodyText.fontStyle = bodyTextBaseFontStyle;
         }
     }
 
@@ -471,7 +484,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         image.type = Image.Type.Sliced;
     }
 
-    private static bool IsStudentSpeaker(IDialogueLine line)
+    private static bool UsesBrownSpeakerStyle(IDialogueLine line)
     {
         if (line == null || line.SpeakerReference == null)
         {
@@ -485,12 +498,16 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         if (line.SpeakerReference is Component component)
         {
-            return component.GetComponentInParent<StudentPersonality>() != null;
+            DialogueActor actor = component.GetComponentInParent<DialogueActor>();
+            return (actor != null && actor.UsesBrownDialogueStyle)
+                || component.GetComponentInParent<StudentPersonality>() != null;
         }
 
         if (line.SpeakerReference is GameObject gameObject)
         {
-            return gameObject.GetComponentInParent<StudentPersonality>() != null;
+            DialogueActor actor = gameObject.GetComponentInParent<DialogueActor>();
+            return (actor != null && actor.UsesBrownDialogueStyle)
+                || gameObject.GetComponentInParent<StudentPersonality>() != null;
         }
 
         return false;

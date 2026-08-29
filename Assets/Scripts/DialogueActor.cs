@@ -8,6 +8,9 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     [Tooltip("Which recorded voice this Character speaks in. cast.py in the service decides which side of the split they are on.")]
     [SerializeField] private VoiceId voice = VoiceId.None;
 
+    [Header("Dialogue Appearance")]
+    [SerializeField] private bool useBrownDialogueStyle;
+
     [Header("Dialogue Voice")]
     [SerializeField] private AudioClip[] voiceClips;
     [SerializeField] private AudioSource voiceAudioSource;
@@ -16,6 +19,7 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     private AudioClip lastVoiceClip;
 
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
+    public bool UsesBrownDialogueStyle => useBrownDialogueStyle;
 
     public VoiceId Voice => voice;
 

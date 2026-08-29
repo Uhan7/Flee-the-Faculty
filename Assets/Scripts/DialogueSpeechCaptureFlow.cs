@@ -34,6 +34,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
     private string pendingTranscript = string.Empty;
     private float listeningStartedAt;
     private float ignoreAdvanceUntil;
+    private bool hasHeardSpeech;
 
     public static DialogueSpeechCaptureFlow GetOrCreate()
     {
@@ -119,7 +120,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         currentTitle = string.IsNullOrWhiteSpace(title) ? "AraBOT" : title.Trim();
         currentInstructions = string.IsNullOrWhiteSpace(instructions)
-            ? "Tap the mic above AraBOT, speak your answer, then continue when you are done."
+            ? "Speak whenever you are ready."
             : instructions.Trim();
         onTranscriptConfirmed = onSubmitted;
         liveTranscript = string.Empty;
@@ -127,21 +128,21 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
 
         speechController.ResetForReuse(
-            "Tap the mic when you want to start.",
+            "Listening will begin automatically.",
             DefaultWaitingText,
             string.Empty);
 
         ShowDialogueHint(currentTitle, currentInstructions);
-        ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
+        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
         state = PromptState.ReadyToListen;
 
         if (autoStartListening)
         {
-            BeginListening();
+            BeginListening(keepMicVisible: true);
         }
     }
 
-    public void ShowProcessing()
+    public void ShowProcessing(string studentName)
     {
         EnsureBuilt();
         dialogueView = SceneDialogueView.ActiveInstance;
@@ -154,10 +155,11 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         HidePromptButtons();
         SetAraBotThinking(false);
-        if (dialogueView != null)
-        {
-            dialogueView.SetVisible(false);
-        }
+        string safeStudentName = string.IsNullOrWhiteSpace(studentName) ? "Student" : studentName.Trim();
+        ShowDialogueHint(
+            safeStudentName,
+            safeStudentName + " is thinking...",
+            useStudentStyle: true);
 
         state = PromptState.Processing;
     }
@@ -200,8 +202,19 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private void BeginListening()
     {
+        BeginListening(keepMicVisible: true);
+    }
+
+    private void BeginListening(bool keepMicVisible)
+    {
+        if (state == PromptState.Listening && speechController != null && speechController.IsListening)
+        {
+            return;
+        }
+
         liveTranscript = string.Empty;
         pendingTranscript = string.Empty;
+        hasHeardSpeech = false;
         listeningStartedAt = Time.unscaledTime;
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
 
@@ -223,9 +236,18 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         }
 
         state = PromptState.Listening;
-        HidePromptButtons();
-        SetAraBotThinking(true);
-        ShowDialogue(currentTitle, DefaultWaitingText, false);
+        SetAraBotThinking(false);
+        if (keepMicVisible)
+        {
+            ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
+            ShowDialogueHint(currentTitle, currentInstructions);
+        }
+        else
+        {
+            ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
+            ShowDialogueHint(currentTitle, DefaultWaitingText);
+        }
+
         speechController.StartListening();
     }
 
@@ -233,7 +255,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
     {
         speechController.StopListeningWithoutSubmitting();
         state = PromptState.TypingFallback;
-        ShowDialogue(currentTitle, DefaultTypingText, false);
+        ShowDialogueHint(currentTitle, DefaultTypingText);
 
         if (dialogueView != null)
         {
@@ -258,13 +280,19 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             dialogueView.SetExternalInputVisible(false);
         }
 
-        ShowDialogue(currentTitle, pendingTranscript, true);
+        ShowDialogue(pendingTranscript, true);
         ShowPromptButton(AraBotPromptButton.PromptRole.Redo, BeginListening);
     }
 
     private void HandleTranscriptChanged(string transcript)
     {
         liveTranscript = string.IsNullOrWhiteSpace(transcript) ? string.Empty : transcript.Trim();
+
+        if (state == PromptState.Listening && !hasHeardSpeech && !string.IsNullOrWhiteSpace(liveTranscript))
+        {
+            hasHeardSpeech = true;
+            ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
+        }
     }
 
     private void HandleSpeechError(string _)
@@ -277,7 +305,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         state = PromptState.ReadyToListen;
         SetAraBotThinking(false);
         ShowDialogueHint(currentTitle, currentInstructions);
-        ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
+        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
     }
 
     private void UpdateBodyCopy()
@@ -290,11 +318,14 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         switch (state)
         {
             case PromptState.Listening:
-                dialogueView.SetExternalBodyText(
-                    string.IsNullOrWhiteSpace(liveTranscript)
-                        ? DefaultWaitingText
-                        : liveTranscript,
-                    false);
+                if (string.IsNullOrWhiteSpace(liveTranscript))
+                {
+                    ShowDialogueHint(currentTitle, DefaultWaitingText);
+                }
+                else
+                {
+                    dialogueView.SetExternalBodyText(liveTranscript, false);
+                }
                 break;
 
         }
@@ -368,7 +399,22 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         dialogueView.ShowExternalContent(speaker, body, canAdvance);
     }
 
-    private void ShowDialogueHint(string speaker, string hint)
+    private void ShowDialogue(string body, bool canAdvance)
+    {
+        if (body == NoSpeechSubmittedText)
+        {
+            ShowDialogueHint(currentTitle, body, canAdvance);
+            return;
+        }
+
+        ShowDialogue(currentTitle, body, canAdvance);
+    }
+
+    private void ShowDialogueHint(
+        string speaker,
+        string hint,
+        bool canAdvance = false,
+        bool useStudentStyle = false)
     {
         dialogueView = SceneDialogueView.ActiveInstance;
         if (dialogueView == null)
@@ -377,7 +423,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         }
 
         ApplyInputReference();
-        dialogueView.ShowExternalHint(speaker, hint);
+        dialogueView.ShowExternalHint(speaker, hint, canAdvance, useStudentStyle);
     }
 
     private void ApplyInputReference()

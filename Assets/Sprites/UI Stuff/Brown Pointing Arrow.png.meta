@@ -173,7 +173,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Brown Pointing Arrow_0: -9209839523570323075
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

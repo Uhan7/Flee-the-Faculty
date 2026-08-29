@@ -16,16 +16,18 @@ MonoBehaviour:
   - key: boy_e717a8fb20f0e824
     voice: 2
     clip: {fileID: 8300000, guid: 3a7810e7ae04d68fa05c9f6b32f71a09, type: 3}
-    text: "Perfect. After this chat I will stay quiet until you plug in the final lines."
+    text: Perfect. After this chat I will stay quiet until you plug in the final
+      lines.
   - key: boy_f324672fa8f4e79c
     voice: 2
     clip: {fileID: 8300000, guid: ca9ecf5dd5f7211e006711563ef1c956, type: 3}
-    text: "Hey, AraBOT. What should I say to the teacher?"
+    text: Hey, AraBOT. What should I say to the teacher?
   - key: girl_e717a8fb20f0e824
     voice: 1
     clip: {fileID: 8300000, guid: 98c0a8ba3db06bef1edc2b9fe2e835ef, type: 3}
-    text: "Perfect. After this chat I will stay quiet until you plug in the final lines."
+    text: Perfect. After this chat I will stay quiet until you plug in the final
+      lines.
   - key: girl_f324672fa8f4e79c
     voice: 1
     clip: {fileID: 8300000, guid: b451f1c9435d5069a7b65ee843c1afcf, type: 3}
-    text: "Hey, AraBOT. What should I say to the teacher?"
+    text: Hey, AraBOT. What should I say to the teacher?

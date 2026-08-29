@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 public sealed class ClassroomSessionController : MonoBehaviour
@@ -38,17 +39,60 @@ public sealed class ClassroomSessionController : MonoBehaviour
     [SerializeField, Min(0f)] private float minimumPupilSpacing = 1.8f;
     [SerializeField, Min(1)] private int spawnPositionAttempts = 12;
 
+    [Header("Seated Pupils")]
+    [SerializeField] private bool keepPupilsSeated = true;
+    [SerializeField] private Vector2 seatedVisualOffset = new Vector2(0f, 0.25f);
+
+    [Header("Conversation Progress (Debug)")]
+    [SerializeField] private bool showConversationCounter = true;
+    [SerializeField] private Vector2 conversationCounterPosition = new Vector2(16f, 16f);
+
+    [Header("Teacher Evaluation")]
+    [SerializeField] private bool transitionWhenAllStudentsTalkedTo = true;
+    [SerializeField] private string teacherEvaluationSceneName = "Teacher Evaluation";
+    [SerializeField] private string teacherEvaluationScenePath = "Assets/Scenes/Teacher Evaluation.unity";
+
     private const string LoadingTaskId = "classroom-session";
+    private const string GameplayClassroomSceneName = "Classroom and Movement";
     private const string LegacyBackendPupilName = "Liam";
     private const string JairusPupilName = "Jairus";
 
     private FleeApiClient apiClient;
     private FleeClassroomSession classroom;
+    private readonly HashSet<int> talkedToStudentIds = new HashSet<int>();
+    private int spawnedStudentCount;
+    private GUIStyle conversationCounterStyle;
+    private bool isEvaluationTransitionQueued;
 
     public FleeClassroomSession Classroom => classroom;
+    public int TalkedToStudentCount => talkedToStudentIds.Count;
+    public int SpawnedStudentCount => spawnedStudentCount;
+
+    public void SetConversationCounterVisible(bool visible)
+    {
+        showConversationCounter = visible;
+    }
+
+    private void OnEnable()
+    {
+        StudentDialogueInteraction.ConversationCompleted += HandleConversationCompleted;
+    }
+
+    private void OnDisable()
+    {
+        StudentDialogueInteraction.ConversationCompleted -= HandleConversationCompleted;
+    }
 
     private IEnumerator Start()
     {
+        if (string.Equals(
+                SceneManager.GetActiveScene().name,
+                GameplayClassroomSceneName,
+                StringComparison.Ordinal))
+        {
+            FleeApiClient.ResetClassroomSession();
+        }
+
         DoorSceneTransition.TryRegisterLoadingTask(
             LoadingTaskId,
             "Preparing the Classroom...",
@@ -89,6 +133,8 @@ public sealed class ClassroomSessionController : MonoBehaviour
         GameObject rosterRoot = new GameObject("Classroom Pupils");
         rosterRoot.transform.SetParent(transform, false);
         rosterRoot.SetActive(false);
+        spawnedStudentCount = 0;
+        talkedToStudentIds.Clear();
         List<Vector2> occupiedSpawnPositions = new List<Vector2>(pupils.Length);
 
         for (int index = 0; index < pupils.Length; index++)
@@ -104,6 +150,11 @@ public sealed class ClassroomSessionController : MonoBehaviour
             }
 
             Vector2 position = GetSpawnPosition(index, prefab, occupiedSpawnPositions);
+            if (keepPupilsSeated)
+            {
+                position += seatedVisualOffset;
+            }
+
             occupiedSpawnPositions.Add(position);
             GameObject pupilObject = Instantiate(
                 prefab,
@@ -112,14 +163,97 @@ public sealed class ClassroomSessionController : MonoBehaviour
                 rosterRoot.transform);
             pupilObject.name = pupil.Name;
 
+            if (keepPupilsSeated)
+            {
+                ConfigureSeatedPupil(pupilObject);
+            }
+
             StudentDialogueInteraction interaction = pupilObject.GetComponentInChildren<StudentDialogueInteraction>(true);
             if (interaction != null)
             {
                 interaction.ConfigureBackendPupil(pupil);
+                spawnedStudentCount++;
             }
         }
 
         rosterRoot.SetActive(true);
+    }
+
+    private static void ConfigureSeatedPupil(GameObject pupilObject)
+    {
+        StudentRoamingController[] roamingControllers =
+            pupilObject.GetComponentsInChildren<StudentRoamingController>(true);
+        for (int index = 0; index < roamingControllers.Length; index++)
+        {
+            roamingControllers[index].enabled = false;
+        }
+
+        Collider2D[] colliders = pupilObject.GetComponentsInChildren<Collider2D>(true);
+        for (int index = 0; index < colliders.Length; index++)
+        {
+            if (!colliders[index].isTrigger)
+            {
+                colliders[index].enabled = false;
+            }
+        }
+    }
+
+    private void HandleConversationCompleted(DialogueActor studentActor)
+    {
+        if (studentActor == null
+            || !studentActor.transform.IsChildOf(transform)
+            || !talkedToStudentIds.Add(studentActor.GetInstanceID()))
+        {
+            return;
+        }
+
+        Debug.Log(
+            "Students talked to: " + TalkedToStudentCount + " / " + spawnedStudentCount,
+            this);
+
+        if (transitionWhenAllStudentsTalkedTo
+            && !isEvaluationTransitionQueued
+            && spawnedStudentCount > 0
+            && TalkedToStudentCount >= spawnedStudentCount)
+        {
+            isEvaluationTransitionQueued = true;
+            StartCoroutine(TransitionToTeacherEvaluationNextFrame());
+        }
+    }
+
+    private IEnumerator TransitionToTeacherEvaluationNextFrame()
+    {
+        yield return null;
+        DoorSceneTransition.LoadScene(teacherEvaluationSceneName, teacherEvaluationScenePath);
+    }
+
+    private void OnGUI()
+    {
+        if (!showConversationCounter || spawnedStudentCount <= 0)
+        {
+            return;
+        }
+
+        if (conversationCounterStyle == null)
+        {
+            conversationCounterStyle = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontSize = 18,
+                padding = new RectOffset(12, 12, 8, 8)
+            };
+        }
+
+        string counterText = "Talked to: " + TalkedToStudentCount + " / " + spawnedStudentCount;
+        Vector2 counterSize = conversationCounterStyle.CalcSize(new GUIContent(counterText));
+        GUI.Box(
+            new Rect(
+                conversationCounterPosition.x,
+                conversationCounterPosition.y,
+                counterSize.x,
+                counterSize.y),
+            counterText,
+            conversationCounterStyle);
     }
 
     private GameObject FindPupilPrefab(string pupilName)
@@ -160,7 +294,9 @@ public sealed class ClassroomSessionController : MonoBehaviour
                     pupil.Misconception,
                     pupil.TurnBudget,
                     pupil.TurnsUsed,
-                    pupil.Satisfied)
+                    pupil.Satisfied,
+                    pupil.LearnedAnswer,
+                    pupil.LastScore)
                 : pupil;
         }
 

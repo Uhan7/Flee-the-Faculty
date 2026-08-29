@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1000000000000000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4000000000000000000}
+  - component: {fileID: 1140000000000000000}
+  - component: {fileID: 1140000000000000001}
+  m_Layer: 0
+  m_Name: Teacher Evaluation Sequence
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4000000000000000000
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1140000000000000000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e8f2d4c1a6b47d9a3c5e7f901234567, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  teacherActor: {fileID: 1140000000000000001}
+--- !u!114 &1140000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b586b805ff3a49a8af0f3dc2c5950dc3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  displayName: Teacher
+  useBrownDialogueStyle: 1
+  voiceClips:
+  - {fileID: 8300000, guid: 33f182f4437e54c74a0e215bedba31fb, type: 3}
+  - {fileID: 8300000, guid: bebdf6ef32003453a810bd92dfec9982, type: 3}
+  - {fileID: 8300000, guid: 049587c334133440d8a991c0547c183c, type: 3}
+  - {fileID: 8300000, guid: 0f74a5294a09d4729b73e8311b0887e8, type: 3}
+  - {fileID: 8300000, guid: 133c512b156af456b92d3c25618433b6, type: 3}
+  voiceAudioSource: {fileID: 0}
+  voiceVolume: 1

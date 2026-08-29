@@ -9,6 +9,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     public static event System.Action<DialogueActor> ConversationStarted;
     public static event System.Action AraBotResponseRequested;
     public static event System.Action ConversationEnded;
+    public static event System.Action<DialogueActor> ConversationCompleted;
 
     [SerializeField] private SceneDialogueConversation dialogue;
     [SerializeField] private Transform activator;
@@ -44,6 +45,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private FleeEncounterSession activeEncounter;
     private FleeApiFailure backendPreloadFailure;
     private bool hasCompletedDialogue;
+    private bool hasReportedConversationCompleted;
     private bool isActivatorInside;
     private bool isBackendQuestionLoading;
     private bool isBackendQuestionReady;
@@ -62,6 +64,14 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         if (activeConversation != null)
         {
             activeConversation.ExitConversation();
+        }
+    }
+
+    public static void SkipActiveConversation()
+    {
+        if (activeConversation != null)
+        {
+            activeConversation.SkipConversation();
         }
     }
 
@@ -108,6 +118,46 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         EndConversationMode();
         ClearInteractionTargetFocus();
         RefreshQuestionButton();
+    }
+
+    private void SkipConversation()
+    {
+        if (!isConversationModeActive)
+        {
+            return;
+        }
+
+        if (beginDialogueRoutine != null)
+        {
+            StopCoroutine(beginDialogueRoutine);
+            beginDialogueRoutine = null;
+        }
+
+        if (isBackendQuestionLoading)
+        {
+            isBackendQuestionLoading = false;
+            DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Conversation skipped.");
+        }
+
+        // Clear dialogue state before ending the manager so its end event cannot advance the flow.
+        hasCompletedDialogue = true;
+        isSpeechFlowActive = false;
+        activeQuestionDialogue = null;
+        activeRepeatDialogue = null;
+        requestAnotherSpeechReply = false;
+        canRevisitAfterInteraction = false;
+
+        if (speechCaptureFlow != null)
+        {
+            speechCaptureFlow.Hide();
+        }
+
+        if (dialogueManager != null && dialogueManager.IsPlaying)
+        {
+            dialogueManager.EndDialogue();
+        }
+
+        CompleteInteraction();
     }
 
     public void ConfigureBackendPupil(FleePupilSession pupil)
@@ -183,6 +233,9 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             dialogueManager.DialogueEnded += HandleDialogueEnded;
         }
 
+        ConversationStarted += HandleConversationStarted;
+        ConversationEnded += HandleConversationEnded;
+
         preloadedQuestionDialogue = BuildQuestionDialogue();
         RefreshQuestionButton();
     }
@@ -199,6 +252,9 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             dialogueManager.DialogueStarted -= HandleDialogueStarted;
             dialogueManager.DialogueEnded -= HandleDialogueEnded;
         }
+
+        ConversationStarted -= HandleConversationStarted;
+        ConversationEnded -= HandleConversationEnded;
 
         if (beginDialogueRoutine != null)
         {
@@ -400,6 +456,19 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         SetQuestionButtonVisible(false);
     }
 
+    private void HandleConversationStarted(DialogueActor _)
+    {
+        if (activeConversation != this)
+        {
+            SetQuestionButtonVisible(false);
+        }
+    }
+
+    private void HandleConversationEnded()
+    {
+        RefreshQuestionButton();
+    }
+
     private void ShowSpeechCaptureFlow()
     {
         speechCaptureFlow = DialogueSpeechCaptureFlow.GetOrCreate();
@@ -425,7 +494,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
                 return;
             }
 
-            speechCaptureFlow.ShowProcessing();
+            speechCaptureFlow.ShowProcessing(ResolveStudentSpeakerName());
             SetThinkingBubbleVisible(true);
             beginDialogueRoutine = StartCoroutine(SubmitBackendReply(transcript));
             return;
@@ -706,7 +775,8 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     private bool CanStartInteraction()
     {
-        return useSpeechReplyFlow ? CanStartSpeechReplyFlow() : CanStartDefaultDialogue();
+        return !HasAnotherActiveConversation()
+            && (useSpeechReplyFlow ? CanStartSpeechReplyFlow() : CanStartDefaultDialogue());
     }
 
     private bool CanStartDefaultDialogue()
@@ -751,9 +821,15 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             && !isSpeechFlowActive
             && isActivatorInside
             && dialogueManager != null
-            && !dialogueManager.IsPlaying;
+            && !dialogueManager.IsPlaying
+            && !HasAnotherActiveConversation();
 
         SetQuestionButtonVisible(shouldShowButton);
+    }
+
+    private bool HasAnotherActiveConversation()
+    {
+        return activeConversation != null && activeConversation != this;
     }
 
     private void SetQuestionButtonVisible(bool visible)
@@ -898,6 +974,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     {
         bool allowRevisit = useBackendReplyFlow && canRevisitAfterInteraction;
         hasCompletedDialogue = !allowRevisit;
+        ReportConversationCompleted();
         if (!allowRevisit)
         {
             isActivatorInside = false;
@@ -936,5 +1013,16 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     {
         string pupilKey = string.IsNullOrWhiteSpace(backendPupilId) ? backendPupilName : backendPupilId;
         return gameObject.scene.name + "::pupil-question::" + pupilKey;
+    }
+
+    private void ReportConversationCompleted()
+    {
+        if (hasReportedConversationCompleted)
+        {
+            return;
+        }
+
+        hasReportedConversationCompleted = true;
+        ConversationCompleted?.Invoke(ResolveStudentActor());
     }
 }

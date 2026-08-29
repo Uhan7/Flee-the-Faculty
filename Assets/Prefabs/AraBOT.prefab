@@ -140,13 +140,18 @@ MonoBehaviour:
   repathIntervalSeconds: 0.35
   collisionSkin: 0.02
   wallSlideStrength: 1
-  dynamicBlockerAvoidanceDistance: 0.9
-  dynamicBlockerAvoidanceStrength: 0.7
-  dynamicBlockerClearance: 0.12
-  dynamicBlockerDetourDistance: 0.9
+  dynamicBlockerAvoidanceDistance: 1.15
+  dynamicBlockerAvoidanceStrength: 0.85
+  stopForNearbyDynamicBlockers: 1
+  nearbyDynamicBlockerStopDistance: 0.3
+  dynamicBlockerClearance: 0.2
+  dynamicBlockerDetourDistance: 1.15
   dynamicBlockerDetourForwardBias: 0.35
   dynamicBlockerStopDistance: 0.6
-  maxDynamicBlockerRecoveryAttempts: 2
+  maxDynamicBlockerRecoveryAttempts: 4
+  crowdedSpaceEscapeDistance: 1.2
+  crowdedSpaceClearance: 0.08
+  maxCrowdedSpaceEscapeAttempts: 3
   maxStaticBlockerRecoveryAttempts: 2
   overlapRecoveryPadding: 0.04
   blockedMoveThreshold: 0.01
@@ -155,6 +160,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   flipSpriteWithMovement: 0
+  safeSpawnSampleDistance: 3
+  safeSpawnOverlapPasses: 5
 --- !u!114 &7077242968446372685
 MonoBehaviour:
   m_ObjectHideFlags: 0

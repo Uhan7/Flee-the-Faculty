@@ -14,6 +14,7 @@ public sealed class DoorSceneTransitionBootstrap : MonoBehaviour
 #endif
     [SerializeField, HideInInspector] private string targetSceneName;
     [SerializeField, HideInInspector] private string targetScenePath;
+    [SerializeField] private bool resetClassroomSessionBeforeTransition;
 
     private void Awake()
     {
@@ -26,6 +27,11 @@ public sealed class DoorSceneTransitionBootstrap : MonoBehaviour
         {
             Debug.LogWarning("No target scene is assigned to the door scene transition controller.", this);
             return;
+        }
+
+        if (resetClassroomSessionBeforeTransition)
+        {
+            FleeApiClient.ResetClassroomSession();
         }
 
         DoorSceneTransition.LoadScene(targetSceneName, targetScenePath);

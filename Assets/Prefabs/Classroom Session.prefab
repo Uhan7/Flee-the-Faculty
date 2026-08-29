@@ -81,3 +81,10 @@ MonoBehaviour:
   navMeshSampleDistance: 1.25
   minimumPupilSpacing: 1.8
   spawnPositionAttempts: 12
+  keepPupilsSeated: 1
+  seatedVisualOffset: {x: 0, y: 0.25}
+  showConversationCounter: 1
+  conversationCounterPosition: {x: 16, y: 16}
+  transitionWhenAllStudentsTalkedTo: 1
+  teacherEvaluationSceneName: Teacher Evaluation
+  teacherEvaluationScenePath: Assets/Scenes/Teacher Evaluation.unity

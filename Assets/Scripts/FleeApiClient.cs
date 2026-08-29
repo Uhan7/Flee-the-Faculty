@@ -461,6 +461,10 @@ public sealed class FleeApiClient : MonoBehaviour
         pupil.turnsUsed = response.turnsUsed;
         pupil.turnBudget = response.turnBudget > 0 ? response.turnBudget : pupil.turnBudget;
         pupil.satisfied = response.satisfied;
+        pupil.learnedAnswer = string.IsNullOrWhiteSpace(response.restatement)
+            ? pupil.learnedAnswer
+            : response.restatement.Trim();
+        pupil.lastScore = response.score;
     }
 
     private static FleeTurnFindings ToFindings(FleeFindingsResponse findings)
@@ -496,7 +500,9 @@ public sealed class FleeApiClient : MonoBehaviour
                     pupil.misconception,
                     pupil.turnBudget,
                     pupil.turnsUsed,
-                    pupil.satisfied);
+                    pupil.satisfied,
+                    pupil.learnedAnswer,
+                    pupil.lastScore);
         }
 
         return new FleeClassroomSession(
@@ -570,6 +576,8 @@ public sealed class FleeApiClient : MonoBehaviour
         public int turnBudget;
         public int turnsUsed;
         public bool satisfied;
+        public string learnedAnswer;
+        public int lastScore;
     }
 
     [Serializable]
@@ -711,7 +719,9 @@ public sealed class FleePupilSession
         string misconception,
         int turnBudget,
         int turnsUsed,
-        bool satisfied)
+        bool satisfied,
+        string learnedAnswer = null,
+        int lastScore = 0)
     {
         PupilId = pupilId;
         Name = name;
@@ -722,6 +732,8 @@ public sealed class FleePupilSession
         TurnBudget = turnBudget;
         TurnsUsed = turnsUsed;
         Satisfied = satisfied;
+        LearnedAnswer = learnedAnswer ?? string.Empty;
+        LastScore = lastScore;
     }
 
     public string PupilId { get; }
@@ -733,6 +745,8 @@ public sealed class FleePupilSession
     public int TurnBudget { get; }
     public int TurnsUsed { get; }
     public bool Satisfied { get; }
+    public string LearnedAnswer { get; }
+    public int LastScore { get; }
 }
 
 public sealed class FleeTurnResult

@@ -62,9 +62,7 @@ public sealed class DialogueConversationCamera : MonoBehaviour
 
     private void HandleConversationStarted(DialogueActor studentActor)
     {
-        conversationActive = true;
-        FocusOn(studentActor != null ? studentActor.transform : araBotTarget);
-        SetCameraPriority(activePriority);
+        BeginExternalFocus(studentActor != null ? studentActor.transform : araBotTarget);
     }
 
     private void HandleLineChanged(IDialogueLine line, int _)
@@ -90,6 +88,18 @@ public sealed class DialogueConversationCamera : MonoBehaviour
     }
 
     private void HandleConversationEnded()
+    {
+        EndExternalFocus();
+    }
+
+    public void BeginExternalFocus(Transform target)
+    {
+        conversationActive = true;
+        FocusOn(target != null ? target : araBotTarget);
+        SetCameraPriority(activePriority);
+    }
+
+    public void EndExternalFocus()
     {
         conversationActive = false;
         FocusOn(araBotTarget);

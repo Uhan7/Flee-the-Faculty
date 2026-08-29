@@ -198,7 +198,9 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      AraBOT Extra Prompts_0: -545204069631476397
+      AraBOT Extra Prompts_1: -5660834308690761551
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
