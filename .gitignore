@@ -38,3 +38,6 @@ Recordings/
 # Local token bundled only for API test builds
 Assets/Resources/FleeApiClientToken.txt
 Assets/Resources/FleeApiClientToken.txt.meta
+
+# A Unity template project created here by accident. Not part of the game.
+My project/

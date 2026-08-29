@@ -43,14 +43,14 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     /// <summary>
     /// One syllable blip, played every few letters as the line types out.
     ///
-    /// Silent while a baked clip is playing. The two are the same job done
-    /// two ways, and the recorded line is the better one when it exists; the
-    /// ticks stay as the fallback, which is what every line the model writes
-    /// during an Encounter will need until the service speaks them.
+    /// Silent while this Character has a real voice on the line, and for the
+    /// short wait while one is being synthesised. The two are the same job done
+    /// two ways, and the spoken line is the better one when it exists; the ticks
+    /// stay as the fallback for a line no voice reaches.
     /// </summary>
     public void PlayVoiceTick()
     {
-        if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsSpeaking(this))
+        if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsVoicing(this))
         {
             return;
         }

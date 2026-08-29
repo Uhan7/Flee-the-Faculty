@@ -5,6 +5,12 @@
 // this runtime, with first audio at about 0.19s, so the worker stays ahead of
 // playback and Unity never waits for the whole clip.
 //
+// Lines are worked one at a time. The worker holds a single model whose state
+// each generation resets, so a second generate would corrupt the first, and
+// Unity asks for a whole reply at once. Finished audio goes to Unity as raw
+// samples rather than as an encoded file: a WebGL AudioClip made from a file
+// stays unloaded and plays silence.
+//
 // Everything here is fail-soft. A missing model, a refused fetch, or an
 // unsupported browser leaves Unity with no clip, and a line with no clip falls
 // back to the syllable ticks in DialogueActor, which is what every line sounded
@@ -28,45 +34,52 @@ mergeInto(LibraryManager.library, {
       targetName: targetName,
       ready: false,
       sampleRate: 24000,
-      pending: {},
+      // One line at a time. The worker holds a single model whose state
+      // `start_generation` resets, so a second generate would corrupt the
+      // first. Unity asks for a Pupil's whole reply at once, so the requests
+      // that queue here are the normal case rather than an edge case.
+      queue: [],
       chunks: [],
+      // Finished audio, by request id, waiting for Unity to copy it out.
+      samples: {},
       activeRequest: "",
       send: function (methodName, value) {
         if (this.targetName) {
           SendMessage(this.targetName, methodName, value || "");
         }
+      },
+      // Hand the worker the next line, if it is free to take one.
+      pump: function () {
+        if (!this.ready || this.activeRequest || this.queue.length === 0) {
+          return;
+        }
+
+        var next = this.queue.shift();
+        this.activeRequest = next.id;
+        this.chunks = [];
+        this.send("HandleVoiceStarted", next.id);
+        this.worker.postMessage({
+          type: "generate",
+          text: next.text,
+          voiceName: next.voice,
+          temperature: 0.7
+        });
+      },
+      // Give up on the line in flight and move on. Failing it by id lets Unity
+      // fall back to ticks straight away rather than waiting out its timeout.
+      failActive: function (message) {
+        this.chunks = [];
+        if (this.activeRequest) {
+          this.send("HandleVoiceFailed", this.activeRequest + "|" + message);
+          this.activeRequest = "";
+          this.pump();
+          return;
+        }
+
+        this.send("HandleVoiceError", message);
       }
     };
     window.FleeVoiceBridge = state;
-
-    // A WAV header, so the clip can go straight into UnityWebRequestMultimedia
-    // rather than through a second decode path on the C# side.
-    state.toWav = function (samples, sampleRate) {
-      var bytes = new ArrayBuffer(44 + samples.length * 2);
-      var view = new DataView(bytes);
-      var writeText = function (offset, text) {
-        for (var i = 0; i < text.length; i++) {
-          view.setUint8(offset + i, text.charCodeAt(i));
-        }
-      };
-      writeText(0, "RIFF");
-      view.setUint32(4, 36 + samples.length * 2, true);
-      writeText(8, "WAVEfmt ");
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeText(36, "data");
-      view.setUint32(40, samples.length * 2, true);
-      for (var s = 0; s < samples.length; s++) {
-        var clamped = Math.max(-1, Math.min(1, samples[s]));
-        view.setInt16(44 + s * 2, clamped * 32767, true);
-      }
-      return new Blob([view], { type: "audio/wav" });
-    };
 
     try {
       state.worker = new Worker(config.workerUrl, { type: "module" });
@@ -87,6 +100,7 @@ mergeInto(LibraryManager.library, {
         state.ready = true;
         state.sampleRate = message.sampleRate || 24000;
         state.send("HandleVoiceReady", String(state.sampleRate));
+        state.pump();
         return;
       }
 
@@ -108,21 +122,26 @@ mergeInto(LibraryManager.library, {
         }
         state.chunks = [];
 
-        var url = URL.createObjectURL(state.toWav(samples, state.sampleRate));
-        state.send("HandleVoiceClip", state.activeRequest + "|" + url);
+        // Hand Unity the raw samples rather than an encoded file. A clip
+        // fetched from a blob URL never leaves AudioDataLoadState.Unloaded in
+        // WebGL, so it plays silently; AudioClip.Create with these samples
+        // does not go near the browser's decoder at all.
+        state.samples[state.activeRequest] = samples;
+        state.send(
+          "HandleVoiceSamples",
+          state.activeRequest + "|" + samples.length + "|" + state.sampleRate);
         state.activeRequest = "";
+        state.pump();
         return;
       }
 
       if (message.type === "error") {
-        state.chunks = [];
-        state.activeRequest = "";
-        state.send("HandleVoiceError", message.message || "voice worker failed");
+        state.failActive(message.message || "voice worker failed");
       }
     };
 
     state.worker.onerror = function (error) {
-      state.send("HandleVoiceError", "voice worker: " + (error.message || "unknown"));
+      state.failActive("voice worker: " + (error.message || "unknown"));
     };
 
     // Prefer the copy sitting next to the build: same origin, no CORS, and no
@@ -157,23 +176,54 @@ mergeInto(LibraryManager.library, {
 
   VoiceSynthesis_Speak: function (requestIdPointer, voicePointer, textPointer) {
     var state = typeof window === "undefined" ? null : window.FleeVoiceBridge;
-    if (!state || !state.ready || !state.worker) {
+    if (!state || !state.worker) {
       return;
     }
 
-    state.chunks = [];
-    state.activeRequest = UTF8ToString(requestIdPointer);
-    state.worker.postMessage({
-      type: "generate",
-      text: UTF8ToString(textPointer),
-      voiceName: UTF8ToString(voicePointer),
-      temperature: 0.7
+    state.queue.push({
+      id: UTF8ToString(requestIdPointer),
+      voice: UTF8ToString(voicePointer),
+      text: UTF8ToString(textPointer)
     });
+    state.pump();
   },
 
-  VoiceSynthesis_ReleaseClip: function (urlPointer) {
-    if (typeof URL !== "undefined") {
-      URL.revokeObjectURL(UTF8ToString(urlPointer));
+  // Drop a line nobody is waiting for any more, so it does not hold up the
+  // lines that follow it. The line already in the worker runs to completion:
+  // generation is a synchronous loop with no way in.
+  VoiceSynthesis_Cancel: function (requestIdPointer) {
+    var state = typeof window === "undefined" ? null : window.FleeVoiceBridge;
+    if (!state) {
+      return;
     }
+
+    var requestId = UTF8ToString(requestIdPointer);
+    for (var i = state.queue.length - 1; i >= 0; i--) {
+      if (state.queue[i].id === requestId) {
+        state.queue.splice(i, 1);
+      }
+    }
+
+    delete state.samples[requestId];
+  },
+
+  // Copy one finished line into a buffer Unity owns, and forget it here.
+  // Returns how many samples were written, which is zero if the line is gone.
+  VoiceSynthesis_ReadSamples: function (requestIdPointer, destination, capacity) {
+    var state = typeof window === "undefined" ? null : window.FleeVoiceBridge;
+    if (!state) {
+      return 0;
+    }
+
+    var requestId = UTF8ToString(requestIdPointer);
+    var samples = state.samples[requestId];
+    if (!samples) {
+      return 0;
+    }
+
+    var count = Math.min(capacity, samples.length);
+    HEAPF32.set(samples.subarray(0, count), destination >> 2);
+    delete state.samples[requestId];
+    return count;
   }
 });
