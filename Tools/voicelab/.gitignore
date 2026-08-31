@@ -13,6 +13,15 @@ voices/
 
 # Generated audio. Every one of these is reproducible from a command.
 out/
+
+# The cloned voice states. `out/` alone did not cover `out-real/`, which is the
+# directory the README actually tells you to use, so four safetensors files
+# reached a public repository in f243da9 and are still in its history. A cloned
+# voice is a portable model of a real person: anyone holding one can make that
+# person say anything, and the people recorded agreed to voice a game, which is
+# not the same thing. This rule stops the next one; it does not untrack the four
+# already committed, because .gitignore never has.
+out-real/
 preview*/
 audition*/
 shift/

@@ -1,19 +1,18 @@
 using UnityEngine;
 
 /// <summary>
-/// The voices the game actually speaks in: one girl and one boy.
+/// The two voices a line is <em>baked</em> in: one girl and one boy.
 ///
-/// GDD 8.3 describes six slots, and the service still sends them: `cast.py`
-/// pins one of V1 to V6 to each of the ten Characters, and `rules.py` refuses to
-/// draw a Classroom where two Pupils share one. That constraint is the service's
-/// and is untouched by this. The client folds the six down to two, because two
-/// recordings is what exists.
+/// This is not the same thing as the six voice slots. GDD 8.3 specifies six and
+/// the service speaks all six, but they are rendered from two Piper models, and
+/// this enum names the models. A baked clip's file name carries one of these
+/// (<see cref="VoiceKey"/>), so widening it would rename every clip in
+/// <c>Assets/Audio/Voices</c> and change nothing about how a Pupil sounds.
 ///
-/// The cost is real and worth naming. `rules.py` separates voices because Pupils
-/// speak aloud one after another, and three girls in one Classroom now sound
-/// identical. What still tells them apart is the name box, the sprite, and the
-/// Personality. Restoring six is a change to this enum and to `slots.py`, and
-/// nothing between them.
+/// Which of the six a Pupil actually speaks in arrives on the wire, as
+/// <c>ClassroomView.pupils[].voice</c>, and lives on
+/// <see cref="IVoicedSpeaker.VoiceSlot"/> at run time. See
+/// <see cref="ServiceVoiceSynthesizer"/> and ADR-0013 in the service repository.
 /// </summary>
 public enum VoiceId
 {
@@ -23,11 +22,12 @@ public enum VoiceId
 }
 
 /// <summary>
-/// The girl/boy rule, and the fold from the service's six slots onto it.
+/// How a voice is named on the wire, and how the six slots fold onto the two
+/// base voices.
 /// </summary>
 public static class VoiceCatalog
 {
-    /// <summary>Names the baked clips and the voice states use.</summary>
+    /// <summary>Names the baked clips use, and what the service calls a base voice.</summary>
     public const string GirlKey = "girl";
 
     public const string BoyKey = "boy";
@@ -35,6 +35,11 @@ public static class VoiceCatalog
     /// <summary>
     /// The name this voice is filed under, or an empty string for
     /// <see cref="VoiceId.None"/>.
+    ///
+    /// The service accepts this as a voice too, where it means the base voice
+    /// with the child-register lift and no slot offset. That is exactly what
+    /// authored dialogue is baked in, so an authored line and its baked clip
+    /// sound the same whichever of the two produced it.
     /// </summary>
     public static string ToKey(VoiceId voice)
     {
@@ -70,13 +75,34 @@ public static class VoiceCatalog
     }
 
     /// <summary>
-    /// Fold a slot name from the wire onto a voice. V1 to V3 are female and V4
-    /// to V6 are male, which is the same split <c>cast.py</c> holds as
-    /// <c>FEMALE_VOICES</c> and <c>MALE_VOICES</c>.
+    /// Which of the six slots this speaker asks the service for.
     ///
-    /// Nothing calls this yet. It is here because the live path needs it: a Pupil
-    /// in a real Encounter arrives as <c>ClassroomView.pupils[].voice</c>, and
-    /// that field carries a slot, not a voice.
+    /// A Pupil in a real Encounter carries the slot <c>cast.py</c> pinned to
+    /// their Character, put there by <c>StudentDialogueInteraction</c> when the
+    /// Classroom arrives. Everyone else has none, and falls back to the base
+    /// voice their baked clips use, which is what an authored line wants anyway.
+    /// </summary>
+    public static string SlotOf(Object speakerReference)
+    {
+        if (speakerReference is not IVoicedSpeaker speaker)
+        {
+            return string.Empty;
+        }
+
+        string slot = speaker.VoiceSlot;
+        return string.IsNullOrWhiteSpace(slot) ? ToKey(speaker.Voice) : slot.Trim();
+    }
+
+    /// <summary>
+    /// Fold a slot name from the wire onto a base voice. V1 to V3 are female and
+    /// V4 to V6 are male, which is the same split <c>cast.py</c> holds as
+    /// <c>FEMALE_VOICES</c> and <c>MALE_VOICES</c> and the same one
+    /// <c>speech/slots.py</c> renders from.
+    ///
+    /// The client needs this only to decide which baked clips a Pupil could
+    /// match. The slot itself goes to the service untouched, because the
+    /// difference between V1 and V2 is the service's to make and folding it away
+    /// here is what used to make three girls in one Classroom sound identical.
     /// </summary>
     public static bool TryParseWire(string wireValue, out VoiceId voice)
     {
@@ -99,7 +125,7 @@ public static class VoiceCatalog
                 voice = VoiceId.Boy;
                 return true;
             default:
-                return false;
+                return TryParseKey(wireValue.Trim().ToLowerInvariant(), out voice);
         }
     }
 }
@@ -109,5 +135,13 @@ public static class VoiceCatalog
 /// </summary>
 public interface IVoicedSpeaker
 {
+    /// <summary>Which of the two base voices this Character's clips are baked in.</summary>
     VoiceId Voice { get; }
+
+    /// <summary>
+    /// Which of the six slots the service should speak in, or an empty string to
+    /// let <see cref="Voice"/> decide. Set from the wire for a Pupil in a real
+    /// Encounter; empty for every authored speaker.
+    /// </summary>
+    string VoiceSlot { get; }
 }

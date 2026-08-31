@@ -290,7 +290,132 @@ public sealed class FleeApiClient : MonoBehaviour
             response.turnBudget,
             response.turnsRemaining,
             response.encounterEnded,
-            ToFindings(response.findings)));
+            response.containedFalseClaim ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Wake the service and ask which voices it loaded. ADR-0013.
+    ///
+    /// Two jobs in one call, and the first one is the reason it exists. Cloud Run
+    /// scales to zero between play sessions, so the first request of a session
+    /// pays a cold start: 19.3 seconds measured, against 0.3 to 0.4 warm. Making
+    /// that request from the main menu means she pays it while reading the menu
+    /// rather than while standing in front of a Pupil.
+    ///
+    /// The second job is what <see cref="ServiceVoiceSynthesizer"/> waits on. An
+    /// empty list is a service that is running and cannot speak, which is a
+    /// deployment fact rather than a slow one, so the caller stops retrying and
+    /// every Pupil uses syllable ticks.
+    ///
+    /// This is the one call with no token: it is the health check the deploy
+    /// itself curls, and it takes no classroom, no material, and no line of text.
+    /// </summary>
+    public IEnumerator CheckHealth(
+        Action<string[]> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        UnityWebRequest request = UnityWebRequest.Get(BuildUrl("/health"));
+        request.timeout = Mathf.Max(10, requestTimeoutSeconds);
+
+        yield return request.SendWebRequest();
+
+        bool succeeded = request.responseCode >= 200
+            && request.responseCode < 300
+            && request.result == UnityWebRequest.Result.Success;
+        if (!succeeded)
+        {
+            onFailure?.Invoke(BuildFailure(request));
+            request.Dispose();
+            yield break;
+        }
+
+        try
+        {
+            FleeHealthResponse health =
+                JsonUtility.FromJson<FleeHealthResponse>(request.downloadHandler.text);
+            onSuccess?.Invoke(health != null && health.voices != null
+                ? health.voices
+                : Array.Empty<string>());
+        }
+        catch (Exception exception)
+        {
+            onFailure?.Invoke(new FleeApiFailure(
+                request.responseCode,
+                "The health reply could not be read: " + exception.Message));
+        }
+        finally
+        {
+            request.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Ask the service to speak one line, and hand back a playable clip.
+    ///
+    /// The response is a WAV rather than JSON, and the sample rate in its header
+    /// is the voice slot's own rather than the model's, because that is how a
+    /// slot's pitch is carried. See <c>speech/slots.py</c> in the service. Play
+    /// it at the rate the header gives and it is already correct, which is why
+    /// nothing here resamples anything.
+    ///
+    /// The bytes are read and turned into an <c>AudioClip</c> here rather than by
+    /// <c>UnityWebRequestMultimedia.GetAudioClip</c>, because a WebGL AudioClip
+    /// made from a file stays unloaded and plays silence. Copying samples into a
+    /// clip this side owns is the path that works, and it is the same one the
+    /// WebAssembly runtime used before ADR-0013.
+    /// </summary>
+    public IEnumerator SpeakLine(
+        string voice,
+        string text,
+        float timeoutSeconds,
+        Action<AudioClip> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        string line = VoiceKey.Normalise(text);
+        if (string.IsNullOrWhiteSpace(voice) || string.IsNullOrEmpty(line))
+        {
+            onSuccess?.Invoke(null);
+            yield break;
+        }
+
+        byte[] body = Encoding.UTF8.GetBytes(
+            JsonUtility.ToJson(new FleeSpeechRequest { voice = voice.Trim(), text = line }));
+
+        UnityWebRequest request = new UnityWebRequest(
+            BuildUrl("/v1/speech"), UnityWebRequest.kHttpVerbPOST)
+        {
+            uploadHandler = new UploadHandlerRaw(body),
+            downloadHandler = new DownloadHandlerBuffer(),
+            timeout = Mathf.Max(1, Mathf.CeilToInt(timeoutSeconds))
+        };
+        ApplyRequestHeaders(request, true);
+
+        yield return request.SendWebRequest();
+
+        bool succeeded = request.responseCode >= 200
+            && request.responseCode < 300
+            && request.result == UnityWebRequest.Result.Success;
+        if (!succeeded)
+        {
+            // Deliberately not Debug.LogError. A line that cannot be spoken falls
+            // back to the syllable ticks and the Encounter carries on, so this is
+            // a quieter game rather than a broken one.
+            onFailure?.Invoke(BuildFailure(request));
+            request.Dispose();
+            yield break;
+        }
+
+        byte[] wav = request.downloadHandler.data;
+        request.Dispose();
+
+        AudioClip clip = WavAudio.ToClip(wav, "Voice " + voice);
+        if (clip == null)
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The spoken line could not be read as audio."));
+            yield break;
+        }
+
+        onSuccess?.Invoke(clip);
     }
 
     public IEnumerator RunTeacherScene(
@@ -573,17 +698,6 @@ public sealed class FleeApiClient : MonoBehaviour
         pupil.lastScore = response.score;
     }
 
-    private static FleeTurnFindings ToFindings(FleeFindingsResponse findings)
-    {
-        return findings == null
-            ? null
-            : new FleeTurnFindings(
-                findings.addressedMisconception,
-                findings.namedKeyMechanism,
-                findings.reachedThisPupil,
-                findings.containedFalseClaim);
-    }
-
     private static FleeClassroomSession ToClassroomSession(FleeClassroomResponse classroom)
     {
         if (classroom == null || classroom.pupils == null)
@@ -655,6 +769,20 @@ public sealed class FleeApiClient : MonoBehaviour
     }
 
     [Serializable]
+    private sealed class FleeHealthResponse
+    {
+        public string status;
+        public string[] voices;
+    }
+
+    [Serializable]
+    private sealed class FleeSpeechRequest
+    {
+        public string voice;
+        public string text;
+    }
+
+    [Serializable]
     private sealed class FleeClassroomRequest
     {
         public string source;
@@ -715,12 +843,14 @@ public sealed class FleeApiClient : MonoBehaviour
     [Serializable]
     private sealed class FleeTurnResponse
     {
-        public FleeFindingsResponse findings;
         public string restatement;
         public string followUp;
         public string closingLine;
         public bool satisfied;
+        // 0 to 100. The service compares it to its pass threshold and sends the
+        // verdict as `satisfied`, so the client never applies a threshold itself.
         public int score;
+        public string containedFalseClaim;
         public int turnsUsed;
         public int turnBudget;
         public int turnsRemaining;
@@ -754,15 +884,6 @@ public sealed class FleeApiClient : MonoBehaviour
         public string transferQuestion;
         public string pupilAnswer;
         public bool rescued;
-    }
-
-    [Serializable]
-    private sealed class FleeFindingsResponse
-    {
-        public bool addressedMisconception;
-        public bool namedKeyMechanism;
-        public bool reachedThisPupil;
-        public string containedFalseClaim;
     }
 
     [Serializable]
@@ -897,7 +1018,7 @@ public sealed class FleeTurnResult
         int turnBudget,
         int turnsRemaining,
         bool encounterEnded,
-        FleeTurnFindings findings)
+        string containedFalseClaim)
     {
         Restatement = restatement;
         FollowUp = followUp;
@@ -908,19 +1029,23 @@ public sealed class FleeTurnResult
         TurnBudget = turnBudget;
         TurnsRemaining = turnsRemaining;
         EncounterEnded = encounterEnded;
-        Findings = findings;
+        ContainedFalseClaim = containedFalseClaim ?? string.Empty;
     }
 
     public string Restatement { get; }
     public string FollowUp { get; }
     public string ClosingLine { get; }
     public bool Satisfied { get; }
+
+    /// <summary>0 to 100. The service already applied its pass threshold; the
+    /// verdict is <see cref="Satisfied"/> and this is only for display.</summary>
     public int Score { get; }
+
     public int TurnsUsed { get; }
     public int TurnBudget { get; }
     public int TurnsRemaining { get; }
     public bool EncounterEnded { get; }
-    public FleeTurnFindings Findings { get; }
+    public string ContainedFalseClaim { get; }
 }
 
 public sealed class FleeTeacherSceneResult
@@ -978,25 +1103,6 @@ public sealed class FleeTeacherPupilResult
     public bool Rescued { get; }
 }
 
-public sealed class FleeTurnFindings
-{
-    public FleeTurnFindings(
-        bool addressedMisconception,
-        bool namedKeyMechanism,
-        bool reachedThisPupil,
-        string containedFalseClaim)
-    {
-        AddressedMisconception = addressedMisconception;
-        NamedKeyMechanism = namedKeyMechanism;
-        ReachedThisPupil = reachedThisPupil;
-        ContainedFalseClaim = containedFalseClaim ?? string.Empty;
-    }
-
-    public bool AddressedMisconception { get; }
-    public bool NamedKeyMechanism { get; }
-    public bool ReachedThisPupil { get; }
-    public string ContainedFalseClaim { get; }
-}
 
 public sealed class FleeApiFailure
 {

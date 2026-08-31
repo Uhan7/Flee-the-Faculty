@@ -1,22 +1,43 @@
 # voicelab
 
-Turns two recordings into the two voices the client plays.
+The casting tool. It clones a voice from about twenty seconds of a recording, so
+you can hear what a candidate speaker would sound like as a Pupil before anyone
+commits to them.
 
-## Two voices against six slots
+## It no longer renders anything the game plays
 
-GDD 8.3 specifies six voice slots, and the service still uses all six. `cast.py`
-pins one of V1 to V6 to each of the ten Characters, and `rules.py` refuses to
-draw a Classroom where two Pupils share one, because Pupils speak aloud one
-after another. None of that changes.
+That changed in ADR-0013, and this README still describes the world before it in
+places. What the game plays now comes from the service:
 
-The client folds those six onto the two voices that were actually recorded: V1
-to V3 speak with the girl, V4 to V6 with the boy. That is the same split
-`cast.py` already holds as `FEMALE_VOICES` and `MALE_VOICES`.
+| | Then | Now |
+|---|---|---|
+| Lines a Pupil says in an Encounter | Pocket TTS in the browser, WebAssembly | `POST /v1/speech`, Piper on the service |
+| Authored dialogue, baked | `voicelab bake-lines`, Pocket TTS | `scripts/bake_lines.py` in the service, Piper |
+| Voice slots | Six folded onto two | Six, rendered from two Piper models |
 
-The cost is real. Three girls in one Classroom now sound identical, which is the
-thing `rules.py` was separating voices to avoid. The name box, the sprite, and
-the Personality are what tell them apart instead. The appendix at the end holds
-the six-slot offsets this replaced, so restoring them is a table and an enum.
+The reason to move both together is that a Character has to be one person. When
+baking ran here and live lines ran somewhere else, the same Pupil sounded like
+two people depending on whether her line had been written down in advance. The
+baker now imports the same engine that answers the route, so that cannot recur.
+
+The six-slot offsets this README kept in its appendix were not thrown away: they
+are the table in `src/flee/speech/slots.py`, and the reason they could be
+restored is that Piper has a duration control the browser runtime did not. The
+appendix stays below as the record of where those numbers came from.
+
+## What it is still for
+
+Casting. Pocket TTS clones a real voice, which is exactly what you want when
+deciding whether to record someone, and exactly what you do not want in a
+runtime: it stores a voice as a transformer KV cache pinned to one checkpoint,
+and six renders of one sentence moved its pitch by 106Hz. Piper moved 8.8Hz.
+
+`check`, `preview`, `shift`, `bake`, and `relift` all still do what they say. The
+two that are gone are `bake-lines` and `web-voices`. Both rendered audio the game
+played, and both would now put a Pocket TTS voice into a game that speaks in
+Piper. The replacement for the first is `scripts/bake_lines.py` in the service
+repository; the second has nothing to replace it, because there is no longer a
+browser runtime to convert voices for.
 
 ## Unblock voice cloning first
 
@@ -33,9 +54,9 @@ uvx hf auth login
 
 Both steps need your HuggingFace account, so they are yours to do.
 
-Only `bake` needs those weights. `bake-lines` replays voice states that `bake`
-already wrote, and the open weights load and speak those just as well, so
-nothing downstream of the one-time bake needs a token.
+Only `bake` needs those weights. `preview --catalog` runs against stock voices,
+which the open weights load and speak just as well, so you can tune everything
+except the clone itself without a token.
 
 ## Recording the two references
 
@@ -96,7 +117,7 @@ uv run voicelab bake --girl samples/girl.wav --boy samples/boy.wav --out out-rea
 ```
 
 You get `girl.safetensors`, `boy.safetensors`, and `voices.json`, which is where
-`relift` and `bake-lines` look by default. The safetensors are about 19MB and
+`relift` looks by default. The safetensors are about 19MB and
 13MB. The 219MB model that reads them is downloaded separately and is not
 committed here.
 
@@ -112,51 +133,42 @@ old. Getting it wrong does not damage a clone, it files the clone in the wrong
 register: a bad measurement once put a boy voice at 470Hz, above every girl. Run
 this after changing `median_f0` or `CHILD_TARGET_HZ`, and after re-recording.
 
-**bake-lines** renders the client's authored dialogue, one clip per line.
-
-```bash
-uv run voicelab bake-lines
-```
-
-Lines that already have a clip are skipped, so a re-run after adding one line
-costs one line. Pass `--force` after a `relift`, because every existing clip was
-baked from the old numbers.
-
 ## Who can bake
 
 The voice states are not in this repository. A cloned voice is a portable model
 of a real person: anyone holding `girl.safetensors` can make that person say
 anything, and this repository is public. The people who were recorded agreed to
 voice a game, which is not the same thing. `out-real/` and `samples/` are both
-gitignored for that reason, and the two are the only things `bake` and
-`bake-lines` cannot work without.
+gitignored for that reason, and they are the only things `bake` cannot work
+without.
 
 So there are two roles.
 
-**If you hold the recordings**, you can run everything here. You are the one who
-turns an edited line back into audio.
+**If you hold the recordings**, you can run everything here.
 
-**If you do not**, you cannot bake and do not need to. Edit dialogue as normal,
-run **Flee the Faculty > Voices > Export Dialogue Lines**, and commit the updated
-`lines-to-bake.json`. The export tells you how many lines have no clip and lists
-them in the Console. Whoever holds the recordings runs `bake-lines` on that file
-and commits the result.
-
-Nothing is broken in between. A line with no clip falls back to the syllable
-ticks in `DialogueActor`, which is what every line sounded like before any of
-this existed. Only the Console says otherwise.
+**If you do not**, you can still audition stock voices with `--catalog`, and you
+never needed this tool to work on dialogue. Baking has not depended on the
+recordings since ADR-0013: the two Piper models are public and the service's
+`scripts/fetch_voices.sh` downloads them.
 
 ## The round trip with Unity
 
-Authored dialogue lives in Unity and the voices live here, so the work list
-passes between them as a file. Both sides compute the same key for a line, from
-the voice and a fingerprint of the text: `VoiceKey.cs` on one side,
-`voicelab/keys.py` on the other, checked against the same four vectors.
+Authored dialogue lives in Unity and the voices live in the service, so the work
+list passes between them as a file that lands here. Both sides compute the same
+key for a line, from the voice and a fingerprint of the text: `VoiceKey.cs` on
+one side, `scripts/bake_lines.py` on the other, checked against the same four
+vectors.
 
 1. In Unity: **Flee the Faculty > Voices > Export Dialogue Lines**. Writes
    `lines-to-bake.json` here.
-2. Here: `uv run voicelab bake-lines`. Writes WAVs into `Assets/Audio/Voices/`,
-   named after their key, for example `girl_365fe4b4b1fe52f8.wav`.
+2. In the service repository:
+
+   ```bash
+   uv run python scripts/bake_lines.py \
+       --lines ../flee-the-faculty-game-client/Tools/voicelab/lines-to-bake.json \
+       --out ../flee-the-faculty-game-client/Assets/Audio/Voices
+   ```
+
 3. In Unity: **Flee the Faculty > Voices > Rebuild Voice Library**. Files them
    into `Assets/Resources/Voice Clip Library.asset`, which the game loads.
 
@@ -164,9 +176,12 @@ Repeat any time a line changes. Editing a line changes its fingerprint, so the
 old clip stops matching and the new one gets baked; reordering a conversation
 changes nothing.
 
+A line with no clip falls back to the syllable ticks in `DialogueActor`, so
+nothing is broken in between. Only the Console says otherwise.
+
 Only authored lines go through this. What a Pupil says in a real Encounter is
-written by the model at run time, which is the half ADR-0011 gives to the
-service.
+written by the model at run time and arrives from `POST /v1/speech` as it is
+said. See ADR-0013.
 
 ## Layout
 
@@ -174,17 +189,16 @@ service.
 voicelab/voices.py   The two voices: lift into a child register, and pacing
 voicelab/dsp.py      Pitch shift, level, and the clip report
 voicelab/lines.py    Preview lines, copied from the service's presets
-voicelab/keys.py     The clip key. Twin of the client's VoiceKey.cs
 voicelab/synth.py    The one place this tool calls Pocket TTS
+voicelab/piper_engine.py  Piper, for comparing a clone against what ships
 voicelab/__main__.py The five commands
 samples/             Your two recordings. Gitignored.
 out-real/            The baked voice states and voices.json. Gitignored.
-lines-to-bake.json   Written by Unity. The work list for bake-lines.
+lines-to-bake.json   Written by Unity. The work list the service's baker reads.
 ```
 
 `lines.py` holds opening lines only, and `assert_no_answer_key` fails the run if
-a Correction is ever pasted in. `assert_no_answer_key_in` applies the same guard
-to whatever Unity exports. It is the same check `scripts/sync-to-client.sh`
+a Correction is ever pasted in. It is the same check `scripts/sync-to-client.sh`
 applies on the service side, for the same reason: the Correction is the answer
 key and the client is a public bundle. See the service's CLAUDE.md rule 2 and
 GDD 18.2.
@@ -210,14 +224,14 @@ short reference and the fix is a longer one.
 Baking covers authored dialogue. Everything a Pupil says in a real Encounter is
 written by the model at turn time, so it cannot be baked by anyone.
 
-Those are synthesised in the browser instead, by the same two voices in a
-WebAssembly build of Pocket TTS. `voicelab web-voices` converts the states into
-that runtime's layout and writes them to `Assets/StreamingAssets/Voices`, which
-Unity serves from the WebGL build.
+Those used to be synthesised in the browser, by the same two voices in a
+WebAssembly build of Pocket TTS, which `voicelab web-voices` wrote into
+`Assets/StreamingAssets/Voices`. ADR-0013 moved them to the service. That
+directory, the 146MB download it needed, and the `web-voices` command that filled
+it are all gone.
 
-```bash
-uv run voicelab web-voices
-```
+The measurements below are kept because they are what the decision was made
+against.
 
 Measured in that runtime on a 107-character line, single-threaded with only
 `simd128`:
@@ -235,12 +249,12 @@ ticks.
 
 ## Appendix: the six-slot offsets
 
-Kept because the measurements cost something to get, and because six is where
-this goes if the identical-sounding classmates ever become a problem.
+Kept because the measurements cost something to get. Six is where this went:
+these numbers are now the table in `src/flee/speech/slots.py`, applied to Piper
+rather than to a clone.
 
 Each voice was lifted into the child register, then each of its three slots took
-a further offset. Restoring them means putting this table back in `voices.py`,
-widening the `VoiceId` enum in the client, and re-baking.
+a further offset.
 
 | Slot | Voice | Semitones | Rate | Gain | GDD 8.3 |
 |---|---|---|---|---|---|
@@ -256,5 +270,12 @@ rate and level rather than pitch; a first pass gave them 0.1 semitones and 5%
 rate, and two Pupils drawn onto those slots would have sounded like one boy.
 
 And pitch and rate have to move independently, because V2 is high and slow.
-Plain resampling moves both together and cannot produce that slot at all, so both
-the tool and any runtime need a phase vocoder rather than a resampler.
+Plain resampling moves both together and cannot produce that slot at all, so this
+tool needs a phase vocoder rather than a resampler.
+
+The service does not, and that is the one line of this appendix that turned out
+to be wrong about runtimes in general rather than about this tool. Piper has
+`length_scale`, which stretches a line at synthesis time through the model's own
+duration predictor, so a slot is rendered by asking for the wrong duration on
+purpose and then playing the result at a different rate. The two cancel into
+exactly this table, with no vocoder and no resampling. See `speech/slots.py`.

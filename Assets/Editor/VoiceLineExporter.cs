@@ -12,13 +12,19 @@ using Object = UnityEngine.Object;
 /// tool reads.
 ///
 /// This is the first half of a round trip. Unity knows which lines exist and who
-/// says them; <c>Tools/voicelab</c> knows how to make a slot sound like a slot.
+/// says them; the service knows how to make a voice sound like that voice.
 /// Neither can see into the other, so the list of work passes between them as a
 /// file, keyed the same way on both sides by <see cref="VoiceKey"/>.
 ///
+/// The baker is <c>scripts/bake_lines.py</c> in the service repository, and it
+/// lives there rather than here because it imports the same engine that answers
+/// <c>POST /v1/speech</c>. That is what stops a Character's baked lines and her
+/// live lines from being two different people; before ADR-0013 they were baked
+/// by Pocket TTS in <c>Tools/voicelab</c> and spoken by something else.
+///
 /// Only authored dialogue appears here. What a Pupil says in a real Encounter is
-/// written by the model at run time and cannot be baked in advance, which is why
-/// ADR-0011 has the service speak those lines instead.
+/// written by the model at run time and cannot be baked in advance, so the
+/// service speaks those lines as they arrive.
 /// </summary>
 public static class VoiceLineExporter
 {
@@ -69,10 +75,12 @@ public static class VoiceLineExporter
             + (unbaked.Count == 0
                 ? "Every line already has a clip. Nothing else to do."
                 : $"{unbaked.Count} have no clip and will fall back to voice ticks.\n\n"
-                  + "If you hold the voice recordings, in Tools/voicelab:\n"
-                  + "  uv run voicelab bake-lines\n"
+                  + "In the service repository:\n"
+                  + "  uv run python scripts/bake_lines.py \\\n"
+                  + "      --lines ../flee-the-faculty-game-client/"
+                  + OutputRelativePath + " \\\n"
+                  + "      --out ../flee-the-faculty-game-client/Assets/Audio/Voices\n\n"
                   + "then Flee the Faculty > Voices > Rebuild Voice Library.\n\n"
-                  + "If you do not, commit lines-to-bake.json and ask whoever does. "
                   + "The Console lists which lines are missing."),
             "OK");
     }

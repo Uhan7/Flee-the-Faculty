@@ -10,12 +10,12 @@ using UnityEngine.SceneManagement;
 /// line's speaker. Nothing in the dialogue runner knows this component exists,
 /// so a scene without it plays silently and behaves exactly as before.
 ///
-/// Clips come from two places. Authored dialogue is baked ahead of time by
-/// <c>Tools/voicelab</c> into a <see cref="VoiceClipLibrary"/> and answers on
-/// the frame it is asked for. Lines the model writes at turn time cannot be
-/// baked by anyone, so <see cref="BrowserVoiceSynthesizer"/> makes those in the
-/// browser; this player starts them as soon as a conversation opens rather than
-/// as each line comes up, so only the first line of a reply ever waits.
+/// Clips come from two places. Authored dialogue is baked ahead of time into a
+/// <see cref="VoiceClipLibrary"/> and answers on the frame it is asked for.
+/// Lines the model writes at turn time cannot be baked by anyone, so
+/// <see cref="ServiceVoiceSynthesizer"/> fetches those from the service; this
+/// player starts them as soon as a conversation opens rather than as each line
+/// comes up, so only the first line of a reply ever waits.
 /// </summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-40)]
@@ -39,7 +39,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     [Tooltip("Stop the current line when the Learner clicks through to the next one.")]
     [SerializeField] private bool interruptOnAdvance = true;
 
-    [Tooltip("Longest the syllable ticks stay quiet while a line is being synthesised. Past "
+    [Tooltip("Longest the syllable ticks stay quiet while a line is being fetched. Past "
         + "this the line is treated as having no voice, so it is never silent for long.")]
     [SerializeField, Min(0f)] private float tickHoldSeconds = 3f;
 
@@ -100,18 +100,18 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     }
 
     /// <summary>
-    /// Make sure the synthesiser exists, so its download starts at the first
+    /// Make sure the synthesiser exists, so the service is woken at the first
     /// scene rather than at the first unbaked line.
     ///
     /// It gets its own object and outlives every scene, so this asks for the
     /// session's one instance rather than adding a component here. Adding it
     /// here is what broke voices for anyone who walked in from the main menu:
     /// this player is rebuilt per scene, and the synthesiser was being rebuilt
-    /// with it, losing the readiness the bridge announces only once.
+    /// with it, losing the readiness its health call establishes only once.
     /// </summary>
     private void EnsureSynthesizer()
     {
-        BrowserVoiceSynthesizer.GetOrCreate();
+        ServiceVoiceSynthesizer.GetOrCreate();
     }
 
     private static void HandleSceneLoaded(Scene _, LoadSceneMode __)
@@ -222,9 +222,9 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     /// True while this speaker's line is playing or about to.
     ///
     /// The syllable ticks use this rather than <see cref="IsSpeaking"/>. A line
-    /// the model wrote takes about a second and a half to synthesise, and
-    /// without the wider check the ticks fill that second and a half and are
-    /// still going when the real voice starts underneath them.
+    /// the model wrote takes a round trip to arrive, and without the wider check
+    /// the ticks fill that round trip and are still going when the real voice
+    /// starts underneath them.
     ///
     /// The wait is capped, so a line that never arrives gets its ticks back
     /// instead of playing out in silence.
@@ -243,14 +243,14 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     /// <summary>
     /// Start making every line of this conversation that is not already baked.
     ///
-    /// A Pupil's reply is a restatement and a follow-up, delivered together.
-    /// The runtime takes them one at a time and runs at about three times real
-    /// time, so the follow-up is finished long before the restatement has
-    /// played out and costs the Learner no wait at all.
+    /// A Pupil's reply is a restatement and a follow-up, delivered together, so
+    /// the follow-up is fetched while the restatement is still playing and costs
+    /// the Learner no wait at all. Only the first line of a reply is ever
+    /// exposed, which is the one latency GDD 16.2 cares about.
     /// </summary>
     private void HandlePrefetch(IDialogueSequence sequence)
     {
-        BrowserVoiceSynthesizer synthesizer = BrowserVoiceSynthesizer.Instance;
+        ServiceVoiceSynthesizer synthesizer = ServiceVoiceSynthesizer.Instance;
         if (sequence == null || !sequence.HasLines || synthesizer == null || !synthesizer.IsReady)
         {
             return;
@@ -275,7 +275,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
                 continue;
             }
 
-            synthesizer.Prepare(voice, line.Text);
+            synthesizer.Prepare(VoiceCatalog.SlotOf(line.SpeakerReference), voice, line.Text);
         }
     }
 
@@ -326,9 +326,9 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         // A conversation the Learner walked out of may have left lines queued.
         // Dropping them keeps the next Pupil's first line from waiting behind
         // audio nobody will hear.
-        if (BrowserVoiceSynthesizer.Instance != null)
+        if (ServiceVoiceSynthesizer.Instance != null)
         {
-            BrowserVoiceSynthesizer.Instance.CancelPending();
+            ServiceVoiceSynthesizer.Instance.CancelPending();
         }
     }
 
@@ -337,9 +337,8 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     ///
     /// Two sources, in order. The baked library holds authored dialogue and
     /// answers instantly. Anything else was written by the model at turn time
-    /// and has to be synthesised, which takes about a second and a half for a
-    /// five-second line, or nothing at all when
-    /// <see cref="HandlePrefetch"/> already started it.
+    /// and has to be fetched, which is one request to the service, or nothing at
+    /// all when <see cref="HandlePrefetch"/> already started it.
     ///
     /// A line neither can supply plays silent, and the syllable ticks in
     /// <c>DialogueActor</c> carry it instead.
@@ -350,7 +349,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         if (clip == null)
         {
-            BrowserVoiceSynthesizer synthesizer = BrowserVoiceSynthesizer.Instance;
+            ServiceVoiceSynthesizer synthesizer = ServiceVoiceSynthesizer.Instance;
             if (synthesizer != null && synthesizer.IsReady)
             {
                 // Hold the ticks over the wait, so the line is quiet and then
@@ -360,7 +359,11 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
                 pendingUntil = Time.unscaledTime + tickHoldSeconds;
 
                 AudioClip synthesized = null;
-                yield return synthesizer.Speak(voice, line.Text, result => synthesized = result);
+                yield return synthesizer.Speak(
+                    VoiceCatalog.SlotOf(line.SpeakerReference),
+                    voice,
+                    line.Text,
+                    result => synthesized = result);
                 clip = synthesized;
                 pendingActor = null;
             }
@@ -374,14 +377,14 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
                 // longer matches its baked clip, which is fixed by rebaking. A
                 // model-written line has no clip by design and needs the
                 // synthesiser, which is still downloading or unavailable.
-                bool canSynthesize = BrowserVoiceSynthesizer.Instance != null
-                    && BrowserVoiceSynthesizer.Instance.IsReady;
+                bool canSynthesize = ServiceVoiceSynthesizer.Instance != null
+                    && ServiceVoiceSynthesizer.Instance.IsReady;
                 Debug.LogWarning(
                     $"No {VoiceCatalog.ToKey(voice)} audio for \"{Preview(line.Text)}\", "
                     + "so this line falls back to voice ticks. "
                     + (canSynthesize
-                        ? "Synthesis was available and returned nothing."
-                        : "Synthesis is not ready yet.")
+                        ? "The service was reachable and returned nothing."
+                        : "The service has not answered its health call yet.")
                     + $" Baked key would be {VoiceKey.For(voice, line.Text)}.",
                     this);
             }
