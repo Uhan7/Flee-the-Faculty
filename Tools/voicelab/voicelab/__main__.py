@@ -1,23 +1,30 @@
-"""voicelab: turn two recordings into the two voices the client plays.
+"""voicelab: hear what a candidate speaker would sound like as a Pupil.
+
+The casting tool, and only that since ADR-0013. It clones a real voice from
+about twenty seconds of a recording, which is exactly what you want when
+deciding whether to book someone for a session, and exactly what you do not want
+in a runtime: it stores a voice as a transformer KV cache pinned to one
+checkpoint, and six renders of one sentence moved its pitch by 106Hz.
 
 Five commands, in the order you use them.
 
-  check       Read the recordings and say whether they are good enough. No model.
-  preview     Speak both voices on real game lines so you can listen.
-  bake        Export the two voice states and the manifest the client ships.
-  relift      Re-measure saved voice states without re-cloning them.
-  bake-lines  Render the client's authored lines into clips it can play.
+  check    Read the recordings and say whether they are good enough. No model.
+  preview  Speak both voices on real game lines so you can listen.
+  shift    Lift the recordings themselves into a child register. No model.
+  bake     Export the two voice states and the manifest.
+  relift   Re-measure saved voice states without re-cloning them.
 
-Run `check` before booking a recording session, `preview` to hear both voices
-in the game's own register, and `bake` once you are happy. `bake-lines` then
-reads what Unity exported and fills `Assets/Audio/Voices`.
+Run `check` before booking a recording session, `preview` to hear both voices in
+the game's own register, and `bake` once you are happy.
 
-The service still sends six voice slots and still refuses to seat two Pupils on
-one, and none of that changes here. The client folds V1 to V3 onto the girl and
-V4 to V6 onto the boy, because two recordings is what exists.
+Nothing here renders audio the game plays any more. `bake-lines` and
+`web-voices` were removed with ADR-0013: what a Pupil says now comes from
+`POST /v1/speech`, and authored dialogue is baked by `scripts/bake_lines.py` in
+the service repository, which imports the engine that answers that route. One
+engine is what stops a Character sounding like two people depending on whether
+her line was written down in advance.
 
-Only `bake` needs the gated cloning weights. `bake-lines` replays voice states
-that `bake` already wrote, which the open weights load and speak just as well.
+Only `bake` needs the gated cloning weights.
 """
 
 import argparse
@@ -28,7 +35,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import dsp, keys, lines, piper_engine, voices
+from . import dsp, lines, piper_engine, voices
 from .synth import Synth
 
 # librosa and numba are noisy about internals this tool does not control, and
@@ -37,6 +44,25 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 CATALOGUE_STAND_INS = {"girl": "mary", "boy": "michael"}
+
+MISSING_STATES = """No {path}.
+
+The voice states are not in this repository and are not meant to be. A cloned
+voice is a portable model of a real person: anyone holding the file can make
+that person say anything, and this repository is public. The people who were
+recorded agreed to voice a game, which is not the same thing.
+
+If you recorded the references, they are yours to rebuild:
+
+  uv run voicelab bake --girl samples/girl.wav --boy samples/boy.wav --out out-real
+
+If you did not, you cannot bake, and you do not need to. Run
+Flee the Faculty > Voices > Export Dialogue Lines in Unity, commit the updated
+lines-to-bake.json, and ask whoever holds the recordings to run bake-lines.
+
+Nothing is broken while you wait. A line with no clip falls back to the
+syllable ticks in DialogueActor, which is what every line said before any of
+this existed.""".strip()
 
 
 def _resolve_paths(args) -> dict[str, Path]:
@@ -390,122 +416,6 @@ def cmd_relift(args) -> int:
     return 0
 
 
-def cmd_bake_lines(args) -> int:
-    """Render every authored line the client exported, one WAV per line.
-
-    Baking is for dialogue that is written down. What a Pupil says in a real
-    Encounter comes from the model at run time and cannot be known in advance,
-    which is the half ADR-0011 gives to the service. Everything in the prefabs
-    and the conversation assets is fixed, and fixed lines are cheaper, faster and
-    steadier as files than as a request.
-    """
-    keys.check_golden()
-
-    line_path = Path(args.lines)
-    if not line_path.is_file():
-        raise SystemExit(
-            f"No line list at {line_path}. In Unity, run "
-            f"Flee the Faculty > Voices > Export Dialogue Lines first."
-        )
-
-    entries = json.loads(line_path.read_text()).get("lines") or []
-    if not entries:
-        raise SystemExit(f"{line_path} lists no lines.")
-
-    lines.assert_no_answer_key_in([entry.get("text") for entry in entries], str(line_path))
-
-    states_dir = Path(args.states)
-    manifest_path = states_dir / "voices.json"
-    if not manifest_path.is_file():
-        raise SystemExit(f"No {manifest_path}. Run `voicelab bake` first.")
-
-    manifest = json.loads(manifest_path.read_text())
-    if "voices" not in manifest:
-        raise SystemExit(
-            f"{manifest_path} predates the fold onto two voices. "
-            f"Run `voicelab relift` to migrate it."
-        )
-    specs = manifest["voices"]
-
-    out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    todo: list[tuple[str, dict, Path]] = []
-    already = 0
-    for entry in entries:
-        voice, text = entry.get("voice", ""), entry.get("text", "")
-
-        # The exporter computed this key in C#. Recomputing it here is the only
-        # check that the two implementations still agree; if they drift, every
-        # clip bakes correctly under a name the client will never look up.
-        key = keys.key_for(voice, text)
-        if key != entry.get("key"):
-            raise SystemExit(
-                f"Key mismatch on {voice} {text[:40]!r}: the client exported "
-                f"{entry.get('key')}, this tool computes {key}. VoiceKey.cs and "
-                f"voicelab/keys.py have drifted apart."
-            )
-
-        if voice not in specs:
-            raise SystemExit(f"{line_path} names voice {voice!r}, which is not in {manifest_path}.")
-
-        destination = out_dir / f"{key}.wav"
-        if destination.exists() and not args.force:
-            already += 1
-            continue
-
-        todo.append((key, entry, destination))
-
-    print(f"{len(entries)} lines, {already} already baked, {len(todo)} to render\n")
-    if not todo:
-        print(f"Nothing to do. Pass --force to re-render into {out_dir}.")
-        return 0
-
-    print("Loading Pocket TTS...")
-    synth = Synth.load()
-    print(f"  loaded in {synth.load_seconds:.1f}s at {synth.sample_rate}Hz")
-
-    states = {}
-    for name, spec in specs.items():
-        path = states_dir / spec["file"]
-        if not path.is_file():
-            raise SystemExit(f"Missing voice state {path}. Run `voicelab bake` first.")
-        states[name] = synth.voice_from_state(path)
-        print(f"  {name}: {path.name}  lift {spec['liftSemitones']:+.2f} semitones")
-    print()
-
-    print(f"{'voice':<6} {'audio':>7} {'synth':>7} {'x rt':>6}  line")
-    print("-" * 72)
-
-    total_synth = 0.0
-    total_audio = 0.0
-    for key, entry, destination in todo:
-        name = entry["voice"]
-        spec = specs[name]
-
-        raw, elapsed = synth.say_paced(states[name], entry["text"], spec["pauseMs"])
-        # The lift is the only shift left. Rate and gain went with the six slots.
-        shifted = dsp.apply_offsets(raw, synth.sample_rate, spec["liftSemitones"], 1.0, 0.0)
-        dsp.write_wav(destination, shifted, synth.sample_rate)
-
-        seconds = len(shifted) / synth.sample_rate
-        total_synth += elapsed
-        total_audio += seconds
-        preview = entry["text"][:34] + ("..." if len(entry["text"]) > 34 else "")
-        print(
-            f"{name:<6} {seconds:>6.2f}s {elapsed:>6.2f}s "
-            f"{seconds / elapsed if elapsed else 0:>5.1f}x  {preview}"
-        )
-
-    print(
-        f"\n{len(todo)} clips, {total_audio:.1f}s of speech in {total_synth:.1f}s "
-        f"({total_audio / total_synth if total_synth else 0:.1f}x real time)"
-    )
-    print(f"  -> {out_dir}")
-    print("\nBack in Unity: Flee the Faculty > Voices > Rebuild Voice Library.")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="voicelab", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -574,26 +484,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_relift.set_defaults(func=cmd_relift)
 
-    p_bake_lines = sub.add_parser(
-        "bake-lines", help="Render the client's authored lines. Needs no gated weights."
-    )
-    p_bake_lines.add_argument(
-        "--lines",
-        default="lines-to-bake.json",
-        help="Written by Flee the Faculty > Voices > Export Dialogue Lines.",
-    )
-    p_bake_lines.add_argument(
-        "--states", default="out-real", help="Directory holding voices.json and the safetensors."
-    )
-    p_bake_lines.add_argument(
-        "--out",
-        default="../../Assets/Audio/Voices",
-        help="Where the clips go. The client imports whatever lands here.",
-    )
-    p_bake_lines.add_argument(
-        "--force", action="store_true", help="Re-render lines that already have a clip."
-    )
-    p_bake_lines.set_defaults(func=cmd_bake_lines)
 
     args = parser.parse_args(argv)
     return args.func(args)

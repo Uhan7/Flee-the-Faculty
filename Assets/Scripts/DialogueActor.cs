@@ -17,11 +17,46 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     [SerializeField, Range(0f, 1f)] private float voiceVolume = 1f;
 
     private AudioClip lastVoiceClip;
+    private string runtimeVoiceSlot = string.Empty;
+    private VoiceId runtimeVoice = VoiceId.None;
 
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
     public bool UsesBrownDialogueStyle => useBrownDialogueStyle;
 
-    public VoiceId Voice => voice;
+    public VoiceId Voice => runtimeVoice == VoiceId.None ? voice : runtimeVoice;
+
+    /// <summary>
+    /// Which of the six slots the service speaks this Character in, or an empty
+    /// string for a Character nobody has configured from the wire.
+    /// </summary>
+    public string VoiceSlot => runtimeVoiceSlot;
+
+    /// <summary>
+    /// Take this Character's voice from the Classroom rather than from the prefab.
+    ///
+    /// <c>cast.py</c> owns which of the six slots a Character speaks in and
+    /// <c>rules.py</c> refuses to draw a Classroom where two Pupils share one, so
+    /// the wire is the authority and the serialised <see cref="Voice"/> is the
+    /// fallback for a scene nobody wired to a Classroom. Called by
+    /// <c>StudentDialogueInteraction.ConfigureBackendPupil</c>.
+    ///
+    /// A Pupil speaks only lines the model wrote at turn time, so overriding the
+    /// base voice here cannot orphan a baked clip: there are none to orphan.
+    /// </summary>
+    public void SetVoiceSlot(string wireSlot)
+    {
+        if (string.IsNullOrWhiteSpace(wireSlot))
+        {
+            runtimeVoiceSlot = string.Empty;
+            runtimeVoice = VoiceId.None;
+            return;
+        }
+
+        runtimeVoiceSlot = wireSlot.Trim();
+        runtimeVoice = VoiceCatalog.TryParseWire(runtimeVoiceSlot, out VoiceId parsed)
+            ? parsed
+            : VoiceId.None;
+    }
 
     public bool TryGetStudentPersonality(out StudentPersonality personality)
     {
@@ -43,14 +78,14 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     /// <summary>
     /// One syllable blip, played every few letters as the line types out.
     ///
-    /// Silent while a baked clip is playing. The two are the same job done
-    /// two ways, and the recorded line is the better one when it exists; the
-    /// ticks stay as the fallback, which is what every line the model writes
-    /// during an Encounter will need until the service speaks them.
+    /// Silent while this Character has a real voice on the line, and for the
+    /// short wait while one is being synthesised. The two are the same job done
+    /// two ways, and the spoken line is the better one when it exists; the ticks
+    /// stay as the fallback for a line no voice reaches.
     /// </summary>
     public void PlayVoiceTick()
     {
-        if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsSpeaking(this))
+        if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsVoicing(this))
         {
             return;
         }

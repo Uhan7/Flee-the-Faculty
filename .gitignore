@@ -35,6 +35,11 @@ Recordings/
 # OS files
 .DS_Store
 
-# Local token bundled only for API test builds
+# The service's access code. Players type it under Settings; this file is an
+# editor-only convenience and sits outside Assets so no build can pack it.
+flee-client-token.txt
 Assets/Resources/FleeApiClientToken.txt
 Assets/Resources/FleeApiClientToken.txt.meta
+
+# A Unity template project created here by accident. Not part of the game.
+My project/

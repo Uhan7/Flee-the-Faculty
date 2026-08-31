@@ -10,11 +10,12 @@ using UnityEngine.SceneManagement;
 /// line's speaker. Nothing in the dialogue runner knows this component exists,
 /// so a scene without it plays silently and behaves exactly as before.
 ///
-/// Clips come from a <see cref="VoiceClipLibrary"/> baked ahead of time by
-/// <c>Tools/voicelab</c>. Lines the model writes at run time cannot be baked, so
-/// ADR-0011 has the service render those and send them with the text; when that
-/// lands, <see cref="Speak"/> is the one method that grows a download step, and
-/// it is already a coroutine so that it can.
+/// Clips come from two places. Authored dialogue is baked ahead of time into a
+/// <see cref="VoiceClipLibrary"/> and answers on the frame it is asked for.
+/// Lines the model writes at turn time cannot be baked by anyone, so
+/// <see cref="ServiceVoiceSynthesizer"/> fetches those from the service; this
+/// player starts them as soon as a conversation opens rather than as each line
+/// comes up, so only the first line of a reply ever waits.
 /// </summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-40)]
@@ -38,12 +39,18 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     [Tooltip("Stop the current line when the Learner clicks through to the next one.")]
     [SerializeField] private bool interruptOnAdvance = true;
 
+    [Tooltip("Longest the syllable ticks stay quiet while a line is being fetched. Past "
+        + "this the line is treated as having no voice, so it is never silent for long.")]
+    [SerializeField, Min(0f)] private float tickHoldSeconds = 3f;
+
     [Header("Diagnostics")]
     [Tooltip("Log lines that have a voice but no baked clip. Turn off once every line is baked.")]
     [SerializeField] private bool logMissingClips = true;
 
     private DialogueManager dialogueManager;
     private Coroutine speaking;
+    private UnityEngine.Object pendingActor;
+    private float pendingUntil;
 
     public static DialogueVoicePlayer Instance { get; private set; }
 
@@ -74,12 +81,15 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
+        // A missing library costs the authored lines their recordings, and
+        // nothing else. Everything a Pupil says during an Encounter is written
+        // at turn time and synthesised, so the player still has work to do.
         if (Resources.Load<VoiceClipLibrary>(DefaultLibraryResourcePath) == null)
         {
             Debug.LogWarning(
-                $"No voice library at Resources/{DefaultLibraryResourcePath}, so Pupils "
-                + "will not speak. Run Flee the Faculty > Voices > Rebuild Voice Library.");
-            return;
+                $"No voice library at Resources/{DefaultLibraryResourcePath}, so authored "
+                + "lines fall back to ticks. Run Flee the Faculty > Voices > Rebuild Voice "
+                + "Library. Lines written during an Encounter are unaffected.");
         }
 
         // Subtracting first keeps this to one subscription when the editor is
@@ -87,6 +97,21 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         SceneManager.sceneLoaded += HandleSceneLoaded;
         GetOrCreate();
+    }
+
+    /// <summary>
+    /// Make sure the synthesiser exists, so the service is woken at the first
+    /// scene rather than at the first unbaked line.
+    ///
+    /// It gets its own object and outlives every scene, so this asks for the
+    /// session's one instance rather than adding a component here. Adding it
+    /// here is what broke voices for anyone who walked in from the main menu:
+    /// this player is rebuilt per scene, and the synthesiser was being rebuilt
+    /// with it, losing the readiness its health call establishes only once.
+    /// </summary>
+    private void EnsureSynthesizer()
+    {
+        ServiceVoiceSynthesizer.GetOrCreate();
     }
 
     private static void HandleSceneLoaded(Scene _, LoadSceneMode __)
@@ -140,6 +165,8 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
             source = gameObject.AddComponent<AudioSource>();
         }
 
+        EnsureSynthesizer();
+
         source.playOnAwake = false;
         source.loop = false;
         // A Pupil speaks to the Learner, not from a desk. Panning a voice by
@@ -155,6 +182,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
             return;
         }
 
+        dialogueManager.DialogueStarted += HandlePrefetch;
         dialogueManager.LineChanged += HandleLineChanged;
         dialogueManager.DialogueEnded += HandleDialogueEnded;
 
@@ -168,6 +196,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     {
         if (dialogueManager != null)
         {
+            dialogueManager.DialogueStarted -= HandlePrefetch;
             dialogueManager.LineChanged -= HandleLineChanged;
             dialogueManager.DialogueEnded -= HandleDialogueEnded;
         }
@@ -189,6 +218,67 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         return speaker != null && SpeakingActor == speaker;
     }
 
+    /// <summary>
+    /// True while this speaker's line is playing or about to.
+    ///
+    /// The syllable ticks use this rather than <see cref="IsSpeaking"/>. A line
+    /// the model wrote takes a round trip to arrive, and without the wider check
+    /// the ticks fill that round trip and are still going when the real voice
+    /// starts underneath them.
+    ///
+    /// The wait is capped, so a line that never arrives gets its ticks back
+    /// instead of playing out in silence.
+    /// </summary>
+    public bool IsVoicing(UnityEngine.Object speaker)
+    {
+        if (speaker == null)
+        {
+            return false;
+        }
+
+        return SpeakingActor == speaker
+            || (pendingActor == speaker && Time.unscaledTime < pendingUntil);
+    }
+
+    /// <summary>
+    /// Start making every line of this conversation that is not already baked.
+    ///
+    /// A Pupil's reply is a restatement and a follow-up, delivered together, so
+    /// the follow-up is fetched while the restatement is still playing and costs
+    /// the Learner no wait at all. Only the first line of a reply is ever
+    /// exposed, which is the one latency GDD 16.2 cares about.
+    /// </summary>
+    private void HandlePrefetch(IDialogueSequence sequence)
+    {
+        ServiceVoiceSynthesizer synthesizer = ServiceVoiceSynthesizer.Instance;
+        if (sequence == null || !sequence.HasLines || synthesizer == null || !synthesizer.IsReady)
+        {
+            return;
+        }
+
+        for (int index = 0; index < sequence.Lines.Count; index++)
+        {
+            IDialogueLine line = sequence.Lines[index];
+            if (line == null || string.IsNullOrWhiteSpace(line.Text))
+            {
+                continue;
+            }
+
+            VoiceId voice = VoiceCatalog.VoiceOf(line.SpeakerReference);
+            if (voice == VoiceId.None)
+            {
+                continue;
+            }
+
+            if (library != null && library.Find(voice, line.Text) != null)
+            {
+                continue;
+            }
+
+            synthesizer.Prepare(VoiceCatalog.SlotOf(line.SpeakerReference), voice, line.Text);
+        }
+    }
+
     /// <summary>Stop whatever is playing and tell anyone listening.</summary>
     public void Stop()
     {
@@ -205,6 +295,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         SpeakingActor = null;
         SpeakingLine = null;
+        pendingActor = null;
     }
 
     private void HandleLineChanged(IDialogueLine line, int _)
@@ -231,15 +322,26 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     private void HandleDialogueEnded(IDialogueSequence _)
     {
         Stop();
+
+        // A conversation the Learner walked out of may have left lines queued.
+        // Dropping them keeps the next Pupil's first line from waiting behind
+        // audio nobody will hear.
+        if (ServiceVoiceSynthesizer.Instance != null)
+        {
+            ServiceVoiceSynthesizer.Instance.CancelPending();
+        }
     }
 
     /// <summary>
     /// Find this line's audio and play it.
     ///
-    /// A coroutine because the clip does not always exist yet. Today the only
-    /// source is the baked library and the lookup returns immediately; the
-    /// service path from ADR-0011 adds a wait here for
-    /// <c>UnityWebRequestMultimedia.GetAudioClip</c> and changes nothing else.
+    /// Two sources, in order. The baked library holds authored dialogue and
+    /// answers instantly. Anything else was written by the model at turn time
+    /// and has to be fetched, which is one request to the service, or nothing at
+    /// all when <see cref="HandlePrefetch"/> already started it.
+    ///
+    /// A line neither can supply plays silent, and the syllable ticks in
+    /// <c>DialogueActor</c> carry it instead.
     /// </summary>
     private IEnumerator Speak(IDialogueLine line, VoiceId voice)
     {
@@ -247,18 +349,43 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         if (clip == null)
         {
+            ServiceVoiceSynthesizer synthesizer = ServiceVoiceSynthesizer.Instance;
+            if (synthesizer != null && synthesizer.IsReady)
+            {
+                // Hold the ticks over the wait, so the line is quiet and then
+                // spoken rather than blipping and then spoken over. A prepared
+                // line returns on this frame and never reaches the hold.
+                pendingActor = line.SpeakerReference;
+                pendingUntil = Time.unscaledTime + tickHoldSeconds;
+
+                AudioClip synthesized = null;
+                yield return synthesizer.Speak(
+                    VoiceCatalog.SlotOf(line.SpeakerReference),
+                    voice,
+                    line.Text,
+                    result => synthesized = result);
+                clip = synthesized;
+                pendingActor = null;
+            }
+        }
+
+        if (clip == null)
+        {
             if (logMissingClips)
             {
-                // Editing a line changes its fingerprint, so the clip that was
-                // baked for the old wording stops matching and the Pupil falls
-                // back to the syllable ticks. That is the common case here, and
-                // it is quiet unless this says so.
+                // Two ways to get here. An authored line whose text changed no
+                // longer matches its baked clip, which is fixed by rebaking. A
+                // model-written line has no clip by design and needs the
+                // synthesiser, which is still downloading or unavailable.
+                bool canSynthesize = ServiceVoiceSynthesizer.Instance != null
+                    && ServiceVoiceSynthesizer.Instance.IsReady;
                 Debug.LogWarning(
-                    $"No {VoiceCatalog.ToKey(voice)} clip for \"{Preview(line.Text)}\", "
-                    + $"so this line falls back to voice ticks. Key "
-                    + $"{VoiceKey.For(voice, line.Text)}. Re-run Flee the Faculty > "
-                    + "Voices > Export Dialogue Lines, then voicelab bake-lines, then "
-                    + "Rebuild Voice Library.",
+                    $"No {VoiceCatalog.ToKey(voice)} audio for \"{Preview(line.Text)}\", "
+                    + "so this line falls back to voice ticks. "
+                    + (canSynthesize
+                        ? "The service was reachable and returned nothing."
+                        : "The service has not answered its health call yet.")
+                    + $" Baked key would be {VoiceKey.For(voice, line.Text)}.",
                     this);
             }
 

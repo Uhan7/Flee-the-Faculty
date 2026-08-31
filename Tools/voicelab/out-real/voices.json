@@ -1,0 +1,22 @@
+{
+  "sampleRate": 24000,
+  "childTargetHz": 255.0,
+  "voices": {
+    "girl": {
+      "file": "girl.safetensors",
+      "bytes": 20350784,
+      "source": "girl.wav",
+      "liftSemitones": -1.750445904995929,
+      "pauseMs": 1500,
+      "description": "Female, ten years old. Speaks for V1 to V3."
+    },
+    "boy": {
+      "file": "boy.safetensors",
+      "bytes": 13567800,
+      "source": "boy.wav",
+      "liftSemitones": 0.0989042776526171,
+      "pauseMs": 0,
+      "description": "Male, ten years old. Speaks for V4 to V6."
+    }
+  }
+}

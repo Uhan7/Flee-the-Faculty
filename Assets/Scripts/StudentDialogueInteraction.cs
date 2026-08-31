@@ -171,6 +171,16 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         useBackendReplyFlow = true;
         backendPupilId = pupil.PupilId;
         backendPupilName = pupil.Name;
+
+        // GDD 8.3. The prefab carries a base voice; the Classroom carries which
+        // of the six slots this Character speaks in, and that is the one the
+        // service renders. Without this line every girl in the Classroom asks
+        // for the same voice and three of them sound like one person.
+        DialogueActor actor = ResolveStudentActor();
+        if (actor != null)
+        {
+            actor.SetVoiceSlot(pupil.Voice);
+        }
         activeEncounter = null;
         isBackendQuestionReady = false;
         backendPreloadFailure = null;

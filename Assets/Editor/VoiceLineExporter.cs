@@ -12,17 +12,33 @@ using Object = UnityEngine.Object;
 /// tool reads.
 ///
 /// This is the first half of a round trip. Unity knows which lines exist and who
-/// says them; <c>Tools/voicelab</c> knows how to make a slot sound like a slot.
+/// says them; the service knows how to make a voice sound like that voice.
 /// Neither can see into the other, so the list of work passes between them as a
 /// file, keyed the same way on both sides by <see cref="VoiceKey"/>.
 ///
+/// The baker is <c>scripts/bake_lines.py</c> in the service repository, and it
+/// lives there rather than here because it imports the same engine that answers
+/// <c>POST /v1/speech</c>. That is what stops a Character's baked lines and her
+/// live lines from being two different people; before ADR-0013 they were baked
+/// by Pocket TTS in <c>Tools/voicelab</c> and spoken by something else.
+///
 /// Only authored dialogue appears here. What a Pupil says in a real Encounter is
-/// written by the model at run time and cannot be baked in advance, which is why
-/// ADR-0011 has the service speak those lines instead.
+/// written by the model at run time and cannot be baked in advance, so the
+/// service speaks those lines as they arrive.
 /// </summary>
 public static class VoiceLineExporter
 {
     private const string OutputRelativePath = "Tools/voicelab/lines-to-bake.json";
+
+    /// <summary>
+    /// Checked on disk rather than through the AssetDatabase, so a clip that has
+    /// just been baked counts even before Unity has imported it.
+    /// </summary>
+    private static bool HasClip(string key)
+    {
+        return File.Exists(Path.Combine(
+            Application.dataPath, "Audio", "Voices", key + ".wav"));
+    }
 
     [MenuItem("Flee the Faculty/Voices/Export Dialogue Lines", priority = 100)]
     public static void Export()
@@ -43,13 +59,29 @@ public static class VoiceLineExporter
         Directory.CreateDirectory(Path.GetDirectoryName(path));
         File.WriteAllText(path, Serialise(collected));
 
-        Debug.Log($"{collected.Count} lines to bake -> {OutputRelativePath}");
+        List<Line> unbaked = collected.FindAll(line => !HasClip(line.Key));
+        Debug.Log(
+            $"{collected.Count} voiced lines -> {OutputRelativePath}"
+            + (unbaked.Count > 0 ? $", {unbaked.Count} with no clip yet" : ", all baked"));
+
+        foreach (Line line in unbaked)
+        {
+            Debug.LogWarning($"No clip for {line.Key}: \"{line.Text}\"");
+        }
+
         EditorUtility.DisplayDialog(
             "Lines exported",
-            $"{collected.Count} lines written to {OutputRelativePath}.\n\n"
-            + "Next, in Tools/voicelab:\n"
-            + "  uv run voicelab bake-lines\n\n"
-            + "Then run Flee the Faculty > Voices > Rebuild Voice Library.",
+            $"{collected.Count} voiced lines written to {OutputRelativePath}.\n\n"
+            + (unbaked.Count == 0
+                ? "Every line already has a clip. Nothing else to do."
+                : $"{unbaked.Count} have no clip and will fall back to voice ticks.\n\n"
+                  + "In the service repository:\n"
+                  + "  uv run python scripts/bake_lines.py \\\n"
+                  + "      --lines ../flee-the-faculty-game-client/"
+                  + OutputRelativePath + " \\\n"
+                  + "      --out ../flee-the-faculty-game-client/Assets/Audio/Voices\n\n"
+                  + "then Flee the Faculty > Voices > Rebuild Voice Library.\n\n"
+                  + "The Console lists which lines are missing."),
             "OK");
     }
 

@@ -1,18 +1,27 @@
 .venv/
 uv.lock
 
-# Recordings of real people. The repository is public, and these are the
-# unprocessed references, not the stylised game audio. `samples/*.wav` alone
-# missed `samples/clean/`, which held 55 seconds of two real voices.
+# The reference recordings stay out. `bake-lines` does not need them, only
+# re-cloning does, and re-cloning is non-deterministic anyway: it produces a
+# different voice rather than the same one, so shipping them buys no
+# reproducibility. `samples/*.wav` alone missed `samples/clean/`.
 samples/**
 !samples/README.md
 
-# Voice states. Large, and a clone is still the person who was recorded.
-out-real/
+# Piper stand-in models. Large, and downloaded by the tool on demand.
 voices/
 
 # Generated audio. Every one of these is reproducible from a command.
 out/
+
+# The cloned voice states. `out/` alone did not cover `out-real/`, which is the
+# directory the README actually tells you to use, so four safetensors files
+# reached a public repository in f243da9 and are still in its history. A cloned
+# voice is a portable model of a real person: anyone holding one can make that
+# person say anything, and the people recorded agreed to voice a game, which is
+# not the same thing. This rule stops the next one; it does not untrack the four
+# already committed, because .gitignore never has.
+out-real/
 preview*/
 audition*/
 shift/
