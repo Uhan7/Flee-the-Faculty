@@ -21,6 +21,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float wallSlideStrength = 1f;
     [SerializeField, Min(0f)] private float dynamicBlockerAvoidanceDistance = 0.9f;
     [SerializeField, Range(0f, 1f)] private float dynamicBlockerAvoidanceStrength = 0.7f;
+    [SerializeField] private bool detourAroundNearbyDynamicBlockers = true;
     [SerializeField] private bool stopForNearbyDynamicBlockers = true;
     [SerializeField, Min(0f)] private float nearbyDynamicBlockerStopDistance = 0.3f;
     [SerializeField, Min(0f)] private float dynamicBlockerClearance = 0.12f;
@@ -322,7 +323,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
             }
         }
 
-        if (TryStopForNearbyDynamicBlocker(desiredVelocity, deltaTime))
+        if (TryHandleNearbyDynamicBlocker(desiredVelocity, deltaTime))
         {
             return;
         }
@@ -393,7 +394,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
 
     private void RefreshPathIfNeeded(float deltaTime)
     {
-        if (!hasDestination || repathIntervalSeconds <= 0f)
+        if (!hasDestination || repathIntervalSeconds <= 0f || isDetouringAroundDynamicBlocker)
         {
             return;
         }
@@ -443,9 +444,9 @@ public sealed class AraBotClickToMove : MonoBehaviour
         return blendedDirection.normalized * desiredVelocity.magnitude;
     }
 
-    private bool TryStopForNearbyDynamicBlocker(Vector2 desiredVelocity, float deltaTime)
+    private bool TryHandleNearbyDynamicBlocker(Vector2 desiredVelocity, float deltaTime)
     {
-        if (!stopForNearbyDynamicBlockers
+        if ((!detourAroundNearbyDynamicBlockers && !stopForNearbyDynamicBlockers)
             || movementCollider == null
             || desiredVelocity.sqrMagnitude <= 0.0001f)
         {
@@ -456,6 +457,30 @@ public sealed class AraBotClickToMove : MonoBehaviour
         float castDistance = Mathf.Max(nearbyDynamicBlockerStopDistance, movementLookAhead) + collisionSkin;
         if (!TryGetBlockingHit(desiredVelocity.normalized, castDistance, out RaycastHit2D blockingHit)
             || !DynamicMovementBlockerUtility.IsDynamicMovementBlocker(blockingHit.collider, body))
+        {
+            return false;
+        }
+
+        if (detourAroundNearbyDynamicBlockers
+            && !isDetouringAroundDynamicBlocker
+            && maxDynamicBlockerRecoveryAttempts > 0
+            && dynamicBlockerRecoveryAttempts < maxDynamicBlockerRecoveryAttempts
+            && TryStartDynamicBlockerDetour(desiredVelocity))
+        {
+            dynamicBlockerRecoveryAttempts++;
+            currentVelocity = Vector2.zero;
+            blockedTimer = 0f;
+
+            if (body != null)
+            {
+                body.linearVelocity = Vector2.zero;
+                body.angularVelocity = 0f;
+            }
+
+            return true;
+        }
+
+        if (!stopForNearbyDynamicBlockers)
         {
             return false;
         }
@@ -988,14 +1013,117 @@ public sealed class AraBotClickToMove : MonoBehaviour
         }
 
         float blockerRadius = Mathf.Max(blockerBounds.extents.x, blockerBounds.extents.y);
-        Vector2 detourWorldPosition = blockerCenter
-            + sideDirection.normalized * (blockerRadius + dynamicBlockerDetourDistance)
-            + forwardDirection.normalized * dynamicBlockerDetourForwardBias;
+        Vector2 normalizedForward = forwardDirection.normalized;
+        Vector2 normalizedSide = sideDirection.normalized;
+        float lateralDistance = blockerRadius + dynamicBlockerDetourDistance;
+        float approachDistance = blockerRadius + Mathf.Max(dynamicBlockerClearance, collisionSkin);
+        float exitDistance = blockerRadius + Mathf.Max(dynamicBlockerDetourForwardBias, dynamicBlockerClearance);
+        float currentForwardOffset = Vector2.Dot(
+            GetNavigationWorldPosition() - blockerCenter,
+            normalizedForward);
+        float entryForwardOffset = Mathf.Min(currentForwardOffset, -approachDistance);
+        Vector2 entryWorldPosition = blockerCenter
+            + normalizedForward * entryForwardOffset
+            + normalizedSide * lateralDistance;
+        Vector2 exitWorldPosition = blockerCenter
+            + normalizedForward * exitDistance
+            + normalizedSide * lateralDistance;
 
-        return TrySetPathToDestination(
-            ToNavMeshPosition(detourWorldPosition),
-            clearPathOnFailure: false,
-            setAsFinalDestination: false);
+        if (!TrySampleClearDetourPoint(entryWorldPosition, out NavMeshHit sampledEntry)
+            || !TrySampleClearDetourPoint(exitWorldPosition, out NavMeshHit sampledExit)
+            || !NavMesh.SamplePosition(
+                ToNavMeshPosition(GetNavigationWorldPosition()),
+                out NavMeshHit sampledStart,
+                destinationSampleDistance,
+                NavMesh.AllAreas)
+            || !TryCalculateClearPath(sampledStart.position, sampledEntry.position, out NavMeshPath entryPath)
+            || !TryCalculateClearPath(sampledEntry.position, sampledExit.position, out NavMeshPath exitPath))
+        {
+            return false;
+        }
+
+        List<Vector3> detourCorners = new List<Vector3>(entryPath.corners.Length + exitPath.corners.Length - 1);
+        detourCorners.AddRange(entryPath.corners);
+        for (int cornerIndex = 1; cornerIndex < exitPath.corners.Length; cornerIndex++)
+        {
+            detourCorners.Add(exitPath.corners[cornerIndex]);
+        }
+
+        currentCorners = detourCorners.ToArray();
+        currentCornerIndex = 1;
+        currentDestination = sampledExit.position;
+        hasDestination = true;
+        isDetouringAroundDynamicBlocker = true;
+        repathTimer = repathIntervalSeconds;
+        blockedTimer = 0f;
+        return true;
+    }
+
+    private bool TrySampleClearDetourPoint(Vector2 worldPosition, out NavMeshHit sampledPosition)
+    {
+        return NavMesh.SamplePosition(
+                ToNavMeshPosition(worldPosition),
+                out sampledPosition,
+                destinationSampleDistance,
+                NavMesh.AllAreas)
+            && HasPhysicalClearanceAt(ToWorldPosition(sampledPosition.position));
+    }
+
+    private bool TryCalculateClearPath(Vector3 start, Vector3 destination, out NavMeshPath path)
+    {
+        path = new NavMeshPath();
+        return NavMesh.CalculatePath(start, destination, NavMesh.AllAreas, path)
+            && path.status == NavMeshPathStatus.PathComplete
+            && path.corners != null
+            && path.corners.Length >= 2
+            && HasPhysicalClearanceAlongPath(path);
+    }
+
+    private bool HasPhysicalClearanceAlongPath(NavMeshPath path)
+    {
+        Vector2 previousPosition = ToWorldPosition(path.corners[0]);
+        Vector2 testSize = (Vector2)movementCollider.bounds.size
+            + Vector2.one * dynamicBlockerClearance * 2f;
+        float testAngle = movementCollider.transform.eulerAngles.z;
+
+        for (int cornerIndex = 1; cornerIndex < path.corners.Length; cornerIndex++)
+        {
+            Vector2 cornerPosition = ToWorldPosition(path.corners[cornerIndex]);
+            Vector2 segment = cornerPosition - previousPosition;
+            float segmentDistance = segment.magnitude;
+            if (segmentDistance <= 0.0001f)
+            {
+                continue;
+            }
+
+            collisionHits.Clear();
+            Physics2D.BoxCast(
+                previousPosition,
+                testSize,
+                testAngle,
+                segment / segmentDistance,
+                movementContactFilter,
+                collisionHits,
+                segmentDistance);
+
+            for (int hitIndex = 0; hitIndex < collisionHits.Count; hitIndex++)
+            {
+                Collider2D hitCollider = collisionHits[hitIndex].collider;
+                if (hitCollider == null
+                    || hitCollider == movementCollider
+                    || hitCollider.isTrigger
+                    || hitCollider.attachedRigidbody == body)
+                {
+                    continue;
+                }
+
+                return false;
+            }
+
+            previousPosition = cornerPosition;
+        }
+
+        return true;
     }
 
     private bool TryGetDynamicBlockingHitAhead(

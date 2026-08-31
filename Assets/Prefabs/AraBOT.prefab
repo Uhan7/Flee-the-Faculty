@@ -142,6 +142,7 @@ MonoBehaviour:
   wallSlideStrength: 1
   dynamicBlockerAvoidanceDistance: 1.15
   dynamicBlockerAvoidanceStrength: 0.85
+  detourAroundNearbyDynamicBlockers: 1
   stopForNearbyDynamicBlockers: 1
   nearbyDynamicBlockerStopDistance: 0.3
   dynamicBlockerClearance: 0.2

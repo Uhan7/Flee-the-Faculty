@@ -1737,7 +1737,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4305263886400805982, guid: 6423c6e068a0f42219909f90ea7a8857, type: 3}
       propertyPath: randomizeBesideSpawnAnchors
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4305263886400805982, guid: 6423c6e068a0f42219909f90ea7a8857, type: 3}
       propertyPath: spawnPositions.Array.data[0].x

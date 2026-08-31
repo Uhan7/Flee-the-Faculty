@@ -142,10 +142,10 @@ TextureImporter:
       name: Armchair_0
       rect:
         serializedVersion: 2
-        x: 14
-        y: 14
-        width: 448
-        height: 623
+        x: 124
+        y: 548
+        width: 266
+        height: 318
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -160,11 +160,33 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: Armchair_1
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 15
+        width: 446
+        height: 457
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0235a513e390142b9802200b4778c800
+      internalID: -1597558601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 8747e1167da884b959cf417cb03c98d6
     internalID: 0
     vertices: []
     indices: 
@@ -175,6 +197,7 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       Armchair_0: 884820780105877664
+      Armchair_1: -1597558601
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

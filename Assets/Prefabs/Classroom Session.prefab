@@ -82,7 +82,7 @@ MonoBehaviour:
   minimumPupilSpacing: 1.8
   spawnPositionAttempts: 12
   keepPupilsSeated: 1
-  seatedVisualOffset: {x: 0, y: 0.25}
+  seatedVisualOffset: {x: 0, y: 0}
   showConversationCounter: 1
   conversationCounterPosition: {x: 16, y: 16}
   transitionWhenAllStudentsTalkedTo: 1

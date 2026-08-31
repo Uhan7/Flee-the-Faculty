@@ -19,7 +19,7 @@ public sealed class ClassroomSessionController : MonoBehaviour
     [SerializeField] private PupilPrefabBinding[] pupilPrefabs = Array.Empty<PupilPrefabBinding>();
 
     [Header("Classroom Layout")]
-    [Tooltip("World-space chair centers. Pupils spawn at a randomized safe offset beside these anchors.")]
+    [Tooltip("Fallback chair centers used when the scene does not contain ArmchairSeat components.")]
     [SerializeField] private Vector2[] spawnPositions =
     {
         new Vector2(-3.8f, 1.65f),
@@ -136,6 +136,7 @@ public sealed class ClassroomSessionController : MonoBehaviour
         spawnedStudentCount = 0;
         talkedToStudentIds.Clear();
         List<Vector2> occupiedSpawnPositions = new List<Vector2>(pupils.Length);
+        ArmchairSeat[] classroomSeats = keepPupilsSeated ? FindOrderedClassroomSeats() : Array.Empty<ArmchairSeat>();
 
         for (int index = 0; index < pupils.Length; index++)
         {
@@ -149,11 +150,11 @@ public sealed class ClassroomSessionController : MonoBehaviour
                 continue;
             }
 
-            Vector2 position = GetSpawnPosition(index, prefab, occupiedSpawnPositions);
-            if (keepPupilsSeated)
-            {
-                position += seatedVisualOffset;
-            }
+            ArmchairSeat assignedSeat = index < classroomSeats.Length ? classroomSeats[index] : null;
+            Vector2 position = assignedSeat != null
+                ? assignedSeat.WorldSeatPosition + seatedVisualOffset
+                : GetSpawnPosition(index, prefab, occupiedSpawnPositions)
+                    + (keepPupilsSeated ? seatedVisualOffset : Vector2.zero);
 
             occupiedSpawnPositions.Add(position);
             GameObject pupilObject = Instantiate(
@@ -166,6 +167,7 @@ public sealed class ClassroomSessionController : MonoBehaviour
             if (keepPupilsSeated)
             {
                 ConfigureSeatedPupil(pupilObject);
+                assignedSeat?.SeatStudent(pupilObject);
             }
 
             StudentDialogueInteraction interaction = pupilObject.GetComponentInChildren<StudentDialogueInteraction>(true);
@@ -177,6 +179,30 @@ public sealed class ClassroomSessionController : MonoBehaviour
         }
 
         rosterRoot.SetActive(true);
+    }
+
+    private static ArmchairSeat[] FindOrderedClassroomSeats()
+    {
+#if UNITY_2023_1_OR_NEWER
+        ArmchairSeat[] seats = FindObjectsByType<ArmchairSeat>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+#else
+        ArmchairSeat[] seats = FindObjectsOfType<ArmchairSeat>();
+#endif
+        Array.Sort(seats, CompareSeatPositions);
+        return seats;
+    }
+
+    private static int CompareSeatPositions(ArmchairSeat left, ArmchairSeat right)
+    {
+        float verticalDifference = right.transform.position.y - left.transform.position.y;
+        if (Mathf.Abs(verticalDifference) > 0.01f)
+        {
+            return verticalDifference > 0f ? 1 : -1;
+        }
+
+        return left.transform.position.x.CompareTo(right.transform.position.x);
     }
 
     private static void ConfigureSeatedPupil(GameObject pupilObject)
