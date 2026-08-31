@@ -46,6 +46,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     [SerializeField] private bool pauseWhileInteracting = true;
     [SerializeField, Min(0f)] private float activatorYieldRadius = 0.85f;
     [SerializeField, Min(0f)] private float activatorResumeDelay = 0.35f;
+    [SerializeField] private bool passThroughAraBot = true;
 
     private static readonly Vector3[] EmptyCorners = Array.Empty<Vector3>();
 
@@ -75,6 +76,7 @@ public sealed class StudentRoamingController : MonoBehaviour
     private bool isYieldingToActivator;
 
     public Vector2 CurrentVelocity => currentVelocity;
+    public Collider2D MovementCollider => movementCollider;
 
     private void Reset()
     {
@@ -121,10 +123,12 @@ public sealed class StudentRoamingController : MonoBehaviour
         movementContactFilter = new ContactFilter2D();
         movementContactFilter.SetLayerMask(collisionLayers);
         movementContactFilter.useTriggers = false;
+        IgnoreAraBotCollision();
     }
 
     private void OnEnable()
     {
+        IgnoreAraBotCollision();
         anchoredManualBoundsCenter = ResolveManualBoundsCenter();
         currentVelocity = Vector2.zero;
         blockedTimer = 0f;
@@ -769,7 +773,10 @@ public sealed class StudentRoamingController : MonoBehaviour
         for (int index = 0; index < collisionHits.Count; index++)
         {
             RaycastHit2D hit = collisionHits[index];
-            if (hit.collider == null || hit.collider.isTrigger || hit.collider == ignoredCollider)
+            if (hit.collider == null
+                || hit.collider.isTrigger
+                || hit.collider == ignoredCollider
+                || ShouldPassThrough(hit.collider))
             {
                 continue;
             }
@@ -782,6 +789,33 @@ public sealed class StudentRoamingController : MonoBehaviour
         }
 
         return closestDistance < float.PositiveInfinity;
+    }
+
+    private bool ShouldPassThrough(Collider2D otherCollider)
+    {
+        return passThroughAraBot
+            && DynamicMovementBlockerUtility.IsAraBot(otherCollider, body);
+    }
+
+    private void IgnoreAraBotCollision()
+    {
+        if (!passThroughAraBot || movementCollider == null)
+        {
+            return;
+        }
+
+        if (activatorMovement == null)
+        {
+            activatorMovement = FindFirstObjectByType<AraBotClickToMove>();
+        }
+
+        Collider2D activatorCollider = activatorMovement != null
+            ? activatorMovement.GetComponent<Collider2D>()
+            : null;
+        if (activatorCollider != null)
+        {
+            Physics2D.IgnoreCollision(movementCollider, activatorCollider, true);
+        }
     }
     private bool UpdateActivatorYield(float deltaTime)
     {

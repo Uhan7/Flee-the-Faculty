@@ -212,13 +212,14 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   localStudentOffset: {x: 0, y: 0.25}
+  hideStudentTorso: 1
   chairBack: {fileID: 833502973347332334}
   deskFront: {fileID: 4654772539444905909}
   ordersPerWorldUnit: 100
   chairBackOrderOffset: 0
   studentBodyOrderOffset: 10
   deskFrontOrderOffset: 20
-  studentHeadOrderOffset: 30
+  studentHeadOrderOffset: 10
   studentUiOrderOffset: 40
 --- !u!1 &7934878490810604580
 GameObject:

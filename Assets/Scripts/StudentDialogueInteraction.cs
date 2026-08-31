@@ -707,7 +707,16 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             return null;
         }
 
-        if (result.EncounterEnded || string.IsNullOrWhiteSpace(result.FollowUp))
+        if (result.EncounterEnded)
+        {
+            return string.IsNullOrWhiteSpace(result.ClosingLine)
+                ? BuildStudentDialogue("api-student-reply", new[] { result.Restatement })
+                : BuildStudentDialogue(
+                    "api-student-reply",
+                    new[] { result.Restatement, result.ClosingLine });
+        }
+
+        if (string.IsNullOrWhiteSpace(result.FollowUp))
         {
             return BuildStudentDialogue("api-student-reply", new[] { result.Restatement });
         }
@@ -901,7 +910,10 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         if (activeActivatorMovement != null)
         {
             activeActivatorTransform = activeActivatorMovement.transform;
-            activeActivatorMovement.SetConversationMovementLocked(true);
+            Collider2D studentMovementCollider = roamingController != null
+                ? roamingController.MovementCollider
+                : null;
+            activeActivatorMovement.SetConversationMovementLocked(true, studentMovementCollider);
         }
 
         if (roamingController != null && activeActivatorTransform != null)

@@ -494,6 +494,7 @@ MonoBehaviour:
   pauseWhileInteracting: 1
   activatorYieldRadius: 0.85
   activatorResumeDelay: 0.35
+  passThroughAraBot: 1
 --- !u!1 &2371908322108556685
 GameObject:
   m_ObjectHideFlags: 0

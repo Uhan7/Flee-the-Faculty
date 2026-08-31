@@ -2,21 +2,21 @@ using UnityEngine;
 
 public static class DynamicMovementBlockerUtility
 {
+    public static bool IsAraBot(Collider2D collider, Rigidbody2D selfBody = null)
+    {
+        Rigidbody2D attachedBody = GetOtherBody(collider, selfBody);
+        return attachedBody != null && attachedBody.TryGetComponent(out AraBotClickToMove _);
+    }
+
+    public static bool IsStudent(Collider2D collider, Rigidbody2D selfBody = null)
+    {
+        Rigidbody2D attachedBody = GetOtherBody(collider, selfBody);
+        return attachedBody != null && attachedBody.TryGetComponent(out StudentRoamingController _);
+    }
+
     public static bool IsDynamicMovementBlocker(Collider2D collider, Rigidbody2D selfBody = null)
     {
-        if (collider == null)
-        {
-            return false;
-        }
-
-        Rigidbody2D attachedBody = collider.attachedRigidbody;
-        if (attachedBody == null || attachedBody == selfBody)
-        {
-            return false;
-        }
-
-        return attachedBody.TryGetComponent(out AraBotClickToMove _)
-            || attachedBody.TryGetComponent(out StudentRoamingController _);
+        return IsAraBot(collider, selfBody) || IsStudent(collider, selfBody);
     }
 
     public static Vector2 GetPreferredAvoidanceDirection(
@@ -40,5 +40,16 @@ public static class DynamicMovementBlockerUtility
         }
 
         return blockerSide > 0f ? -perpendicular : perpendicular;
+    }
+
+    private static Rigidbody2D GetOtherBody(Collider2D collider, Rigidbody2D selfBody)
+    {
+        if (collider == null)
+        {
+            return null;
+        }
+
+        Rigidbody2D attachedBody = collider.attachedRigidbody;
+        return attachedBody != selfBody ? attachedBody : null;
     }
 }

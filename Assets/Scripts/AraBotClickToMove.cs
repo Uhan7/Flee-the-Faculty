@@ -39,6 +39,12 @@ public sealed class AraBotClickToMove : MonoBehaviour
     [SerializeField] private LayerMask collisionLayers = ~0;
     [SerializeField] private bool flipSpriteWithMovement = true;
 
+    [Header("Students")]
+    [SerializeField] private bool passThroughStudents = true;
+    [SerializeField, Min(0f)] private float conversationSeparationPadding = 0.08f;
+    [SerializeField, Min(0.1f)] private float conversationSeparationSpeed = 1.25f;
+    [SerializeField, Min(0f)] private float conversationFreeSideProbeDistance = 0.5f;
+
     [Header("Spawn Safety")]
     [SerializeField, Min(0.1f)] private float safeSpawnSampleDistance = 3f;
     [SerializeField, Min(1)] private int safeSpawnOverlapPasses = 5;
@@ -75,6 +81,9 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private bool hitStaticBlockerThisFrame;
     private bool isDetouringAroundDynamicBlocker;
     private bool isConversationMovementLocked;
+    private bool isSeparatingForConversation;
+    private Vector2 conversationSeparationTarget;
+    private Collider2D conversationPartner;
 
     public Vector2 CurrentVelocity => currentVelocity;
     public bool IsConversationMovementLocked => isConversationMovementLocked;
@@ -174,18 +183,25 @@ public sealed class AraBotClickToMove : MonoBehaviour
         if (isConversationMovementLocked)
         {
             StopForConversation();
+            UpdateConversationSeparation(Time.fixedDeltaTime);
             return;
         }
 
         UpdateMovement(Time.fixedDeltaTime);
     }
 
-    public void SetConversationMovementLocked(bool locked)
+    public void SetConversationMovementLocked(bool locked, Collider2D conversationPartner = null)
     {
         isConversationMovementLocked = locked;
         if (locked)
         {
             StopForConversation();
+            BeginConversationSeparation(conversationPartner);
+        }
+        else
+        {
+            isSeparatingForConversation = false;
+            this.conversationPartner = null;
         }
     }
 
@@ -647,7 +663,10 @@ public sealed class AraBotClickToMove : MonoBehaviour
         for (int index = 0; index < collisionHits.Count; index++)
         {
             RaycastHit2D hit = collisionHits[index];
-            if (hit.collider == null || hit.collider.isTrigger || hit.collider == ignoredCollider)
+            if (hit.collider == null
+                || hit.collider.isTrigger
+                || hit.collider == ignoredCollider
+                || ShouldPassThrough(hit.collider))
             {
                 continue;
             }
@@ -660,6 +679,158 @@ public sealed class AraBotClickToMove : MonoBehaviour
         }
 
         return closestDistance < float.PositiveInfinity;
+    }
+
+    private bool ShouldPassThrough(Collider2D otherCollider)
+    {
+        return passThroughStudents
+            && DynamicMovementBlockerUtility.IsStudent(otherCollider, body);
+    }
+
+    private void BeginConversationSeparation(Collider2D partner)
+    {
+        isSeparatingForConversation = false;
+        conversationPartner = partner;
+        if (movementCollider == null || partner == null)
+        {
+            return;
+        }
+
+        Physics2D.SyncTransforms();
+        ColliderDistance2D separation = movementCollider.Distance(partner);
+        if (!separation.isValid || !separation.isOverlapped)
+        {
+            return;
+        }
+
+        Vector2 preferredDirection = (Vector2)movementCollider.bounds.center - (Vector2)partner.bounds.center;
+        if (preferredDirection.sqrMagnitude <= 0.0001f)
+        {
+            preferredDirection = separation.normal.sqrMagnitude > 0.0001f
+                ? -separation.normal
+                : Vector2.down;
+        }
+
+        if (TryChooseConversationSeparationTarget(preferredDirection.normalized, partner, out Vector2 target))
+        {
+            conversationSeparationTarget = target;
+            isSeparatingForConversation = true;
+        }
+    }
+
+    private bool TryChooseConversationSeparationTarget(
+        Vector2 preferredDirection,
+        Collider2D partner,
+        out Vector2 target)
+    {
+        Vector2 partnerCenter = partner.bounds.center;
+        Vector2 selfCenterOffset = (Vector2)movementCollider.bounds.center - GetRootPosition();
+        Vector2[] directions =
+        {
+            preferredDirection,
+            new Vector2(-preferredDirection.y, preferredDirection.x),
+            new Vector2(preferredDirection.y, -preferredDirection.x),
+            -preferredDirection,
+            (preferredDirection + new Vector2(-preferredDirection.y, preferredDirection.x)).normalized,
+            (preferredDirection + new Vector2(preferredDirection.y, -preferredDirection.x)).normalized,
+            (-preferredDirection + new Vector2(-preferredDirection.y, preferredDirection.x)).normalized,
+            (-preferredDirection + new Vector2(preferredDirection.y, -preferredDirection.x)).normalized
+        };
+
+        target = GetRootPosition();
+        float bestScore = float.NegativeInfinity;
+        for (int index = 0; index < directions.Length; index++)
+        {
+            Vector2 direction = directions[index];
+            float selfRadius = GetProjectedRadius(movementCollider.bounds.extents, direction);
+            float partnerRadius = GetProjectedRadius(partner.bounds.extents, direction);
+            Vector2 candidateCenter = partnerCenter
+                + direction * (selfRadius + partnerRadius + conversationSeparationPadding);
+            Vector2 candidateRoot = candidateCenter - selfCenterOffset;
+            Vector2 movement = candidateRoot - GetRootPosition();
+            float movementDistance = movement.magnitude;
+            if (movementDistance <= 0.0001f)
+            {
+                continue;
+            }
+
+            float probeDistance = movementDistance + conversationFreeSideProbeDistance;
+            float availableDistance = probeDistance;
+            if (TryGetBlockingHit(
+                    movement / movementDistance,
+                    probeDistance + collisionSkin,
+                    partner,
+                    out RaycastHit2D blockingHit))
+            {
+                availableDistance = Mathf.Max(0f, blockingHit.distance - collisionSkin);
+            }
+
+            if (availableDistance + 0.0001f < movementDistance)
+            {
+                continue;
+            }
+
+            float freeSpace = availableDistance - movementDistance;
+            float directionPreference = Vector2.Dot(direction, preferredDirection);
+            float score = freeSpace + directionPreference * 0.15f - movementDistance * 0.05f;
+            if (score > bestScore)
+            {
+                bestScore = score;
+                target = candidateRoot;
+            }
+        }
+
+        return bestScore > float.NegativeInfinity;
+    }
+
+    private void UpdateConversationSeparation(float deltaTime)
+    {
+        if (!isSeparatingForConversation || movementCollider == null || conversationPartner == null)
+        {
+            return;
+        }
+
+        Vector2 currentPosition = GetRootPosition();
+        Vector2 toTarget = conversationSeparationTarget - currentPosition;
+        float remainingDistance = toTarget.magnitude;
+        if (remainingDistance <= 0.001f)
+        {
+            isSeparatingForConversation = false;
+            return;
+        }
+
+        Vector2 direction = toTarget / remainingDistance;
+        float requestedDistance = Mathf.Min(conversationSeparationSpeed * deltaTime, remainingDistance);
+        if (TryGetBlockingHit(
+                direction,
+                requestedDistance + collisionSkin,
+                conversationPartner,
+                out RaycastHit2D blockingHit))
+        {
+            requestedDistance = Mathf.Clamp(blockingHit.distance - collisionSkin, 0f, requestedDistance);
+        }
+
+        if (requestedDistance <= 0.0001f)
+        {
+            isSeparatingForConversation = false;
+            return;
+        }
+
+        Vector2 nextPosition = currentPosition + direction * requestedDistance;
+        if (body != null)
+        {
+            body.position = nextPosition;
+            body.linearVelocity = Vector2.zero;
+        }
+        else
+        {
+            transform.position = new Vector3(nextPosition.x, nextPosition.y, cachedZ);
+        }
+    }
+
+    private static float GetProjectedRadius(Vector3 extents, Vector2 direction)
+    {
+        return Mathf.Abs(direction.x) * extents.x + Mathf.Abs(direction.y) * extents.y;
     }
     private Vector2 GetNavigationWorldPosition()
     {

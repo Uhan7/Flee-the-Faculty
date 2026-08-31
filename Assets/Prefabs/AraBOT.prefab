@@ -161,6 +161,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   flipSpriteWithMovement: 0
+  passThroughStudents: 1
+  conversationSeparationPadding: 0.08
+  conversationSeparationSpeed: 1.25
+  conversationFreeSideProbeDistance: 0.5
   safeSpawnSampleDistance: 3
   safeSpawnOverlapPasses: 5
 --- !u!114 &7077242968446372685

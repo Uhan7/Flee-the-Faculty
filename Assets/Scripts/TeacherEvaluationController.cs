@@ -10,19 +10,24 @@ public sealed class TeacherEvaluationController : MonoBehaviour
     private const string EvaluationControllerPrefabPath = "Teacher Evaluation Sequence";
     private const string MainMenuSceneName = "Main Menu";
     private const string MainMenuScenePath = "Assets/Scenes/Main Menu.unity";
+    private const string TeacherLoadingTaskId = "teacher-evaluation";
     private const float ClassroomLoadTimeoutSeconds = 30f;
 
     private readonly List<EvaluationParticipant> participants = new List<EvaluationParticipant>();
 
     [SerializeField] private DialogueActor teacherActor;
+    [SerializeField] private ClassroomDoorExitSequence doorExitSequence;
 
     private ClassroomSessionController classroomSession;
     private DialogueConversationCamera conversationCamera;
     private DialogueManager dialogueManager;
+    private FleeApiClient apiClient;
+    private FleeTeacherSceneResult teacherResult;
     private GUIStyle progressStyle;
     private string statusMessage = "Preparing teacher evaluation...";
     private int evaluatedCount;
     private int passedCount;
+    private bool isTeacherLoadingTaskActive;
 
     public int EvaluatedCount => evaluatedCount;
     public int PassedCount => passedCount;
@@ -65,12 +70,19 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
     private IEnumerator Start()
     {
+        isTeacherLoadingTaskActive = DoorSceneTransition.TryRegisterLoadingTask(
+            TeacherLoadingTaskId,
+            "Preparing the Teacher...",
+            0f,
+            3f);
+
         if (teacherActor == null)
         {
             teacherActor = GetComponent<DialogueActor>();
         }
 
         ConfigureEvaluationMode();
+        UpdateTeacherLoadingTask(0.1f, "Setting up the classroom for the Teacher...");
         yield return WaitForClassroom();
 
         if (classroomSession == null || classroomSession.Classroom == null)
@@ -93,6 +105,24 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             yield break;
         }
 
+        apiClient = FleeApiClient.GetOrCreate();
+        FleeApiFailure teacherFailure = null;
+        statusMessage = "The Teacher is checking what the students learned...";
+        UpdateTeacherLoadingTask(0.35f, "Waiting for the Teacher's response...");
+        yield return apiClient.RunTeacherScene(
+            result => teacherResult = result,
+            error => teacherFailure = error);
+
+        if (teacherFailure != null || teacherResult == null)
+        {
+            string message = teacherFailure != null
+                ? "Teacher evaluation failed: " + teacherFailure.Message
+                : "Teacher evaluation did not return a result.";
+            yield return AbortEvaluation(message);
+            yield break;
+        }
+
+        CompleteTeacherLoadingTask("The Teacher is ready.");
         statusMessage = "Evaluation starting...";
         yield return PlayDialogue(new RuntimeDialogueSequence(
             "teacher-evaluation-introduction",
@@ -104,12 +134,28 @@ public sealed class TeacherEvaluationController : MonoBehaviour
                     "Alright, class. I will now evaluate what you learned today.")
             }));
 
-        for (int index = 0; index < participants.Count; index++)
+        for (int index = 0; index < teacherResult.Results.Length; index++)
         {
-            yield return EvaluateStudent(participants[index], classroomSession.Classroom.Topic);
+            FleeTeacherPupilResult pupilResult = teacherResult.Results[index];
+            EvaluationParticipant participant = FindParticipant(pupilResult);
+            if (participant == null)
+            {
+                Debug.LogWarning(
+                    "Teacher evaluation could not find the scene object for " +
+                    (pupilResult != null ? pupilResult.Name : "an unknown student") + ".",
+                    this);
+                continue;
+            }
+
+            yield return EvaluateStudent(participant, pupilResult);
         }
 
-        statusMessage = "Evaluation complete: " + passedCount + " / " + participants.Count + " passed";
+        passedCount = teacherResult.Rescued;
+        statusMessage = "Evaluation complete: " + teacherResult.Rescued + " / " +
+            teacherResult.RescueQuota + " rescued";
+        string summary = string.IsNullOrWhiteSpace(teacherResult.TeacherRemark)
+            ? BuildFallbackSummary(teacherResult)
+            : teacherResult.TeacherRemark.Trim();
         yield return PlayDialogue(new RuntimeDialogueSequence(
             "teacher-evaluation-summary",
             new[]
@@ -117,8 +163,7 @@ public sealed class TeacherEvaluationController : MonoBehaviour
                 new RuntimeDialogueLine(
                     teacherActor,
                     "Teacher",
-                    "That concludes the evaluation. " + passedCount + " out of " + participants.Count +
-                    " students may leave the classroom.")
+                    summary)
             }));
     }
 
@@ -142,6 +187,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         if (araBotMovement != null)
         {
             araBotMovement.gameObject.SetActive(false);
+        }
+
+        if (doorExitSequence == null)
+        {
+            doorExitSequence = ClassroomDoorExitSequence.FindOrCreate();
         }
     }
 
@@ -211,20 +261,55 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         }
     }
 
-    private IEnumerator EvaluateStudent(EvaluationParticipant participant, string topic)
+    private EvaluationParticipant FindParticipant(FleeTeacherPupilResult result)
+    {
+        if (result == null)
+        {
+            return null;
+        }
+
+        for (int index = 0; index < participants.Count; index++)
+        {
+            EvaluationParticipant participant = participants[index];
+            bool idMatches = !string.IsNullOrWhiteSpace(result.PupilId)
+                && string.Equals(
+                    participant.Pupil.PupilId,
+                    result.PupilId,
+                    System.StringComparison.Ordinal);
+            bool nameMatches = !string.IsNullOrWhiteSpace(result.Name)
+                && string.Equals(
+                    participant.Pupil.Name,
+                    result.Name,
+                    System.StringComparison.OrdinalIgnoreCase);
+            if (idMatches || nameMatches)
+            {
+                return participant;
+            }
+        }
+
+        return null;
+    }
+
+    private IEnumerator EvaluateStudent(
+        EvaluationParticipant participant,
+        FleeTeacherPupilResult result)
     {
         statusMessage = "Evaluating " + participant.Pupil.Name +
-            " (" + (evaluatedCount + 1) + " / " + participants.Count + ")";
+            " (" + (evaluatedCount + 1) + " / " + teacherResult.Results.Length + ")";
 
         if (conversationCamera != null)
         {
             conversationCamera.BeginExternalFocus(participant.Actor.transform);
         }
 
-        bool passed = participant.Pupil.Satisfied;
-        string safeTopic = string.IsNullOrWhiteSpace(topic) ? "today's lesson" : topic.Trim();
-        string studentAnswer = BuildStudentAnswer(participant.Pupil);
-        string teacherReaction = passed
+        bool rescued = result.Rescued;
+        string transferQuestion = string.IsNullOrWhiteSpace(result.TransferQuestion)
+            ? participant.Pupil.Name + ", can you apply what you learned?"
+            : result.TransferQuestion.Trim();
+        string pupilAnswer = string.IsNullOrWhiteSpace(result.PupilAnswer)
+            ? "I don't know yet."
+            : result.PupilAnswer.Trim();
+        string teacherReaction = rescued
             ? "Very good, " + participant.Pupil.Name + ". You may leave the classroom."
             : "That is not quite right, " + participant.Pupil.Name + ". Please remain in the classroom.";
 
@@ -235,11 +320,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
                 new RuntimeDialogueLine(
                     teacherActor,
                     "Teacher",
-                    participant.Pupil.Name + ", what did you learn about " + safeTopic + "?"),
+                    transferQuestion),
                 new RuntimeDialogueLine(
                     participant.Actor,
                     participant.Pupil.Name,
-                    studentAnswer),
+                    pupilAnswer),
                 new RuntimeDialogueLine(
                     teacherActor,
                     "Teacher",
@@ -247,10 +332,25 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             }));
 
         evaluatedCount++;
-        if (passed)
+        if (rescued)
         {
             passedCount++;
-            participant.StudentRoot.SetActive(false);
+            if (conversationCamera != null)
+            {
+                conversationCamera.EndExternalFocus();
+            }
+
+            if (doorExitSequence != null)
+            {
+                yield return doorExitSequence.PlayStudentExit(participant.StudentRoot);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "The classroom doors were not found, so the rescued student will leave immediately.",
+                    this);
+                participant.StudentRoot.SetActive(false);
+            }
         }
 
         if (conversationCamera != null)
@@ -259,6 +359,18 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         }
 
         yield return null;
+    }
+
+    private static string BuildFallbackSummary(FleeTeacherSceneResult result)
+    {
+        if (result.Cleared)
+        {
+            return "That concludes the evaluation. " + result.Rescued +
+                " students are rescued, so the class may go home.";
+        }
+
+        return "That concludes the evaluation. " + result.Rescued + " of the required " +
+            result.RescueQuota + " students were rescued.";
     }
 
     private IEnumerator PlayDialogue(IDialogueSequence dialogue)
@@ -276,6 +388,7 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
     private IEnumerator AbortEvaluation(string message)
     {
+        CompleteTeacherLoadingTask("The Teacher could not get ready.");
         statusMessage = message;
         Debug.LogError(message, this);
         dialogueManager = DialogueManager.GetOrCreate();
@@ -300,21 +413,23 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         DoorSceneTransition.LoadScene(MainMenuSceneName, MainMenuScenePath);
     }
 
-    private static string BuildStudentAnswer(FleePupilSession pupil)
+    private void UpdateTeacherLoadingTask(float progress, string message)
     {
-        if (!string.IsNullOrWhiteSpace(pupil.LearnedAnswer))
+        if (isTeacherLoadingTaskActive)
         {
-            return pupil.LearnedAnswer.Trim();
+            DoorSceneTransition.UpdateLoadingTask(TeacherLoadingTaskId, progress, message);
+        }
+    }
+
+    private void CompleteTeacherLoadingTask(string message)
+    {
+        if (!isTeacherLoadingTaskActive)
+        {
+            return;
         }
 
-        if (!pupil.Satisfied && !string.IsNullOrWhiteSpace(pupil.Misconception))
-        {
-            return "I'm still not sure. I think " + pupil.Misconception.Trim();
-        }
-
-        return pupil.Satisfied
-            ? "I understand the lesson now."
-            : "I don't know yet.";
+        DoorSceneTransition.CompleteLoadingTask(TeacherLoadingTaskId, message);
+        isTeacherLoadingTaskActive = false;
     }
 
     private static GameObject ResolveStudentRoot(DialogueActor actor)

@@ -279,6 +279,7 @@ public sealed class FleeApiClient : MonoBehaviour
         onSuccess?.Invoke(new FleeTurnResult(
             response.restatement.Trim(),
             string.IsNullOrWhiteSpace(response.followUp) ? string.Empty : response.followUp.Trim(),
+            string.IsNullOrWhiteSpace(response.closingLine) ? string.Empty : response.closingLine.Trim(),
             response.satisfied,
             response.score,
             response.turnsUsed,
@@ -286,6 +287,64 @@ public sealed class FleeApiClient : MonoBehaviour
             response.turnsRemaining,
             response.encounterEnded,
             ToFindings(response.findings)));
+    }
+
+    public IEnumerator RunTeacherScene(
+        Action<FleeTeacherSceneResult> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        if (activeClassroom == null || string.IsNullOrWhiteSpace(activeClassroom.classroomId))
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "There is no active Classroom to evaluate."));
+            yield break;
+        }
+
+        FleeTeacherResponse response = null;
+        FleeApiFailure failure = null;
+        yield return PostJson<FleeTeacherRequest, FleeTeacherResponse>(
+            "/v1/teacher",
+            new FleeTeacherRequest
+            {
+                classroomId = activeClassroom.classroomId
+            },
+            result => response = result,
+            error => failure = error);
+
+        if (failure != null)
+        {
+            onFailure?.Invoke(failure);
+            yield break;
+        }
+
+        if (response == null || response.results == null || response.results.Length == 0)
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The Teacher did not return any Pupil results."));
+            yield break;
+        }
+
+        FleeTeacherPupilResult[] results = new FleeTeacherPupilResult[response.results.Length];
+        for (int index = 0; index < response.results.Length; index++)
+        {
+            FleeTeacherPupilResponse pupil = response.results[index];
+            results[index] = pupil == null
+                ? null
+                : new FleeTeacherPupilResult(
+                    pupil.pupilId,
+                    pupil.name,
+                    pupil.misconception,
+                    pupil.restatement,
+                    pupil.transferQuestion,
+                    pupil.pupilAnswer,
+                    pupil.rescued);
+        }
+
+        onSuccess?.Invoke(new FleeTeacherSceneResult(
+            results,
+            response.rescued,
+            response.rescueQuota,
+            response.cleared,
+            response.teacherRemark,
+            response.pattern));
     }
 
     private IEnumerator PostJson<TRequest, TResponse>(
@@ -612,12 +671,42 @@ public sealed class FleeApiClient : MonoBehaviour
         public FleeFindingsResponse findings;
         public string restatement;
         public string followUp;
+        public string closingLine;
         public bool satisfied;
         public int score;
         public int turnsUsed;
         public int turnBudget;
         public int turnsRemaining;
         public bool encounterEnded;
+    }
+
+    [Serializable]
+    private sealed class FleeTeacherRequest
+    {
+        public string classroomId;
+    }
+
+    [Serializable]
+    private sealed class FleeTeacherResponse
+    {
+        public FleeTeacherPupilResponse[] results;
+        public int rescued;
+        public int rescueQuota;
+        public bool cleared;
+        public string teacherRemark;
+        public string pattern;
+    }
+
+    [Serializable]
+    private sealed class FleeTeacherPupilResponse
+    {
+        public string pupilId;
+        public string name;
+        public string misconception;
+        public string restatement;
+        public string transferQuestion;
+        public string pupilAnswer;
+        public bool rescued;
     }
 
     [Serializable]
@@ -754,6 +843,7 @@ public sealed class FleeTurnResult
     public FleeTurnResult(
         string restatement,
         string followUp,
+        string closingLine,
         bool satisfied,
         int score,
         int turnsUsed,
@@ -764,6 +854,7 @@ public sealed class FleeTurnResult
     {
         Restatement = restatement;
         FollowUp = followUp;
+        ClosingLine = closingLine;
         Satisfied = satisfied;
         Score = score;
         TurnsUsed = turnsUsed;
@@ -775,6 +866,7 @@ public sealed class FleeTurnResult
 
     public string Restatement { get; }
     public string FollowUp { get; }
+    public string ClosingLine { get; }
     public bool Satisfied { get; }
     public int Score { get; }
     public int TurnsUsed { get; }
@@ -782,6 +874,61 @@ public sealed class FleeTurnResult
     public int TurnsRemaining { get; }
     public bool EncounterEnded { get; }
     public FleeTurnFindings Findings { get; }
+}
+
+public sealed class FleeTeacherSceneResult
+{
+    public FleeTeacherSceneResult(
+        FleeTeacherPupilResult[] results,
+        int rescued,
+        int rescueQuota,
+        bool cleared,
+        string teacherRemark,
+        string pattern)
+    {
+        Results = results ?? Array.Empty<FleeTeacherPupilResult>();
+        Rescued = Mathf.Max(0, rescued);
+        RescueQuota = Mathf.Max(0, rescueQuota);
+        Cleared = cleared;
+        TeacherRemark = teacherRemark ?? string.Empty;
+        Pattern = pattern ?? string.Empty;
+    }
+
+    public FleeTeacherPupilResult[] Results { get; }
+    public int Rescued { get; }
+    public int RescueQuota { get; }
+    public bool Cleared { get; }
+    public string TeacherRemark { get; }
+    public string Pattern { get; }
+}
+
+public sealed class FleeTeacherPupilResult
+{
+    public FleeTeacherPupilResult(
+        string pupilId,
+        string name,
+        string misconception,
+        string restatement,
+        string transferQuestion,
+        string pupilAnswer,
+        bool rescued)
+    {
+        PupilId = pupilId ?? string.Empty;
+        Name = name ?? string.Empty;
+        Misconception = misconception ?? string.Empty;
+        Restatement = restatement ?? string.Empty;
+        TransferQuestion = transferQuestion ?? string.Empty;
+        PupilAnswer = pupilAnswer ?? string.Empty;
+        Rescued = rescued;
+    }
+
+    public string PupilId { get; }
+    public string Name { get; }
+    public string Misconception { get; }
+    public string Restatement { get; }
+    public string TransferQuestion { get; }
+    public string PupilAnswer { get; }
+    public bool Rescued { get; }
 }
 
 public sealed class FleeTurnFindings

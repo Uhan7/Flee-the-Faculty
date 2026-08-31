@@ -6,6 +6,7 @@ public sealed class ArmchairSeat : MonoBehaviour
 {
     [Header("Seat Placement")]
     [SerializeField] private Vector2 localStudentOffset;
+    [SerializeField] private bool hideStudentTorso = true;
 
     [Header("Separated Chair Art")]
     [SerializeField] private SpriteRenderer chairBack;
@@ -16,7 +17,7 @@ public sealed class ArmchairSeat : MonoBehaviour
     [SerializeField] private int chairBackOrderOffset;
     [SerializeField] private int studentBodyOrderOffset = 10;
     [SerializeField] private int deskFrontOrderOffset = 20;
-    [SerializeField] private int studentHeadOrderOffset = 30;
+    [SerializeField] private int studentHeadOrderOffset = 10;
     [SerializeField] private int studentUiOrderOffset = 40;
 
     public Vector2 WorldSeatPosition =>
@@ -25,6 +26,21 @@ public sealed class ArmchairSeat : MonoBehaviour
     private void Awake()
     {
         ApplyChairLayers();
+    }
+
+    private void OnValidate()
+    {
+        ordersPerWorldUnit = Mathf.Max(1, ordersPerWorldUnit);
+        deskFrontOrderOffset = Mathf.Max(chairBackOrderOffset + 2, deskFrontOrderOffset);
+        studentBodyOrderOffset = Mathf.Clamp(
+            studentBodyOrderOffset,
+            chairBackOrderOffset + 1,
+            deskFrontOrderOffset - 1);
+        studentHeadOrderOffset = Mathf.Clamp(
+            studentHeadOrderOffset,
+            chairBackOrderOffset + 1,
+            deskFrontOrderOffset - 1);
+        studentUiOrderOffset = Mathf.Max(deskFrontOrderOffset + 1, studentUiOrderOffset);
     }
 
     public void SeatStudent(GameObject student)
@@ -50,14 +66,20 @@ public sealed class ArmchairSeat : MonoBehaviour
 
         int baseOrder = GetBaseOrder();
         int sortingLayerId = ResolveSortingLayerId();
+        Transform torso = student.transform.Find("Torso");
         ConfigureStudentSection(
-            student.transform.Find("Torso"),
+            torso,
             sortingLayerId,
             baseOrder + studentBodyOrderOffset);
         ConfigureStudentSection(
             student.transform.Find("Head"),
             sortingLayerId,
             baseOrder + studentHeadOrderOffset);
+
+        if (hideStudentTorso)
+        {
+            SetSectionVisible(torso, false);
+        }
 
         Canvas[] canvases = student.GetComponentsInChildren<Canvas>(true);
         for (int index = 0; index < canvases.Length; index++)
@@ -138,6 +160,16 @@ public sealed class ArmchairSeat : MonoBehaviour
 
         spriteRenderer.sortingLayerID = sortingLayerId;
         spriteRenderer.sortingOrder = sortingOrder;
+    }
+
+    private static void SetSectionVisible(Transform section, bool visible)
+    {
+        if (section == null)
+        {
+            return;
+        }
+
+        section.gameObject.SetActive(visible);
     }
 
     private void ResolveReferences()

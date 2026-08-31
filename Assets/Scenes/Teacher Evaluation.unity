@@ -1732,6 +1732,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 4305263886400805982, guid: 6423c6e068a0f42219909f90ea7a8857, type: 3}
+      propertyPath: keepPupilsSeated
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4305263886400805982, guid: 6423c6e068a0f42219909f90ea7a8857, type: 3}
       propertyPath: spawnPositions.Array.size
       value: 8
       objectReference: {fileID: 0}
@@ -3692,6 +3696,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1607001970}
+  - component: {fileID: 1607001971}
   m_Layer: 0
   m_Name: Doors
   m_TagString: Untagged
@@ -3717,6 +3722,34 @@ Transform:
   - {fileID: 252450383}
   m_Father: {fileID: 966830236}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1607001971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1607001969}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f16f4cc34c9c4d6fb6a1f087e5252c31, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  leftDoor: {fileID: 260816279}
+  rightDoor: {fileID: 252450383}
+  leftDoorRenderer: {fileID: 260816280}
+  rightDoorRenderer: {fileID: 252450384}
+  approachOffset: {x: 0, y: -2.2}
+  beyondDoorOffset: {x: 0, y: 2.4}
+  navMeshSampleDistance: 2.5
+  studentMoveSpeed: 2.4
+  studentAcceleration: 8
+  waypointReachDistance: 0.03
+  openScaleX: 0.06
+  openDuration: 0.28
+  openHoldDuration: 0.08
+  closeDuration: 0.24
+  foregroundSortingLayer: Decor Front
+  foregroundSortingOrder: 20
 --- !u!4 &1708237462 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1001657259042762214, guid: 913e2cc812e654b60a939a3b3a4cf235, type: 3}
