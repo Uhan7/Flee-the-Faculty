@@ -3738,6 +3738,7 @@ MonoBehaviour:
   rightDoor: {fileID: 252450383}
   leftDoorRenderer: {fileID: 260816280}
   rightDoorRenderer: {fileID: 252450384}
+  doorwayForegroundRenderer: {fileID: 966830237}
   approachOffset: {x: 0, y: -2.2}
   beyondDoorOffset: {x: 0, y: 2.4}
   navMeshSampleDistance: 2.5

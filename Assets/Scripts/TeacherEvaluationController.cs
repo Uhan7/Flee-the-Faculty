@@ -124,15 +124,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
         CompleteTeacherLoadingTask("The Teacher is ready.");
         statusMessage = "Evaluation starting...";
-        yield return PlayDialogue(new RuntimeDialogueSequence(
+        yield return PlayDialogue(BuildPaginatedDialogue(
             "teacher-evaluation-introduction",
-            new[]
-            {
-                new RuntimeDialogueLine(
-                    teacherActor,
-                    "Teacher",
-                    "Alright, class. I will now evaluate what you learned today.")
-            }));
+            teacherActor,
+            "Teacher",
+            "Alright, class. I will now evaluate what you learned today."));
 
         for (int index = 0; index < teacherResult.Results.Length; index++)
         {
@@ -156,15 +152,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         string summary = string.IsNullOrWhiteSpace(teacherResult.TeacherRemark)
             ? BuildFallbackSummary(teacherResult)
             : teacherResult.TeacherRemark.Trim();
-        yield return PlayDialogue(new RuntimeDialogueSequence(
+        yield return PlayDialogue(BuildPaginatedDialogue(
             "teacher-evaluation-summary",
-            new[]
-            {
-                new RuntimeDialogueLine(
-                    teacherActor,
-                    "Teacher",
-                    summary)
-            }));
+            teacherActor,
+            "Teacher",
+            summary));
     }
 
     private void ConfigureEvaluationMode()
@@ -313,23 +305,17 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             ? "Very good, " + participant.Pupil.Name + ". You may leave the classroom."
             : "That is not quite right, " + participant.Pupil.Name + ". Please remain in the classroom.";
 
+        List<IDialogueLine> evaluationLines = new List<IDialogueLine>();
+        AddPaginatedLines(evaluationLines, teacherActor, "Teacher", transferQuestion);
+        AddPaginatedLines(
+            evaluationLines,
+            participant.Actor,
+            participant.Pupil.Name,
+            pupilAnswer);
+        AddPaginatedLines(evaluationLines, teacherActor, "Teacher", teacherReaction);
         yield return PlayDialogue(new RuntimeDialogueSequence(
             "teacher-evaluation-" + participant.Pupil.PupilId,
-            new IDialogueLine[]
-            {
-                new RuntimeDialogueLine(
-                    teacherActor,
-                    "Teacher",
-                    transferQuestion),
-                new RuntimeDialogueLine(
-                    participant.Actor,
-                    participant.Pupil.Name,
-                    pupilAnswer),
-                new RuntimeDialogueLine(
-                    teacherActor,
-                    "Teacher",
-                    teacherReaction)
-            }));
+            evaluationLines));
 
         evaluatedCount++;
         if (rescued)
@@ -373,6 +359,33 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             result.RescueQuota + " students were rescued.";
     }
 
+    private static RuntimeDialogueSequence BuildPaginatedDialogue(
+        string conversationId,
+        Object speakerReference,
+        string speakerName,
+        string text)
+    {
+        List<IDialogueLine> lines = new List<IDialogueLine>();
+        AddPaginatedLines(lines, speakerReference, speakerName, text);
+        return new RuntimeDialogueSequence(conversationId, lines);
+    }
+
+    private static void AddPaginatedLines(
+        List<IDialogueLine> lines,
+        Object speakerReference,
+        string speakerName,
+        string text)
+    {
+        IReadOnlyList<string> pages = DialogueTextPaginator.Split(text);
+        for (int index = 0; index < pages.Count; index++)
+        {
+            lines.Add(new RuntimeDialogueLine(
+                speakerReference,
+                speakerName,
+                pages[index]));
+        }
+    }
+
     private IEnumerator PlayDialogue(IDialogueSequence dialogue)
     {
         if (dialogueManager == null || dialogue == null || !dialogueManager.Play(dialogue))
@@ -395,15 +408,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
         if (dialogueManager != null)
         {
-            yield return PlayDialogue(new RuntimeDialogueSequence(
+            yield return PlayDialogue(BuildPaginatedDialogue(
                 "teacher-evaluation-error",
-                new[]
-                {
-                    new RuntimeDialogueLine(
-                        teacherActor,
-                        "Teacher",
-                        "The evaluation records are unavailable. We will return to the main menu.")
-                }));
+                teacherActor,
+                "Teacher",
+                "The evaluation records are unavailable. We will return to the main menu."));
         }
         else
         {

@@ -12,6 +12,8 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
     [SerializeField] private Transform rightDoor;
     [SerializeField] private SpriteRenderer leftDoorRenderer;
     [SerializeField] private SpriteRenderer rightDoorRenderer;
+    [Tooltip("The wall or ceiling that should hide a student after they cross the doorway.")]
+    [SerializeField] private SpriteRenderer doorwayForegroundRenderer;
 
     [Header("Exit Route")]
     [Tooltip("World-space offset from the doorway center where the student waits for it to open.")]
@@ -33,8 +35,13 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
 
     private Vector3 leftClosedScale;
     private Vector3 rightClosedScale;
+    private Vector3 leftClosedPosition;
+    private Vector3 rightClosedPosition;
+    private Vector3 leftHingeWorldPosition;
+    private Vector3 rightHingeWorldPosition;
     private RendererSortState leftClosedSort;
     private RendererSortState rightClosedSort;
+    private RendererSortState doorwayForegroundClosedSort;
     private bool hasCapturedClosedState;
 
     public static ClassroomDoorExitSequence FindOrCreate()
@@ -209,10 +216,12 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         Vector3 leftScale = leftClosedScale;
         leftScale.x *= scaleMultiplier;
         leftDoor.localScale = leftScale;
+        KeepHingeAnchored(leftDoor, leftDoorRenderer, leftHingeWorldPosition, true);
 
         Vector3 rightScale = rightClosedScale;
         rightScale.x *= scaleMultiplier;
         rightDoor.localScale = rightScale;
+        KeepHingeAnchored(rightDoor, rightDoorRenderer, rightHingeWorldPosition, false);
     }
 
     private void PrepareStudentForExit(GameObject student)
@@ -257,12 +266,21 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
 
         ConfigureDoorRenderer(leftDoorRenderer, layerId, foregroundSortingOrder);
         ConfigureDoorRenderer(rightDoorRenderer, layerId, foregroundSortingOrder + 1);
+        ConfigureDoorRenderer(
+            doorwayForegroundRenderer,
+            layerId,
+            foregroundSortingOrder - 1);
     }
 
     private void RestoreDoorSorting()
     {
+        leftDoor.localScale = leftClosedScale;
+        rightDoor.localScale = rightClosedScale;
+        leftDoor.localPosition = leftClosedPosition;
+        rightDoor.localPosition = rightClosedPosition;
         leftClosedSort.Apply(leftDoorRenderer);
         rightClosedSort.Apply(rightDoorRenderer);
+        doorwayForegroundClosedSort.Apply(doorwayForegroundRenderer);
     }
 
     private void CaptureClosedState()
@@ -274,8 +292,13 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
 
         leftClosedScale = leftDoor.localScale;
         rightClosedScale = rightDoor.localScale;
+        leftClosedPosition = leftDoor.localPosition;
+        rightClosedPosition = rightDoor.localPosition;
+        leftHingeWorldPosition = GetDoorEdgeWorldPosition(leftDoorRenderer, true);
+        rightHingeWorldPosition = GetDoorEdgeWorldPosition(rightDoorRenderer, false);
         leftClosedSort = RendererSortState.Capture(leftDoorRenderer);
         rightClosedSort = RendererSortState.Capture(rightDoorRenderer);
+        doorwayForegroundClosedSort = RendererSortState.Capture(doorwayForegroundRenderer);
         hasCapturedClosedState = true;
     }
 
@@ -305,6 +328,38 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         {
             rightDoorRenderer = rightDoor.GetComponent<SpriteRenderer>();
         }
+
+        if (doorwayForegroundRenderer == null && transform.parent != null)
+        {
+            doorwayForegroundRenderer = transform.parent.GetComponent<SpriteRenderer>();
+        }
+    }
+
+    private static Vector3 GetDoorEdgeWorldPosition(SpriteRenderer renderer, bool leftEdge)
+    {
+        if (renderer == null || renderer.sprite == null)
+        {
+            return renderer != null ? renderer.transform.position : Vector3.zero;
+        }
+
+        Bounds spriteBounds = renderer.sprite.bounds;
+        float edgeX = leftEdge ? spriteBounds.min.x : spriteBounds.max.x;
+        return renderer.transform.TransformPoint(new Vector3(edgeX, spriteBounds.center.y, 0f));
+    }
+
+    private static void KeepHingeAnchored(
+        Transform door,
+        SpriteRenderer renderer,
+        Vector3 hingeWorldPosition,
+        bool leftEdge)
+    {
+        if (door == null || renderer == null || renderer.sprite == null)
+        {
+            return;
+        }
+
+        Vector3 currentHingePosition = GetDoorEdgeWorldPosition(renderer, leftEdge);
+        door.position += hingeWorldPosition - currentHingePosition;
     }
 
     private static Transform FindDoorRoot()

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,12 +11,18 @@ using UnityEngine.SceneManagement;
 /// line's speaker. Nothing in the dialogue runner knows this component exists,
 /// so a scene without it plays silently and behaves exactly as before.
 ///
+<<<<<<< Updated upstream
 /// Clips come from two places. Authored dialogue is baked ahead of time into a
 /// <see cref="VoiceClipLibrary"/> and answers on the frame it is asked for.
 /// Lines the model writes at turn time cannot be baked by anyone, so
 /// <see cref="ServiceVoiceSynthesizer"/> fetches those from the service; this
 /// player starts them as soon as a conversation opens rather than as each line
 /// comes up, so only the first line of a reply ever waits.
+=======
+/// Clips come from a <see cref="VoiceClipLibrary"/> baked ahead of time by
+/// <c>Tools/voicelab</c>. Lines the model writes at run time fall back to the
+/// browser's SpeechSynthesis voices in WebGL.
+>>>>>>> Stashed changes
 /// </summary>
 [DisallowMultipleComponent]
 [DefaultExecutionOrder(-40)]
@@ -39,9 +46,23 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     [Tooltip("Stop the current line when the Learner clicks through to the next one.")]
     [SerializeField] private bool interruptOnAdvance = true;
 
+<<<<<<< Updated upstream
     [Tooltip("Longest the syllable ticks stay quiet while a line is being fetched. Past "
         + "this the line is treated as having no voice, so it is never silent for long.")]
     [SerializeField, Min(0f)] private float tickHoldSeconds = 3f;
+=======
+    [Header("Generated Line Speech (WebGL)")]
+    [SerializeField, Range(0.5f, 2f)] private float browserSpeechRate = 0.95f;
+    [SerializeField, Range(0f, 2f)] private float girlSpeechPitch = 1.25f;
+    [SerializeField, Range(0f, 2f)] private float boySpeechPitch = 1.05f;
+
+#if UNITY_EDITOR_OSX
+    [Header("Generated Line Speech (macOS Editor)")]
+    [SerializeField] private string editorGirlVoice = "Samantha";
+    [SerializeField] private string editorBoyVoice = "Junior";
+    [SerializeField, Range(100, 300)] private int editorSpeechWordsPerMinute = 185;
+#endif
+>>>>>>> Stashed changes
 
     [Header("Diagnostics")]
     [Tooltip("Log lines that have a voice but no baked clip. Turn off once every line is baked.")]
@@ -49,8 +70,35 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
     private DialogueManager dialogueManager;
     private Coroutine speaking;
+<<<<<<< Updated upstream
     private UnityEngine.Object pendingActor;
     private float pendingUntil;
+=======
+    private string browserSpeechRequestId;
+    private bool browserSpeechFinished;
+
+#if UNITY_EDITOR_OSX
+    private System.Diagnostics.Process editorSpeechProcess;
+#endif
+
+#if UNITY_WEBGL
+    [DllImport("__Internal")]
+    private static extern int SpeechSynthesis_IsSupported();
+
+    [DllImport("__Internal")]
+    private static extern int SpeechSynthesis_Speak(
+        string targetName,
+        string requestId,
+        string text,
+        int voiceId,
+        float rate,
+        float pitch,
+        float volume);
+
+    [DllImport("__Internal")]
+    private static extern void SpeechSynthesis_Stop();
+#endif
+>>>>>>> Stashed changes
 
     public static DialogueVoicePlayer Instance { get; private set; }
 
@@ -87,9 +135,14 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         if (Resources.Load<VoiceClipLibrary>(DefaultLibraryResourcePath) == null)
         {
             Debug.LogWarning(
+<<<<<<< Updated upstream
                 $"No voice library at Resources/{DefaultLibraryResourcePath}, so authored "
                 + "lines fall back to ticks. Run Flee the Faculty > Voices > Rebuild Voice "
                 + "Library. Lines written during an Encounter are unaffected.");
+=======
+                $"No voice library at Resources/{DefaultLibraryResourcePath}. Fixed lines "
+                + "will use system speech instead.");
+>>>>>>> Stashed changes
         }
 
         // Subtracting first keeps this to one subscription when the editor is
@@ -293,9 +346,30 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
             source.Stop();
         }
 
+#if UNITY_EDITOR_OSX
+        StopEditorSpeech();
+#endif
+
+#if UNITY_WEBGL
+        if (!Application.isEditor && !string.IsNullOrEmpty(browserSpeechRequestId))
+        {
+            SpeechSynthesis_Stop();
+        }
+#endif
+
+        browserSpeechRequestId = null;
+        browserSpeechFinished = true;
         SpeakingActor = null;
         SpeakingLine = null;
         pendingActor = null;
+    }
+
+    public void OnBrowserSpeechFinished(string requestId)
+    {
+        if (requestId == browserSpeechRequestId)
+        {
+            browserSpeechFinished = true;
+        }
     }
 
     private void HandleLineChanged(IDialogueLine line, int _)
@@ -335,6 +409,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     /// <summary>
     /// Find this line's audio and play it.
     ///
+<<<<<<< Updated upstream
     /// Two sources, in order. The baked library holds authored dialogue and
     /// answers instantly. Anything else was written by the model at turn time
     /// and has to be fetched, which is one request to the service, or nothing at
@@ -342,6 +417,10 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     ///
     /// A line neither can supply plays silent, and the syllable ticks in
     /// <c>DialogueActor</c> carry it instead.
+=======
+    /// A coroutine because recorded clips, Editor speech, and browser speech
+    /// have different completion signals while sharing the same dialogue flow.
+>>>>>>> Stashed changes
     /// </summary>
     private IEnumerator Speak(IDialogueLine line, VoiceId voice)
     {
@@ -349,6 +428,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         if (clip == null)
         {
+<<<<<<< Updated upstream
             ServiceVoiceSynthesizer synthesizer = ServiceVoiceSynthesizer.Instance;
             if (synthesizer != null && synthesizer.IsReady)
             {
@@ -371,6 +451,49 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
         if (clip == null)
         {
+=======
+#if UNITY_EDITOR_OSX
+            if (TryBeginEditorSpeech(line, voice))
+            {
+                System.Diagnostics.Process activeProcess = editorSpeechProcess;
+                while (editorSpeechProcess == activeProcess && !activeProcess.HasExited)
+                {
+                    yield return null;
+                }
+
+                if (editorSpeechProcess == activeProcess)
+                {
+                    activeProcess.Dispose();
+                    editorSpeechProcess = null;
+                    SpeakingActor = null;
+                    SpeakingLine = null;
+                }
+
+                speaking = null;
+                yield break;
+            }
+#endif
+
+            if (TryBeginBrowserSpeech(line, voice))
+            {
+                string activeRequestId = browserSpeechRequestId;
+                while (!browserSpeechFinished && browserSpeechRequestId == activeRequestId)
+                {
+                    yield return null;
+                }
+
+                if (browserSpeechRequestId == activeRequestId)
+                {
+                    browserSpeechRequestId = null;
+                    SpeakingActor = null;
+                    SpeakingLine = null;
+                }
+
+                speaking = null;
+                yield break;
+            }
+
+>>>>>>> Stashed changes
             if (logMissingClips)
             {
                 // Two ways to get here. An authored line whose text changed no
@@ -407,6 +530,111 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
         speaking = null;
         SpeakingActor = null;
         SpeakingLine = null;
+    }
+
+#if UNITY_EDITOR_OSX
+    private bool TryBeginEditorSpeech(IDialogueLine line, VoiceId voice)
+    {
+        string voiceName = voice == VoiceId.Girl ? editorGirlVoice : editorBoyVoice;
+        try
+        {
+            System.Diagnostics.ProcessStartInfo startInfo =
+                new System.Diagnostics.ProcessStartInfo("/usr/bin/say")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+            if (!string.IsNullOrWhiteSpace(voiceName))
+            {
+                startInfo.ArgumentList.Add("-v");
+                startInfo.ArgumentList.Add(voiceName.Trim());
+            }
+
+            startInfo.ArgumentList.Add("-r");
+            startInfo.ArgumentList.Add(editorSpeechWordsPerMinute.ToString());
+            startInfo.ArgumentList.Add(line.Text);
+
+            editorSpeechProcess = new System.Diagnostics.Process
+            {
+                StartInfo = startInfo
+            };
+            if (!editorSpeechProcess.Start())
+            {
+                editorSpeechProcess.Dispose();
+                editorSpeechProcess = null;
+                return false;
+            }
+
+            SpeakingActor = line.SpeakerReference;
+            SpeakingLine = line;
+            return true;
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning("macOS speech synthesis could not start: " + exception.Message, this);
+            StopEditorSpeech();
+            return false;
+        }
+    }
+
+    private void StopEditorSpeech()
+    {
+        if (editorSpeechProcess == null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!editorSpeechProcess.HasExited)
+            {
+                editorSpeechProcess.Kill();
+            }
+        }
+        catch (System.InvalidOperationException)
+        {
+            // The process finished between the state check and the stop request.
+        }
+        finally
+        {
+            editorSpeechProcess.Dispose();
+            editorSpeechProcess = null;
+        }
+    }
+#endif
+
+    private bool TryBeginBrowserSpeech(IDialogueLine line, VoiceId voice)
+    {
+#if UNITY_WEBGL
+        if (Application.isEditor || SpeechSynthesis_IsSupported() == 0)
+        {
+            return false;
+        }
+
+        browserSpeechRequestId = System.Guid.NewGuid().ToString("N");
+        browserSpeechFinished = false;
+        SpeakingActor = line.SpeakerReference;
+        SpeakingLine = line;
+        float pitch = voice == VoiceId.Girl ? girlSpeechPitch : boySpeechPitch;
+        int started = SpeechSynthesis_Speak(
+            gameObject.name,
+            browserSpeechRequestId,
+            line.Text,
+            (int)voice,
+            browserSpeechRate,
+            pitch,
+            volume);
+        if (started != 0)
+        {
+            return true;
+        }
+
+        browserSpeechRequestId = null;
+        browserSpeechFinished = true;
+        SpeakingActor = null;
+        SpeakingLine = null;
+#endif
+        return false;
     }
 
     private static string Preview(string text)
