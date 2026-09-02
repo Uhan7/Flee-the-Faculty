@@ -17,13 +17,36 @@ public sealed class FleeApiClient : MonoBehaviour
     private const string ActiveClassroomIdKey = "Flee.ActiveClassroomId";
 
     [SerializeField] private string baseUrl = DefaultBaseUrl;
+
+    [Header("Classroom Source")]
+    [Tooltip("Generate a fresh Classroom so the backend can choose misconception, "
+        + "identification, computation, and short-answer questions. Turn off for the "
+        + "instant prepared-preset path.")]
+    [SerializeField] private bool generateClassroomFromTopic = true;
+    [SerializeField] private string classroomTopic = "photosynthesis";
+    [SerializeField, Range(1, 12)] private int classroomGradeLevel = 5;
     [SerializeField] private string presetId = "photosynthesis";
+
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
     private static FleeApiClient instance;
     private FleeClassroomResponse activeClassroom;
 
     public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
+
+    public void ConfigureClassroomSource(
+        bool generateFromTopic,
+        string topic,
+        int gradeLevel,
+        string preparedPresetId)
+    {
+        generateClassroomFromTopic = generateFromTopic;
+        classroomTopic = string.IsNullOrWhiteSpace(topic) ? "photosynthesis" : topic.Trim();
+        classroomGradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
+        presetId = string.IsNullOrWhiteSpace(preparedPresetId)
+            ? "photosynthesis"
+            : preparedPresetId.Trim();
+    }
 
     public static void ResetClassroomSession()
     {
@@ -79,7 +102,7 @@ public sealed class FleeApiClient : MonoBehaviour
         }
     }
 
-    public IEnumerator PreparePresetClassroom(
+    public IEnumerator PrepareClassroom(
         Action<FleeClassroomSession> onSuccess,
         Action<FleeApiFailure> onFailure,
         Action<float, string> onProgress = null)
@@ -119,15 +142,28 @@ public sealed class FleeApiClient : MonoBehaviour
             ResetClassroomSession();
         }
 
-        onProgress?.Invoke(0.08f, "Loading classroom...");
+        string safeTopic = string.IsNullOrWhiteSpace(classroomTopic)
+            ? "photosynthesis"
+            : classroomTopic.Trim();
+        int safeGradeLevel = Mathf.Clamp(classroomGradeLevel, 1, 12);
+        onProgress?.Invoke(
+            0.08f,
+            generateClassroomFromTopic
+                ? $"Generating a Grade {safeGradeLevel} {safeTopic} classroom..."
+                : "Loading prepared classroom...");
+
         FleeClassroomResponse classroom = null;
         FleeApiFailure failure = null;
         yield return PostJson<FleeClassroomRequest, FleeClassroomResponse>(
             "/v1/classrooms",
             new FleeClassroomRequest
             {
-                source = "preset",
-                presetId = string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim()
+                source = generateClassroomFromTopic ? "topic" : "preset",
+                topic = generateClassroomFromTopic ? safeTopic : null,
+                gradeLevel = generateClassroomFromTopic ? safeGradeLevel : 0,
+                presetId = generateClassroomFromTopic
+                    ? null
+                    : (string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim())
             },
             response => classroom = response,
             error => failure = error);
@@ -786,6 +822,8 @@ public sealed class FleeApiClient : MonoBehaviour
     private sealed class FleeClassroomRequest
     {
         public string source;
+        public string topic;
+        public int gradeLevel;
         public string presetId;
     }
 

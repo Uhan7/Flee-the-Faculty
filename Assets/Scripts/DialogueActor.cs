@@ -103,7 +103,9 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
         }
 
         lastVoiceClip = voiceClip;
-        resolvedAudioSource.PlayOneShot(voiceClip, voiceVolume);
+        resolvedAudioSource.PlayOneShot(
+            voiceClip,
+            voiceVolume * AudioSettingsStore.SfxVolume);
     }
 
     public void StopVoice()

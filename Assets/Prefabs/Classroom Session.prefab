@@ -84,7 +84,9 @@ MonoBehaviour:
   keepPupilsSeated: 1
   seatedVisualOffset: {x: 0, y: 0}
   showConversationCounter: 1
-  conversationCounterPosition: {x: 16, y: 16}
+  studentIconHead: {fileID: 3369640075118907984, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  studentIconBody: {fileID: 5941837698600612386, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  progressFont: {fileID: 11400000, guid: 4e7233e6a17c4d9fb7ef9077ce3765d8, type: 2}
   transitionWhenAllStudentsTalkedTo: 1
   teacherEvaluationSceneName: Teacher Evaluation
   teacherEvaluationScenePath: Assets/Scenes/Teacher Evaluation.unity

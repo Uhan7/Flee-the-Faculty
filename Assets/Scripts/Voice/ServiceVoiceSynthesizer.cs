@@ -241,6 +241,23 @@ public sealed class ServiceVoiceSynthesizer : MonoBehaviour
     /// <summary>Fetch one line in one of the six slots and hand back the clip.</summary>
     public IEnumerator Speak(string slot, VoiceId voice, string text, Action<AudioClip> onDone)
     {
+        yield return Speak(slot, voice, text, -1f, onDone);
+    }
+
+    /// <summary>
+    /// Fetch one line, but stop making the caller wait after a short grace period.
+    ///
+    /// The underlying job keeps running and may still populate the cache. This
+    /// only prevents a late voice from beginning after the dialogue text has
+    /// already moved on without it.
+    /// </summary>
+    public IEnumerator Speak(
+        string slot,
+        VoiceId voice,
+        string text,
+        float maxWaitSeconds,
+        Action<AudioClip> onDone)
+    {
         Job job = RequestJob(slot, voice, text);
         if (job == null)
         {
@@ -248,12 +265,13 @@ public sealed class ServiceVoiceSynthesizer : MonoBehaviour
             yield break;
         }
 
-        while (!job.IsDone)
+        float deadline = Time.unscaledTime + Mathf.Max(0f, maxWaitSeconds);
+        while (!job.IsDone && (maxWaitSeconds < 0f || Time.unscaledTime < deadline))
         {
             yield return null;
         }
 
-        onDone?.Invoke(job.Clip);
+        onDone?.Invoke(job.IsDone ? job.Clip : null);
     }
 
     /// <summary>

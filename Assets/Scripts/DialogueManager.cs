@@ -21,6 +21,10 @@ public sealed class DialogueManager : MonoBehaviour
     [SerializeField] private bool advanceWithKeyboard = true;
     [SerializeField] private bool advanceWithLeftClick = true;
 
+    [Header("Spoken Dialogue")]
+    [Tooltip("Use recorded/backend speech when available. Turn off to use only voice bleeps.")]
+    [SerializeField] private bool useTextToSpeech = true;
+
     [Header("Voice Ticks")]
     [Tooltip("Number of revealed letters between gibberish voice clips for every speaker.")]
     [SerializeField, Min(1)] private int lettersPerVoiceTick = 3;
@@ -38,6 +42,7 @@ public sealed class DialogueManager : MonoBehaviour
     public IDialogueLine ActiveLine => activeLine;
     public bool IsPlaying => activeDialogue != null;
     public bool IsTyping => view != null && !view.IsRevealComplete;
+    public bool UseTextToSpeech => useTextToSpeech;
     public int LettersPerVoiceTick => Mathf.Max(1, lettersPerVoiceTick);
 
     public event Action<IDialogueSequence> DialogueStarted;

@@ -19,8 +19,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     [SerializeField] private GameObject questionButtonRoot;
 
     [Header("Restart Button")]
-    [SerializeField] private string restartButtonText = "RESTART";
-    [SerializeField] private Vector2 restartButtonSize = new Vector2(2.4f, 0.8f);
+    [SerializeField] private Sprite restartButtonSprite;
 
     [Header("Speech Reply Flow")]
     [SerializeField] private bool useSpeechReplyFlow = true;
@@ -37,6 +36,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     [SerializeField] private string backendPupilName = "Mary";
 
     private Coroutine beginDialogueRoutine;
+    private Coroutine preloadQuestionRoutine;
     private Collider2D interactionZone;
     private DialogueManager dialogueManager;
     private StudentRoamingController roamingController;
@@ -58,8 +58,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     private bool isConversationModeActive;
     private bool isSpeechFlowActive;
     private bool isRestartAvailable;
+    private bool isCancellingConversation;
     private string lastCapturedSpeech = string.Empty;
     private TMP_Text restartButtonLabel;
+    private Image questionButtonImage;
+    private Sprite questionButtonOriginalSprite;
     private RectTransform questionButtonRect;
     private Vector2 questionButtonOriginalSize;
 
@@ -89,6 +92,8 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         {
             return;
         }
+
+        isCancellingConversation = true;
 
         if (beginDialogueRoutine != null)
         {
@@ -123,6 +128,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         EndConversationMode();
         ClearInteractionTargetFocus();
+        isCancellingConversation = false;
         RefreshQuestionButton();
     }
 
@@ -132,6 +138,8 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         {
             return;
         }
+
+        isCancellingConversation = true;
 
         if (beginDialogueRoutine != null)
         {
@@ -162,6 +170,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         }
 
         CompleteInteraction();
+        isCancellingConversation = false;
     }
 
     public void ConfigureBackendPupil(FleePupilSession pupil)
@@ -254,6 +263,14 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         preloadedQuestionDialogue = BuildQuestionDialogue();
         RefreshQuestionButton();
+
+        if (useBackendReplyFlow
+            && !string.IsNullOrWhiteSpace(backendPupilId)
+            && !isBackendQuestionLoading
+            && !isBackendQuestionReady)
+        {
+            preloadQuestionRoutine = StartCoroutine(PreloadBackendQuestion());
+        }
     }
 
     private void OnDisable()
@@ -276,6 +293,17 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         {
             StopCoroutine(beginDialogueRoutine);
             beginDialogueRoutine = null;
+            if (isBackendQuestionLoading)
+            {
+                isBackendQuestionLoading = false;
+                DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Loading skipped.");
+            }
+        }
+
+        if (preloadQuestionRoutine != null)
+        {
+            StopCoroutine(preloadQuestionRoutine);
+            preloadQuestionRoutine = null;
             if (isBackendQuestionLoading)
             {
                 isBackendQuestionLoading = false;
@@ -425,6 +453,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
     private void HandleDialogueEnded(IDialogueSequence finishedDialogue)
     {
+        if (isCancellingConversation)
+        {
+            return;
+        }
+
         if (useSpeechReplyFlow && isSpeechFlowActive)
         {
             if (ReferenceEquals(finishedDialogue, activeQuestionDialogue))
@@ -545,6 +578,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
                 status));
 
         isBackendQuestionLoading = false;
+        preloadQuestionRoutine = null;
         if (!isActiveAndEnabled || hasCompletedDialogue)
         {
             DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Loading skipped.");
@@ -803,6 +837,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     {
         return !hasCompletedDialogue
             && !isSpeechFlowActive
+            && !isBackendQuestionLoading
             && isActivatorInside
             && dialogueManager != null
             && !dialogueManager.IsPlaying
@@ -829,6 +864,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
     {
         bool shouldShowButton = !hasCompletedDialogue
             && !isSpeechFlowActive
+            && !isBackendQuestionLoading
             && isActivatorInside
             && dialogueManager != null
             && !dialogueManager.IsPlaying
@@ -870,33 +906,18 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             questionButtonOriginalSize = questionButtonRect.sizeDelta;
         }
 
-        restartButtonLabel = questionButton.GetComponentInChildren<TMP_Text>(true);
-        if (restartButtonLabel != null)
+        questionButtonImage = questionButton.targetGraphic as Image;
+        if (questionButtonImage == null)
         {
-            return;
+            questionButtonImage = questionButton.GetComponent<Image>();
         }
 
-        GameObject labelObject = new GameObject(
-            "Restart Label",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(TextMeshProUGUI));
-        labelObject.layer = questionButton.gameObject.layer;
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.SetParent(questionButton.transform, false);
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(0.14f, 0.08f);
-        labelRect.offsetMax = new Vector2(-0.14f, -0.08f);
+        if (questionButtonImage != null && questionButtonOriginalSprite == null)
+        {
+            questionButtonOriginalSprite = questionButtonImage.sprite;
+        }
 
-        restartButtonLabel = labelObject.GetComponent<TextMeshProUGUI>();
-        restartButtonLabel.alignment = TextAlignmentOptions.Center;
-        restartButtonLabel.enableAutoSizing = true;
-        restartButtonLabel.fontSizeMin = 0.14f;
-        restartButtonLabel.fontSizeMax = 0.34f;
-        restartButtonLabel.fontStyle = FontStyles.Bold;
-        restartButtonLabel.color = new Color(0.2f, 0.12f, 0.08f, 1f);
-        restartButtonLabel.raycastTarget = false;
+        restartButtonLabel = questionButton.GetComponentInChildren<TMP_Text>(true);
     }
 
     private void UpdateQuestionButtonPresentation()
@@ -906,22 +927,27 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             return;
         }
 
-        if (questionButtonRect == null || restartButtonLabel == null)
+        if (questionButtonRect == null || questionButtonImage == null)
         {
             CacheQuestionButtonPresentation();
         }
 
         if (questionButtonRect != null)
         {
-            questionButtonRect.sizeDelta = isRestartAvailable
-                ? restartButtonSize
-                : questionButtonOriginalSize;
+            questionButtonRect.sizeDelta = questionButtonOriginalSize;
+        }
+
+        if (questionButtonImage != null)
+        {
+            questionButtonImage.sprite = isRestartAvailable && restartButtonSprite != null
+                ? restartButtonSprite
+                : questionButtonOriginalSprite;
+            questionButtonImage.preserveAspect = true;
         }
 
         if (restartButtonLabel != null)
         {
-            restartButtonLabel.text = isRestartAvailable ? restartButtonText : string.Empty;
-            restartButtonLabel.gameObject.SetActive(isRestartAvailable);
+            restartButtonLabel.gameObject.SetActive(false);
         }
     }
 

@@ -70,7 +70,21 @@ public static class DialogueTextPaginator
             }
         }
 
-        return bestBreak > 0 ? bestBreak : preferred;
+        if (bestBreak > 0)
+        {
+            return bestBreak;
+        }
+
+        // A longer box is preferable to cutting a sentence in half.
+        for (int count = MaximumWordsPerPage + 1; count <= remaining; count++)
+        {
+            if (EndsSentence(words[start + count - 1]))
+            {
+                return count;
+            }
+        }
+
+        return remaining;
     }
 
     private static bool EndsSentence(string word)

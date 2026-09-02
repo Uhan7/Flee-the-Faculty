@@ -26,6 +26,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [SerializeField] private RectTransform bottomDoor;
     [SerializeField] private GameObject loadingContent;
     [SerializeField] private RectTransform loadingSpinner;
+    [SerializeField] private TMP_Text loadingHeadingText;
     [SerializeField] private TMP_Text loadingStatusText;
     [SerializeField] private Image loadingProgressFill;
     [SerializeField] private TMP_Text loadingPercentText;
@@ -49,6 +50,8 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [Header("Loading")]
     [SerializeField, Min(0f)] private float deferredLoadRegistrationGraceSeconds = 0.08f;
     [SerializeField] private float loadingSpinnerDegreesPerSecond = -120f;
+    [SerializeField, Min(0.05f)] private float loadingDotIntervalSeconds = 0.35f;
+    [SerializeField, Min(0.05f)] private float loadingProgressUnitsPerSecond = 0.45f;
 
     private bool isTransitioning;
     private bool isWaitingForSceneLoad;
@@ -56,6 +59,8 @@ public sealed class DoorSceneTransition : MonoBehaviour
     private bool hasPlayedStartupOpen;
     private float currentCoverage;
     private Vector2 lastCanvasSize;
+    private float displayedLoadingProgress;
+    private float targetLoadingProgress;
     private readonly Dictionary<string, DeferredLoadTask> deferredLoadTasks = new Dictionary<string, DeferredLoadTask>();
 
     public static bool TryRegisterLoadingTask(string taskId, string status, float progress = 0f, float weight = 1f)
@@ -206,6 +211,12 @@ public sealed class DoorSceneTransition : MonoBehaviour
             loadingSpinner = loadingContentTransform.Find("Top Content/AraBOT Spinner") as RectTransform;
         }
 
+        if (loadingHeadingText == null)
+        {
+            Transform headingTransform = loadingContentTransform.Find("Top Content/Loading Heading");
+            loadingHeadingText = headingTransform != null ? headingTransform.GetComponent<TMP_Text>() : null;
+        }
+
         if (loadingStatusText == null)
         {
             Transform statusTransform = loadingContentTransform.Find("Top Content/Loading Status");
@@ -255,6 +266,17 @@ public sealed class DoorSceneTransition : MonoBehaviour
         if (loadingSpinner != null && loadingContent != null && loadingContent.activeInHierarchy)
         {
             loadingSpinner.Rotate(0f, 0f, loadingSpinnerDegreesPerSecond * Time.unscaledDeltaTime);
+            int dotCount = 1 + Mathf.FloorToInt(Time.unscaledTime / loadingDotIntervalSeconds) % 3;
+            if (loadingHeadingText != null)
+            {
+                loadingHeadingText.text = "Loading" + new string('.', dotCount);
+            }
+
+            displayedLoadingProgress = Mathf.MoveTowards(
+                displayedLoadingProgress,
+                targetLoadingProgress,
+                loadingProgressUnitsPerSecond * Time.unscaledDeltaTime);
+            ApplyLoadingProgressVisuals();
         }
     }
 
@@ -284,9 +306,12 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     private IEnumerator PlayStartupOpenRoutine()
     {
+        bool previousAudioPause = AudioListener.pause;
+        AudioListener.pause = true;
         hasPlayedStartupOpen = true;
         SetInputBlocked(true);
         SetDoorCoverage(1f);
+        ResetLoadingProgress();
         UpdateLoadingText(0f, "Preparing classroom...");
 
         if (startupHoldClosedDuration > 0f)
@@ -299,13 +324,17 @@ public sealed class DoorSceneTransition : MonoBehaviour
         yield return AnimateDoors(1f, 0f, openDuration);
         SetLoadingTextVisible(false);
         SetInputBlocked(false);
+        AudioListener.pause = previousAudioPause;
     }
 
     private IEnumerator RunTransition(string sceneName, string scenePath)
     {
+        bool previousAudioPause = AudioListener.pause;
+        AudioListener.pause = true;
         isTransitioning = true;
         SetInputBlocked(true);
         deferredLoadTasks.Clear();
+        ResetLoadingProgress();
         UpdateLoadingText(0f, "Closing doors...");
 
         yield return AnimateDoors(0f, 1f, closeDuration);
@@ -336,6 +365,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
         SetLoadingTextVisible(false);
         SetInputBlocked(false);
+        AudioListener.pause = previousAudioPause;
         isTransitioning = false;
         deferredLoadTasks.Clear();
     }
@@ -402,11 +432,11 @@ public sealed class DoorSceneTransition : MonoBehaviour
             float normalizedProgress = loadOperation.progress >= 0.9f
                 ? 1f
                 : Mathf.Clamp01(loadOperation.progress / 0.9f);
-            UpdateLoadingText(normalizedProgress * 0.85f, "Loading scene...");
+            UpdateLoadingText(normalizedProgress * 0.25f, "Loading scene...");
             yield return null;
         }
 
-        UpdateLoadingText(0.85f, "Scene loaded.");
+        UpdateLoadingText(0.25f, "Scene loaded.");
     }
 
     private void InitializeVisuals()
@@ -418,6 +448,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
             topDoor == null ||
             bottomDoor == null ||
             loadingContent == null ||
+            loadingHeadingText == null ||
             loadingStatusText == null ||
             loadingProgressFill == null ||
             loadingPercentText == null)
@@ -619,11 +650,17 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield break;
         }
 
+        float waitStartedAt = Time.unscaledTime;
         while (HasPendingDeferredLoads())
         {
-            UpdateLoadingText(CalculateDeferredLoadProgress(), GetPrimaryDeferredLoadStatus("Preparing classroom..."));
+            UpdateLoadingText(
+                CalculateDeferredDisplayProgress(waitStartedAt),
+                GetPrimaryDeferredLoadStatus("Preparing classroom..."));
             yield return null;
         }
+
+        UpdateLoadingText(1f, "Ready.");
+        yield return WaitForDisplayedLoadingProgress();
     }
 
     private IEnumerator WaitForDeferredLoadsAfterSceneLoad()
@@ -631,7 +668,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
         float graceEndTime = Time.unscaledTime + deferredLoadRegistrationGraceSeconds;
         while (Time.unscaledTime < graceEndTime && deferredLoadTasks.Count == 0)
         {
-            UpdateLoadingText(0.85f, "Preparing classroom...");
+            UpdateLoadingText(0.25f, "Preparing classroom...");
             yield return null;
         }
 
@@ -641,14 +678,19 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield break;
         }
 
+        float waitStartedAt = Time.unscaledTime;
         while (HasPendingDeferredLoads())
         {
-            float overallProgress = Mathf.Lerp(0.85f, 1f, CalculateDeferredLoadProgress());
+            float overallProgress = Mathf.Lerp(
+                0.25f,
+                1f,
+                CalculateDeferredDisplayProgress(waitStartedAt));
             UpdateLoadingText(overallProgress, GetPrimaryDeferredLoadStatus("Preparing classroom..."));
             yield return null;
         }
 
         UpdateLoadingText(1f, "Ready.");
+        yield return WaitForDisplayedLoadingProgress();
     }
 
     private bool HasPendingDeferredLoads()
@@ -687,6 +729,14 @@ public sealed class DoorSceneTransition : MonoBehaviour
         return Mathf.Clamp01(weightedProgress / totalWeight);
     }
 
+    private float CalculateDeferredDisplayProgress(float waitStartedAt)
+    {
+        float actualProgress = CalculateDeferredLoadProgress();
+        float elapsed = Mathf.Max(0f, Time.unscaledTime - waitStartedAt);
+        float gradualProgress = 0.08f + (0.84f * (1f - Mathf.Exp(-elapsed / 22f)));
+        return Mathf.Min(0.92f, Mathf.Max(actualProgress, gradualProgress));
+    }
+
     private string GetPrimaryDeferredLoadStatus(string fallbackStatus)
     {
         foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
@@ -717,8 +767,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
         SetLoadingTextVisible(true);
 
-        float normalizedProgress = Mathf.Clamp01(progress);
-        int percent = Mathf.RoundToInt(normalizedProgress * 100f);
+        targetLoadingProgress = Mathf.Clamp01(progress);
         string safeStatus = string.IsNullOrWhiteSpace(status) ? "Loading..." : status.Trim();
 
         if (loadingStatusText != null)
@@ -726,15 +775,39 @@ public sealed class DoorSceneTransition : MonoBehaviour
             loadingStatusText.text = safeStatus;
         }
 
+        ApplyLoadingProgressVisuals();
+    }
+
+    private void ApplyLoadingProgressVisuals()
+    {
         if (loadingProgressFill != null)
         {
-            loadingProgressFill.fillAmount = normalizedProgress;
+            loadingProgressFill.fillAmount = displayedLoadingProgress;
         }
 
         if (loadingPercentText != null)
         {
-            loadingPercentText.text = percent + "%";
+            loadingPercentText.text = Mathf.RoundToInt(displayedLoadingProgress * 100f) + "%";
         }
+    }
+
+    private void ResetLoadingProgress()
+    {
+        displayedLoadingProgress = 0f;
+        targetLoadingProgress = 0f;
+        ApplyLoadingProgressVisuals();
+    }
+
+    private IEnumerator WaitForDisplayedLoadingProgress()
+    {
+        float deadline = Time.unscaledTime + 2.5f;
+        while (displayedLoadingProgress < 0.995f && Time.unscaledTime < deadline)
+        {
+            yield return null;
+        }
+
+        displayedLoadingProgress = 1f;
+        ApplyLoadingProgressVisuals();
     }
 
     private void SetLoadingTextVisible(bool visible)

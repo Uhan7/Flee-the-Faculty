@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -18,12 +19,18 @@ public sealed class TeacherEvaluationController : MonoBehaviour
     [SerializeField] private DialogueActor teacherActor;
     [SerializeField] private ClassroomDoorExitSequence doorExitSequence;
 
+    [Header("Evaluation Progress")]
+    [SerializeField] private Sprite passedIcon;
+    [SerializeField] private Sprite failedIcon;
+    [SerializeField] private TMP_FontAsset progressFont;
+    [SerializeField, Min(0f)] private float cameraFocusLeadSeconds = 0.3f;
+
     private ClassroomSessionController classroomSession;
     private DialogueConversationCamera conversationCamera;
     private DialogueManager dialogueManager;
     private FleeApiClient apiClient;
     private FleeTeacherSceneResult teacherResult;
-    private GUIStyle progressStyle;
+    private SessionProgressHud evaluationHud;
     private string statusMessage = "Preparing teacher evaluation...";
     private int evaluatedCount;
     private int passedCount;
@@ -97,6 +104,13 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             yield return AbortEvaluation("Teacher evaluation could not find any students.");
             yield break;
         }
+
+        evaluationHud = SessionProgressHud.CreateEvaluation(
+            transform,
+            passedIcon,
+            failedIcon,
+            progressFont);
+        evaluationHud.SetEvaluationCounts(0, 0, 0, participants.Count);
 
         dialogueManager = DialogueManager.GetOrCreate();
         if (dialogueManager == null)
@@ -291,7 +305,11 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
         if (conversationCamera != null)
         {
-            conversationCamera.BeginExternalFocus(participant.Actor.transform);
+            conversationCamera.BeginExternalFocus(participant.Actor.transform, false);
+            if (cameraFocusLeadSeconds > 0f)
+            {
+                yield return new WaitForSecondsRealtime(cameraFocusLeadSeconds);
+            }
         }
 
         bool rescued = result.Rescued;
@@ -338,6 +356,12 @@ public sealed class TeacherEvaluationController : MonoBehaviour
                 participant.StudentRoot.SetActive(false);
             }
         }
+
+        evaluationHud?.SetEvaluationCounts(
+            passedCount,
+            evaluatedCount - passedCount,
+            evaluatedCount,
+            participants.Count);
 
         if (conversationCamera != null)
         {
@@ -467,22 +491,6 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         {
             interactions[index].enabled = false;
         }
-    }
-
-    private void OnGUI()
-    {
-        if (progressStyle == null)
-        {
-            progressStyle = new GUIStyle(GUI.skin.box)
-            {
-                alignment = TextAnchor.MiddleLeft,
-                fontSize = 18,
-                padding = new RectOffset(12, 12, 8, 8)
-            };
-        }
-
-        Vector2 size = progressStyle.CalcSize(new GUIContent(statusMessage));
-        GUI.Box(new Rect(16f, 16f, size.x, size.y), statusMessage, progressStyle);
     }
 
     private sealed class EvaluationParticipant

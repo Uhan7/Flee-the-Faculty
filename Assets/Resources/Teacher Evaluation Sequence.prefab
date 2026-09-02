@@ -46,6 +46,10 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   teacherActor: {fileID: 1140000000000000001}
+  passedIcon: {fileID: 4431239835815638222, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  failedIcon: {fileID: 2054946388302293409, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  progressFont: {fileID: 11400000, guid: 4e7233e6a17c4d9fb7ef9077ce3765d8, type: 2}
+  cameraFocusLeadSeconds: 0.3
 --- !u!114 &1140000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

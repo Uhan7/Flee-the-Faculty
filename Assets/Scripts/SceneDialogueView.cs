@@ -245,7 +245,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             return;
         }
 
-        if (string.IsNullOrEmpty(currentFullText) || revealMode == DialogueRevealMode.Instant)
+        if (string.IsNullOrEmpty(currentFullText))
         {
             bodyText.text = currentFullText;
             bodyText.maxVisibleCharacters = int.MaxValue;
@@ -259,7 +259,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         bodyText.maxVisibleCharacters = 0;
         CacheBodyTextMesh();
         IsRevealComplete = false;
-        revealRoutine = StartCoroutine(RevealRoutine());
+        revealRoutine = StartCoroutine(RevealRoutine(line));
     }
 
     public void ShowExternalContent(
@@ -578,8 +578,35 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         SetContinueIndicator(canAdvance);
     }
 
-    private IEnumerator RevealRoutine()
+    private IEnumerator RevealRoutine(IDialogueLine line)
     {
+        DialogueVoicePlayer voicePlayer = DialogueVoicePlayer.Instance;
+        bool waitingForVoice = voicePlayer != null && voicePlayer.IsPreparingLine(line);
+        if (waitingForVoice && bodyText != null)
+        {
+            bodyText.text = "...";
+            bodyText.maxVisibleCharacters = int.MaxValue;
+            CacheBodyTextMesh();
+        }
+
+        while (voicePlayer != null && voicePlayer.IsPreparingLine(line))
+        {
+            yield return null;
+        }
+
+        if (waitingForVoice && bodyText != null)
+        {
+            bodyText.text = currentFullText;
+            bodyText.maxVisibleCharacters = 0;
+            CacheBodyTextMesh();
+        }
+
+        if (revealMode == DialogueRevealMode.Instant)
+        {
+            CompleteReveal();
+            yield break;
+        }
+
         List<RevealChunk> chunks = BuildRevealChunks(bodyText.textInfo, revealMode);
         if (chunks.Count == 0)
         {

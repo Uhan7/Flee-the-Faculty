@@ -15,6 +15,7 @@ public sealed class DialogueConversationCamera : MonoBehaviour
 
     private DialogueManager dialogueManager;
     private bool conversationActive;
+    private bool followDialogueSpeakers = true;
 
     private void Reset()
     {
@@ -67,7 +68,7 @@ public sealed class DialogueConversationCamera : MonoBehaviour
 
     private void HandleLineChanged(IDialogueLine line, int _)
     {
-        if (!conversationActive)
+        if (!conversationActive || !followDialogueSpeakers)
         {
             return;
         }
@@ -94,7 +95,13 @@ public sealed class DialogueConversationCamera : MonoBehaviour
 
     public void BeginExternalFocus(Transform target)
     {
+        BeginExternalFocus(target, true);
+    }
+
+    public void BeginExternalFocus(Transform target, bool followSpeakers)
+    {
         conversationActive = true;
+        followDialogueSpeakers = followSpeakers;
         FocusOn(target != null ? target : araBotTarget);
         SetCameraPriority(activePriority);
     }
@@ -102,6 +109,7 @@ public sealed class DialogueConversationCamera : MonoBehaviour
     public void EndExternalFocus()
     {
         conversationActive = false;
+        followDialogueSpeakers = true;
         FocusOn(araBotTarget);
         SetCameraPriority(inactivePriority);
     }

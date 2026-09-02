@@ -5,6 +5,7 @@ public sealed class MainMenuController : MonoBehaviour
 {
     // UI
     [Header("UI")]
+    [SerializeField] private GameObject accessPanel;
     [SerializeField] private GameObject settingsPanel;
 
     // Face references
@@ -56,10 +57,7 @@ public sealed class MainMenuController : MonoBehaviour
             mouthBaseRotation = mouth.localRotation;
         }
 
-        if (settingsPanel != null)
-        {
-            settingsPanel.SetActive(false);
-        }
+        ClosePanels();
     }
 
     private void Update()
@@ -76,7 +74,9 @@ public sealed class MainMenuController : MonoBehaviour
             return;
         }
 
-        settingsPanel.SetActive(!settingsPanel.activeSelf);
+        bool shouldOpen = !settingsPanel.activeSelf;
+        ClosePanels();
+        settingsPanel.SetActive(shouldOpen);
     }
 
     public void CloseSettingsPanel()
@@ -85,6 +85,33 @@ public sealed class MainMenuController : MonoBehaviour
         {
             settingsPanel.SetActive(false);
         }
+    }
+
+    public void ToggleAccessPanel()
+    {
+        if (accessPanel == null)
+        {
+            Debug.Log("MainMenuController access code button clicked.");
+            return;
+        }
+
+        bool shouldOpen = !accessPanel.activeSelf;
+        ClosePanels();
+        accessPanel.SetActive(shouldOpen);
+    }
+
+    public void CloseAccessPanel()
+    {
+        if (accessPanel != null)
+        {
+            accessPanel.SetActive(false);
+        }
+    }
+
+    public void ClosePanels()
+    {
+        CloseAccessPanel();
+        CloseSettingsPanel();
     }
 
     public void QuitGame()
@@ -171,6 +198,15 @@ public sealed class MainMenuController : MonoBehaviour
 
     private void ResolveReferences()
     {
+        if (accessPanel == null)
+        {
+            Transform accessPanelTransform = transform.Find("Access Panel");
+            if (accessPanelTransform != null)
+            {
+                accessPanel = accessPanelTransform.gameObject;
+            }
+        }
+
         if (settingsPanel == null)
         {
             Transform settingsPanelTransform = transform.Find("Settings Panel");

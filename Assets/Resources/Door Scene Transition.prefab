@@ -566,8 +566,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 100}
-  m_SizeDelta: {x: 152, y: 120}
+  m_AnchoredPosition: {x: 0, y: 108}
+  m_SizeDelta: {x: 112, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &100100064
 CanvasRenderer:
@@ -839,14 +839,14 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   m_Material: {fileID: 0}
-  m_Color: {r: 0.055, g: 0.18, b: 0.24, a: 0.72}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10909, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: -5899845438966311964, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1192,6 +1192,7 @@ MonoBehaviour:
   bottomDoor: {fileID: 100100031}
   loadingContent: {fileID: 100100050}
   loadingSpinner: {fileID: 100100063}
+  loadingHeadingText: {fileID: 100100069}
   loadingStatusText: {fileID: 100100043}
   loadingProgressFill: {fileID: 100100079}
   loadingPercentText: {fileID: 100100083}
@@ -1205,3 +1206,5 @@ MonoBehaviour:
   referenceResolution: {x: 1600, y: 900}
   deferredLoadRegistrationGraceSeconds: 0.08
   loadingSpinnerDegreesPerSecond: -120
+  loadingDotIntervalSeconds: 0.35
+  loadingProgressUnitsPerSecond: 0.45

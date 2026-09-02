@@ -591,6 +591,7 @@ MonoBehaviour:
   activator: {fileID: 0}
   questionButton: {fileID: 3255658466205299809}
   questionButtonRoot: {fileID: 2461117383281765137}
+  restartButtonSprite: {fileID: 1737024605550171525, guid: 9645efc001b554679b437b9fb16de438, type: 3}
   useSpeechReplyFlow: 1
   studentActor: {fileID: 5088951843667480379}
   fallbackQuestionText: Hey, AraBOT. What should I say to the teacher?
