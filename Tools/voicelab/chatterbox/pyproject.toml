@@ -1,0 +1,15 @@
+[project]
+name = "chatterbox-bake"
+version = "0.1.0"
+description = "Re-bakes the girl's authored lines in the voice cloned from samples/girl3.wav."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "chatterbox-tts>=0.1.2",
+    # Setuptools 81 removed pkg_resources, which resemble-perth still imports.
+    # Without the pin perth.PerthImplicitWatermarker is silently None and
+    # ChatterboxTTS refuses to construct.
+    "setuptools<81",
+]
+
+[tool.uv]
+package = false

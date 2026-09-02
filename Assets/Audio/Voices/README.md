@@ -51,3 +51,14 @@ answers `POST /v1/speech`, so a baked line and a live line come out of the same
 code. Before ADR-0013 baking ran on Pocket TTS in `Tools/voicelab` and live lines
 came from a different model, which made one Character two people depending on
 whether her line had been written down in advance.
+
+## The girl's voice is a trained clone, in the one engine
+
+For one day, 1 September 2026, the `girl_*` clips came from a second engine: a
+Chatterbox zero-shot clone of `Tools/voicelab/samples/girl3.wav`, baked by
+`Tools/voicelab/chatterbox/bake.py`, while her live lines stayed Piper. That
+split ended on 2 September 2026: the clone was distilled into a Piper voice
+(`Tools/voicelab/piper-distill`), the service's `slots.py` points the girl at
+it, and the three steps above are once again the whole story. `bake.py` is
+retired; `Tools/voicelab/chatterbox/README.md` records what that directory
+still does, which is render the distillation corpus.

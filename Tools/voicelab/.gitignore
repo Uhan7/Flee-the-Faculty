@@ -22,9 +22,10 @@ out/
 # not the same thing. This rule stops the next one; it does not untrack the four
 # already committed, because .gitignore never has.
 out-real/
+out-*/
 preview*/
 audition*/
-shift/
+shift*/
 clone-slots/
 listen/
 
