@@ -1,0 +1,125 @@
+# Game-register sentences for the distillation corpus: things a ten-year-old
+# Pupil plausibly says. The student model learns its prosody from these, so
+# they carry the game's actual moods: unsure, delighted, stubborn, corrected.
+# One sentence per line. Lines starting with # are ignored.
+Plants eat the dirt, right? That's what the soil is for.
+Hey, AraBOT. What should I say to the teacher?
+Perfect. After this chat I will stay quiet until you plug in the final lines.
+Oh! Tell me the part about the sun again, I want to draw it.
+Wait, so the leaves are making the food? Not the roots?
+I thought the roots were like little mouths.
+That can't be right. My brother told me plants drink mud.
+Okay, say it one more time, but slower.
+So the sun is the kitchen and the leaf is the cook?
+I still don't get the part about the air.
+Why would a plant need light if it sleeps at night?
+The water goes up the stem. Up! That's so weird.
+Hmm. Let me think about that for a second.
+Oh, I see it now. I actually see it now!
+No no no, that's not what I said.
+Fine. But you have to explain the last bit again.
+Is that why the grass turns yellow under the slide?
+My plant at home died and now I know why.
+What happens if there's no sun for a whole week?
+Rain comes from clouds, and clouds come from the sea?
+So the puddle didn't disappear, it just went up?
+The water cycle is like a big circle with no start.
+Steam is just water that got too excited.
+Where does the rain go after it lands?
+Seven times eight is fifty six. I'm sure this time.
+Half of thirty is fifteen, so a quarter is seven and a half.
+If I have twelve stickers and give away five, I keep seven.
+A hundred minus forty three is fifty seven.
+Three, six, nine, twelve, fifteen. See, I can count by threes.
+Is zero even a number, or is it just nothing?
+The answer is twenty four, and I did it in my head.
+I counted them twice and got two different numbers.
+Which is bigger, two thirds or three quarters?
+It happened in 1521, on an island called Mactan.
+The capital city is the one with the big river, I think.
+Volcanoes are mountains that got too full.
+The Earth spins once a day, and that's why we get night.
+The moon doesn't make light, it just borrows it.
+Magellan sailed all the way around the world. Well, almost.
+Rizal wrote two whole books and I can't even finish one.
+A archipelago is a lot of islands in a group.
+There are seven thousand islands. Seven thousand!
+Which ocean is the biggest one again?
+My teacher says the heart is a pump made of muscle.
+You breathe in the good air and breathe out the used air.
+Bones are alive? I thought they were like rocks inside you.
+The stomach is like a bag that squeezes.
+Spiders aren't insects because insects only get six legs.
+A whale is not a fish. A whale is not a fish!
+Caterpillars turn into goo before they turn into butterflies. Gross.
+Do fish sleep with their eyes open?
+That's the coolest thing I've heard all week.
+This is hard. Can we do the easy one first?
+I'm not saying you're wrong, I'm saying I don't believe you.
+Everyone knows that. Well, I know that now.
+Don't tell the teacher I said the wrong one before.
+I'm going to explain it to my little sister tonight.
+Can you say it the way my teacher says it?
+Okay, okay, I was wrong. You don't have to smile about it.
+If I get this right, we get to leave, don't we?
+Ask me anything. I'm ready this time.
+I wrote it on my hand so I wouldn't forget.
+That's not a real word. Is that a real word?
+Slow down, my brain is still on the last part.
+Oh! That's just like the thing with the puddle!
+So it's the same rule, just with bigger numbers?
+I like it when the answer makes a pattern.
+Nobody told me science was mostly water.
+The quiz is on Friday and today is Wednesday.
+Give me one more example and then I've got it.
+I got it, I got it. Watch me get it.
+That is exactly what I meant to say.
+Wait, which one is the numerator again?
+You explained it better than the book did.
+The book made it sound so boring, and it's not.
+I'm telling you, the answer in the book is wrong.
+Let me say it back to you so I know I know it.
+So light travels faster than sound? Then why is thunder loud?
+Shadows are just places the light couldn't reach.
+Hot air goes up. That's the whole trick of it.
+Metal feels cold because it steals your warm.
+The magnet only grabs some metals, not all of them.
+Electricity wants to go in a circle or it won't go at all.
+Sound is just air wiggling really fast.
+If you shout in a canyon, the canyon shouts back.
+The louder I talk, the bigger the wiggles get.
+Ice is lighter than water, and that's why it floats on top.
+Salt disappears in water but it's still there. Taste it.
+When bread goes moldy, that's something alive eating it.
+A seed is a tiny plant with a packed lunch.
+Leaves are green because of a thing I can't pronounce.
+Chlorophyll. Chlorophyll. Okay, I can pronounce it.
+Roots hold the plant down and drink the water.
+Flowers are how plants make more plants.
+Bees do the flowers a favor and get paid in sugar water.
+Some trees drop their leaves so winter can't hurt them.
+The biggest tree started as a seed you could hold.
+Deserts are dry because the rain forgets them.
+Rivers always run downhill. Always, always.
+The sea is salty and lakes mostly aren't. Why though?
+Mountains grow slower than my fingernails.
+An earthquake is the ground stretching after sitting still too long.
+Fossils are like photographs made of rock.
+Dinosaurs are gone but birds are basically their grandkids.
+The sun is a star. It's just the closest one.
+Stars are still there in the day, you just can't see them.
+The moon pulls the sea and makes the tides. The moon!
+An eclipse is the moon photobombing the sun.
+Saturn's rings are made of ice chunks and space dust.
+A year is just one whole lap around the sun.
+Halloween is in October, on the thirty first.
+There are three hundred sixty five days, and sometimes one extra.
+February is the short one. Poor February.
+A century is one hundred years. A hundred!
+It takes light eight minutes to get here from the sun.
+Eight minutes! It left before I even sat down.
+First I thought it, then I said it, then I checked it.
+Practice doesn't make perfect, it makes better.
+I want to be the one who explains it next time.
+Being wrong first is how I got it right.
+Thanks, AraBOT. I've got it from here.

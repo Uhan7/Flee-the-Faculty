@@ -1,0 +1,11 @@
+[project]
+name = "piper-distill"
+version = "0.1.0"
+description = "Fine-tunes a Piper voice on the Chatterbox distillation corpus."
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "piper-tts[train]>=1.7.0",
+]
+
+[tool.uv]
+package = false
