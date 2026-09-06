@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -17,17 +16,46 @@ public sealed class FleeApiClient : MonoBehaviour
     private const string LocalTokenFileName = "flee-client-token.txt";
     private const string ActiveClassroomIdKey = "Flee.ActiveClassroomId";
 
+    /// <summary>
+    /// `contract.MAX_ADDITIONAL_NOTES` in the service. A longer note is a 422.
+    /// </summary>
+    private const int MaxAdditionalNotesLength = 500;
+
     [SerializeField] private string baseUrl = DefaultBaseUrl;
 
     [Header("Classroom Source")]
     [Tooltip("Generate a fresh Classroom so the backend can choose misconception, "
         + "identification, computation, and short-answer questions. Turn off for the "
         + "instant prepared-preset path.")]
-    [SerializeField] private bool generateClassroomFromTopic;
-    [SerializeField] private string classroomTopic = "scientific investigation";
+    [SerializeField] private bool generateClassroomFromTopic = true;
+    [SerializeField] private string classroomTopic = "photosynthesis";
     [SerializeField, Range(1, 12)] private int classroomGradeLevel = 5;
-    [SerializeField] private string presetId = "scientific-investigation";
-    [SerializeField] private string[] classroomMaterialIds = Array.Empty<string>();
+    [SerializeField] private string presetId = "photosynthesis";
+
+    /// <summary>
+    /// What the next Classroom is played in. Every line a Pupil speaks comes
+    /// back in this language, and it is deliberately independent of the language
+    /// of the material: her Science worksheet is in English and her Araling
+    /// Panlipunan worksheet is in Filipino, and which one she needs to practise
+    /// explaining in today is not decided by which photograph she took.
+    /// A prepared preset ignores it, because a preset is written text.
+    /// </summary>
+    [Tooltip("What the Classroom is played in. Independent of the language of "
+        + "the material. A prepared preset keeps the language it was written in, "
+        + "so read the language back off the session rather than assuming this one.")]
+    [SerializeField] private FleeClassroomLanguage classroomLanguage = FleeClassroomLanguage.English;
+
+    /// <summary>
+    /// Extra instructions for building the next Classroom, in the setter-up's
+    /// own words: a topic to leave out, a term her class uses, an angle to
+    /// weight. Capped at 500 characters by the service, which answers a longer
+    /// one with a 422. It shapes what the Classroom is about and never how a
+    /// turn is judged, and a prepared preset has nothing to apply it to.
+    /// </summary>
+    [Tooltip("A note for whoever builds the Classroom: a topic to leave out, a "
+        + "term her class uses, an angle to weight. Up to 500 characters. It "
+        + "changes what the Classroom is about, never how a turn is judged.")]
+    [SerializeField, TextArea(2, 4)] private string additionalNotes = string.Empty;
 
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
@@ -36,25 +64,42 @@ public sealed class FleeApiClient : MonoBehaviour
 
     public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
 
+    /// <summary>
+    /// The language tag the browser recogniser should listen in, read off the
+    /// Classroom that is actually running rather than off the one that was
+    /// asked for. Those two differ on the paths that cannot honour the request:
+    /// a preset keeps the language it was written in, and a failed generation
+    /// falls back to a preset. Defaults to English before a Classroom exists.
+    /// </summary>
+    public static string ActiveRecognitionLanguageTag =>
+        instance != null && instance.activeClassroom != null
+            ? FleeClassroomLanguages.ToRecognitionTag(
+                FleeClassroomLanguages.FromWireValue(instance.activeClassroom.language))
+            : FleeClassroomLanguages.ToRecognitionTag(FleeClassroomLanguage.English);
+
     public void ConfigureClassroomSource(
         bool generateFromTopic,
         string topic,
         int gradeLevel,
         string preparedPresetId)
     {
-        classroomMaterialIds = Array.Empty<string>();
         generateClassroomFromTopic = generateFromTopic;
-        classroomTopic = string.IsNullOrWhiteSpace(topic) ? "scientific investigation" : topic.Trim();
+        classroomTopic = string.IsNullOrWhiteSpace(topic) ? "photosynthesis" : topic.Trim();
         classroomGradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
         presetId = string.IsNullOrWhiteSpace(preparedPresetId)
-            ? "scientific-investigation"
+            ? "photosynthesis"
             : preparedPresetId.Trim();
     }
 
-    public void ConfigureClassroomMaterials(string[] materialIds)
+    /// <summary>
+    /// What the create-a-classroom screen sets alongside the source. Both apply
+    /// to a generated Classroom; a prepared preset ignores both, because it is
+    /// written text and no model call turns it into another language.
+    /// </summary>
+    public void ConfigureClassroomLanguage(FleeClassroomLanguage language, string notes)
     {
-        classroomMaterialIds = materialIds ?? Array.Empty<string>();
-        generateClassroomFromTopic = false;
+        classroomLanguage = language;
+        additionalNotes = notes ?? string.Empty;
     }
 
     public static void ResetClassroomSession()
@@ -111,61 +156,6 @@ public sealed class FleeApiClient : MonoBehaviour
         }
     }
 
-    public IEnumerator UploadClassroomMaterial(
-        string fileName,
-        byte[] fileBytes,
-        string contentType,
-        Action<FleeMaterialSession> onSuccess,
-        Action<FleeApiFailure> onFailure,
-        Action<float, string> onProgress = null)
-    {
-        if (fileBytes == null || fileBytes.Length == 0)
-        {
-            onFailure?.Invoke(new FleeApiFailure(0, "The selected file was empty."));
-            yield break;
-        }
-
-        string safeFileName = string.IsNullOrWhiteSpace(fileName)
-            ? "learning-material.pdf"
-            : fileName.Trim();
-        string safeContentType = string.IsNullOrWhiteSpace(contentType)
-            ? "application/octet-stream"
-            : contentType.Trim();
-        List<IMultipartFormSection> sections = new List<IMultipartFormSection>
-        {
-            new MultipartFormFileSection("file", fileBytes, safeFileName, safeContentType)
-        };
-
-        UnityWebRequest request = UnityWebRequest.Post(BuildUrl("/v1/materials"), sections);
-        request.timeout = Mathf.Max(10, requestTimeoutSeconds);
-        ApplyRequestHeaders(request, false);
-
-        onProgress?.Invoke(0.05f, "Uploading " + safeFileName);
-        UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-        while (!operation.isDone)
-        {
-            float requestProgress = request.uploadProgress >= 0f
-                ? request.uploadProgress
-                : 0f;
-            onProgress?.Invoke(
-                Mathf.Lerp(0.05f, 0.55f, requestProgress),
-                requestProgress < 0.98f
-                    ? "Uploading " + safeFileName
-                    : "Reading the learning material");
-            yield return null;
-        }
-
-        HandleResponse<FleeMaterialResponse>(
-            "/v1/materials",
-            request,
-            response =>
-            {
-                onProgress?.Invoke(1f, "Learning material is ready.");
-                onSuccess?.Invoke(ToMaterialSession(response));
-            },
-            onFailure);
-    }
-
     public IEnumerator PrepareClassroom(
         Action<FleeClassroomSession> onSuccess,
         Action<FleeApiFailure> onFailure,
@@ -206,20 +196,15 @@ public sealed class FleeApiClient : MonoBehaviour
             ResetClassroomSession();
         }
 
-        bool generateFromMaterial = classroomMaterialIds != null
-            && classroomMaterialIds.Length > 0
-            && !string.IsNullOrWhiteSpace(classroomMaterialIds[0]);
         string safeTopic = string.IsNullOrWhiteSpace(classroomTopic)
-            ? "scientific investigation"
+            ? "photosynthesis"
             : classroomTopic.Trim();
         int safeGradeLevel = Mathf.Clamp(classroomGradeLevel, 1, 12);
         onProgress?.Invoke(
             0.08f,
-            generateFromMaterial
-                ? "Reading the uploaded learning material"
-                : generateClassroomFromTopic
-                ? $"Connecting to the Grade {safeGradeLevel} {safeTopic} classroom"
-                : "Connecting to the prepared classroom");
+            generateClassroomFromTopic
+                ? $"Generating a Grade {safeGradeLevel} {safeTopic} classroom..."
+                : "Loading prepared classroom...");
 
         FleeClassroomResponse classroom = null;
         FleeApiFailure failure = null;
@@ -227,33 +212,22 @@ public sealed class FleeApiClient : MonoBehaviour
             "/v1/classrooms",
             new FleeClassroomRequest
             {
-                source = generateFromMaterial
-                    ? "source-material"
-                    : (generateClassroomFromTopic ? "topic" : "preset"),
-                materialIds = generateFromMaterial ? classroomMaterialIds : null,
-                topic = !generateFromMaterial && generateClassroomFromTopic ? safeTopic : null,
-                gradeLevel = !generateFromMaterial && generateClassroomFromTopic ? safeGradeLevel : 0,
-                presetId = generateFromMaterial || generateClassroomFromTopic
+                source = generateClassroomFromTopic ? "topic" : "preset",
+                topic = generateClassroomFromTopic ? safeTopic : null,
+                gradeLevel = generateClassroomFromTopic ? safeGradeLevel : 0,
+                presetId = generateClassroomFromTopic
                     ? null
-                    : (string.IsNullOrWhiteSpace(presetId) ? "scientific-investigation" : presetId.Trim())
+                    : (string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim()),
+                // Sent on both sources, and the service applies it to the
+                // generated one only: a preset keeps the language it was
+                // written in. Never null, whatever the source, because
+                // JsonUtility would write that as "" and the service takes
+                // null or one of the two codes.
+                language = FleeClassroomLanguages.ToWireValue(classroomLanguage),
+                additionalNotes = SafeAdditionalNotes()
             },
             response => classroom = response,
-            error => failure = error,
-            elapsed =>
-            {
-                float stagedProgress = Mathf.Lerp(
-                    0.1f,
-                    0.82f,
-                    1f - Mathf.Exp(-elapsed / 18f));
-                onProgress?.Invoke(
-                    stagedProgress,
-                    DescribeClassroomRequestStage(
-                        elapsed,
-                        generateClassroomFromTopic,
-                        generateFromMaterial,
-                        safeTopic,
-                        safeGradeLevel));
-            });
+            error => failure = error);
 
         if (failure != null)
         {
@@ -268,7 +242,7 @@ public sealed class FleeApiClient : MonoBehaviour
         }
 
         SetActiveClassroom(classroom);
-        onProgress?.Invoke(0.85f, "Reading the classroom roster");
+        onProgress?.Invoke(1f, "Classroom is ready.");
         onSuccess?.Invoke(ToClassroomSession(activeClassroom));
     }
 
@@ -294,7 +268,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
         FleeEncounterOpening opening = null;
         FleeApiFailure failure = null;
-        onProgress?.Invoke(0.1f, "Requesting " + safePupilName + "'s question");
+        onProgress?.Invoke(0.72f, "Generating " + safePupilName + "'s question...");
         yield return PostJson<FleeEncounterRequest, FleeEncounterOpening>(
             "/v1/encounters",
             new FleeEncounterRequest
@@ -303,20 +277,7 @@ public sealed class FleeApiClient : MonoBehaviour
                 pupilId = pupil.pupilId
             },
             response => opening = response,
-            error => failure = error,
-            elapsed =>
-            {
-                float stagedProgress = Mathf.Lerp(
-                    0.15f,
-                    0.9f,
-                    1f - Mathf.Exp(-elapsed / 10f));
-                string stage = elapsed < 2f
-                    ? "Requesting " + safePupilName + "'s question"
-                    : elapsed < 10f
-                        ? "Loading " + safePupilName + "'s question"
-                        : "Waiting for " + safePupilName + "'s question";
-                onProgress?.Invoke(stagedProgress, stage);
-            });
+            error => failure = error);
 
         if (failure != null)
         {
@@ -330,7 +291,7 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
-        onProgress?.Invoke(0.95f, "Reading " + safePupilName + "'s question");
+        onProgress?.Invoke(1f, safePupilName + " is ready.");
         onSuccess?.Invoke(new FleeEncounterSession(
             activeClassroom.classroomId,
             pupil.pupilId,
@@ -556,8 +517,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
     public IEnumerator RunTeacherScene(
         Action<FleeTeacherSceneResult> onSuccess,
-        Action<FleeApiFailure> onFailure,
-        Action<float, string> onProgress = null)
+        Action<FleeApiFailure> onFailure)
     {
         if (activeClassroom == null || string.IsNullOrWhiteSpace(activeClassroom.classroomId))
         {
@@ -567,7 +527,6 @@ public sealed class FleeApiClient : MonoBehaviour
 
         FleeTeacherResponse response = null;
         FleeApiFailure failure = null;
-        onProgress?.Invoke(0.35f, DescribeTeacherEvaluationStage(0f));
         yield return PostJson<FleeTeacherRequest, FleeTeacherResponse>(
             "/v1/teacher",
             new FleeTeacherRequest
@@ -575,15 +534,7 @@ public sealed class FleeApiClient : MonoBehaviour
                 classroomId = activeClassroom.classroomId
             },
             result => response = result,
-            error => failure = error,
-            elapsed =>
-            {
-                float stagedProgress = Mathf.Lerp(
-                    0.35f,
-                    0.92f,
-                    1f - Mathf.Exp(-elapsed / 10f));
-                onProgress?.Invoke(stagedProgress, DescribeTeacherEvaluationStage(elapsed));
-            });
+            error => failure = error);
 
         if (failure != null)
         {
@@ -596,8 +547,6 @@ public sealed class FleeApiClient : MonoBehaviour
             onFailure?.Invoke(new FleeApiFailure(0, "The Teacher did not return any Pupil results."));
             yield break;
         }
-
-        onProgress?.Invoke(0.96f, "Reading the Teacher's evaluations");
 
         FleeTeacherPupilResult[] results = new FleeTeacherPupilResult[response.results.Length];
         for (int index = 0; index < response.results.Length; index++)
@@ -624,34 +573,11 @@ public sealed class FleeApiClient : MonoBehaviour
             response.pattern));
     }
 
-    private string DescribeTeacherEvaluationStage(float elapsed)
-    {
-        FleePupilResponse[] pupils = activeClassroom != null
-            ? activeClassroom.pupils
-            : null;
-        if (pupils == null || pupils.Length == 0)
-        {
-            return "Preparing the Teacher's evaluations";
-        }
-
-        const float secondsPerPupilStatus = 4f;
-        int pupilIndex = Mathf.FloorToInt(elapsed / secondsPerPupilStatus);
-        if (pupilIndex >= pupils.Length)
-        {
-            return "Finishing the Teacher's report";
-        }
-
-        FleePupilResponse pupil = pupils[Mathf.Clamp(pupilIndex, 0, pupils.Length - 1)];
-        return "Loading " + SafePupilName(pupil != null ? pupil.name : string.Empty) +
-            "'s evaluation";
-    }
-
     private IEnumerator PostJson<TRequest, TResponse>(
         string path,
         TRequest payload,
         Action<TResponse> onSuccess,
-        Action<FleeApiFailure> onFailure,
-        Action<float> onWaiting = null)
+        Action<FleeApiFailure> onFailure)
     {
         string json = JsonUtility.ToJson(payload);
         string url = BuildUrl(path);
@@ -665,44 +591,9 @@ public sealed class FleeApiClient : MonoBehaviour
         };
         ApplyRequestHeaders(request, true);
 
-        float startedAt = Time.unscaledTime;
-        UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-        while (!operation.isDone)
-        {
-            onWaiting?.Invoke(Time.unscaledTime - startedAt);
-            yield return null;
-        }
+        yield return request.SendWebRequest();
 
         HandleResponse(path, request, onSuccess, onFailure);
-    }
-
-    private static string DescribeClassroomRequestStage(
-        float elapsed,
-        bool generateFromTopic,
-        bool generateFromMaterial,
-        string topic,
-        int gradeLevel)
-    {
-        if (elapsed < 2f)
-        {
-            return generateFromMaterial
-                ? "Building a classroom from the uploaded lesson"
-                : generateFromTopic
-                ? $"Requesting a Grade {gradeLevel} {topic} classroom"
-                : "Requesting the prepared classroom";
-        }
-
-        if (elapsed < 8f)
-        {
-            return "Waiting for the classroom roster";
-        }
-
-        if (elapsed < 20f)
-        {
-            return "Loading student profiles";
-        }
-
-        return "Waiting for backend classroom generation";
     }
 
     private IEnumerator GetJson<TResponse>(
@@ -935,30 +826,31 @@ public sealed class FleeApiClient : MonoBehaviour
             classroom.classroomId,
             classroom.topic,
             classroom.rescueQuota,
-            pupils);
-    }
-
-    private static FleeMaterialSession ToMaterialSession(FleeMaterialResponse material)
-    {
-        if (material == null || string.IsNullOrWhiteSpace(material.materialId))
-        {
-            return null;
-        }
-
-        return new FleeMaterialSession(
-            material.materialId,
-            material.filename,
-            material.topics,
-            material.unreadable,
-            material.subject,
-            material.estimatedGradeLevel,
-            material.vocabulary,
-            material.sampleQuestions);
+            pupils,
+            FleeClassroomLanguages.FromWireValue(classroom.language));
     }
 
     private static string SafePupilName(string pupilName)
     {
         return string.IsNullOrWhiteSpace(pupilName) ? "Mary" : pupilName.Trim();
+    }
+
+    /// <summary>
+    /// The note, trimmed and capped at what the service accepts. Trimming here
+    /// rather than letting the service refuse it turns a typo into a shorter
+    /// note instead of into a 422 in front of a loading screen.
+    /// </summary>
+    private string SafeAdditionalNotes()
+    {
+        if (string.IsNullOrWhiteSpace(additionalNotes))
+        {
+            return string.Empty;
+        }
+
+        string trimmed = additionalNotes.Trim();
+        return trimmed.Length <= MaxAdditionalNotesLength
+            ? trimmed
+            : trimmed.Substring(0, MaxAdditionalNotesLength);
     }
 
     private static FleeApiFailure BuildFailure(UnityWebRequest request)
@@ -1010,10 +902,23 @@ public sealed class FleeApiClient : MonoBehaviour
     private sealed class FleeClassroomRequest
     {
         public string source;
-        public string[] materialIds;
         public string topic;
         public int gradeLevel;
         public string presetId;
+
+        /// <summary>
+        /// `en` or `fil`. Always a real value, never an empty string:
+        /// JsonUtility writes a null string as "", the service takes null or one
+        /// of the two codes, and "" is neither, so an unset field here would be
+        /// a 422 on every call.
+        /// </summary>
+        public string language;
+
+        /// <summary>
+        /// Up to 500 characters. An empty string is safe to send: the service
+        /// reads it as no note at all.
+        /// </summary>
+        public string additionalNotes;
     }
 
     [Serializable]
@@ -1023,19 +928,14 @@ public sealed class FleeApiClient : MonoBehaviour
         public string topic;
         public FleePupilResponse[] pupils;
         public int rescueQuota;
-    }
 
-    [Serializable]
-    private sealed class FleeMaterialResponse
-    {
-        public string materialId;
-        public string filename;
-        public string[] topics;
-        public string[] unreadable;
-        public string subject;
-        public int estimatedGradeLevel;
-        public string[] vocabulary;
-        public string[] sampleQuestions;
+        /// <summary>
+        /// What the Classroom is actually played in, which is not always what
+        /// was asked for. A preset keeps the language it was written in and a
+        /// failed generation falls back to a preset. Missing on a response from
+        /// a service built before the field existed, which reads as English.
+        /// </summary>
+        public string language;
     }
 
     [Serializable]
@@ -1133,38 +1033,6 @@ public sealed class FleeApiClient : MonoBehaviour
     }
 }
 
-public sealed class FleeMaterialSession
-{
-    public FleeMaterialSession(
-        string materialId,
-        string fileName,
-        string[] topics,
-        string[] unreadable,
-        string subject,
-        int estimatedGradeLevel,
-        string[] vocabulary,
-        string[] sampleQuestions)
-    {
-        MaterialId = materialId;
-        FileName = fileName ?? string.Empty;
-        Topics = topics ?? Array.Empty<string>();
-        Unreadable = unreadable ?? Array.Empty<string>();
-        Subject = subject ?? string.Empty;
-        EstimatedGradeLevel = estimatedGradeLevel;
-        Vocabulary = vocabulary ?? Array.Empty<string>();
-        SampleQuestions = sampleQuestions ?? Array.Empty<string>();
-    }
-
-    public string MaterialId { get; }
-    public string FileName { get; }
-    public string[] Topics { get; }
-    public string[] Unreadable { get; }
-    public string Subject { get; }
-    public int EstimatedGradeLevel { get; }
-    public string[] Vocabulary { get; }
-    public string[] SampleQuestions { get; }
-}
-
 public sealed class FleeEncounterSession
 {
     public FleeEncounterSession(
@@ -1223,18 +1091,76 @@ public sealed class FleeClassroomSession
         string classroomId,
         string topic,
         int rescueQuota,
-        FleePupilSession[] pupils)
+        FleePupilSession[] pupils,
+        FleeClassroomLanguage language = FleeClassroomLanguage.English)
     {
         ClassroomId = classroomId;
         Topic = topic;
         RescueQuota = rescueQuota;
         Pupils = pupils ?? Array.Empty<FleePupilSession>();
+        Language = language;
     }
 
     public string ClassroomId { get; }
     public string Topic { get; }
     public int RescueQuota { get; }
     public FleePupilSession[] Pupils { get; }
+
+    /// <summary>
+    /// What every line in this Classroom is spoken in. Read it off here rather
+    /// than off whatever was asked for: a preset keeps the language it was
+    /// written in, and a failed generation falls back to a preset.
+    /// </summary>
+    public FleeClassroomLanguage Language { get; }
+
+    /// <summary>What the browser recogniser should listen in for this Classroom.</summary>
+    public string RecognitionLanguageTag => FleeClassroomLanguages.ToRecognitionTag(Language);
+}
+
+/// <summary>
+/// Which language a Classroom is played in. A property of the Learner rather
+/// than of her Source Material: a Filipino worksheet can build an English
+/// Classroom, because which language she is practising in is her choice.
+/// </summary>
+public enum FleeClassroomLanguage
+{
+    English = 0,
+    Filipino = 1
+}
+
+public static class FleeClassroomLanguages
+{
+    private const string EnglishWireValue = "en";
+    private const string FilipinoWireValue = "fil";
+
+    /// <summary>What `ClassroomRequest.language` accepts.</summary>
+    public static string ToWireValue(FleeClassroomLanguage language)
+    {
+        return language == FleeClassroomLanguage.Filipino ? FilipinoWireValue : EnglishWireValue;
+    }
+
+    /// <summary>
+    /// Reads `ClassroomView.language` back. Anything unrecognised, including the
+    /// null a service built before the field existed leaves behind, is English.
+    /// </summary>
+    public static FleeClassroomLanguage FromWireValue(string value)
+    {
+        return string.Equals(
+            (value ?? string.Empty).Trim(),
+            FilipinoWireValue,
+            StringComparison.OrdinalIgnoreCase)
+            ? FleeClassroomLanguage.Filipino
+            : FleeClassroomLanguage.English;
+    }
+
+    /// <summary>
+    /// The BCP-47 tag for the browser's SpeechRecognition, which takes a
+    /// language before she speaks rather than detecting one.
+    /// </summary>
+    public static string ToRecognitionTag(FleeClassroomLanguage language)
+    {
+        return language == FleeClassroomLanguage.Filipino ? "fil-PH" : "en-US";
+    }
 }
 
 public sealed class FleePupilSession
@@ -1396,16 +1322,16 @@ public sealed class FleeApiFailure
             case 401:
                 return "I couldn't connect to our science classroom. The client token is missing or incorrect.";
             case 429:
-                return "Sorry, I got distracted for a moment. Let's try that again.";
+                return "Sorry, I got distracted for a moment. Could you say that again?";
             case 502:
             case 503:
-                return "I couldn't think that through just now. Let's try again in a moment.";
+                return "I couldn't think that through just now. Can we try again in a moment?";
             case 422:
-                return "I didn't catch an explanation. Let's try that again.";
+                return "I didn't catch an explanation. Could you say it again?";
             case 409:
                 return "I don't have another question right now.";
             default:
-                return "I couldn't reach the science classroom just now. Let's try again in a moment.";
+                return "I couldn't reach the science classroom just now. Can we try again in a moment?";
         }
     }
 }

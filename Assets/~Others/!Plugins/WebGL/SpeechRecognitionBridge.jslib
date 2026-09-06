@@ -7,28 +7,20 @@ mergeInto(LibraryManager.library, {
     return window.SpeechRecognition || window.webkitSpeechRecognition ? 1 : 0;
   },
 
-  SpeechRecognition_RequestMicrophonePermission: function () {
-    if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return;
-    }
-
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      var tracks = stream.getTracks();
-      for (var i = 0; i < tracks.length; i++) {
-        tracks[i].stop();
-      }
-    }).catch(function () {
-      // The regular speech prompt will surface denial/unsupported errors when
-      // the learner later clicks AraBOT's mic.
-    });
-  },
-
-  SpeechRecognition_StartListening: function (targetNamePointer) {
+  SpeechRecognition_StartListening: function (targetNamePointer, languageTagPointer) {
     if (typeof window === "undefined") {
       return;
     }
 
     var targetName = UTF8ToString(targetNamePointer);
+    // The Classroom's language, as a BCP-47 tag: en-US or fil-PH. The recogniser
+    // takes one before she speaks rather than detecting it, so a Filipino
+    // Classroom listened to in en-US comes back as mangled English.
+    var languageTag = languageTagPointer ? UTF8ToString(languageTagPointer) : "";
+    if (!languageTag) {
+      languageTag = "en-US";
+    }
+
     var state = window.FleeSpeechBridge;
 
     if (!state) {
@@ -61,7 +53,6 @@ mergeInto(LibraryManager.library, {
       state.recognition = new RecognitionType();
       state.recognition.continuous = true;
       state.recognition.interimResults = true;
-      state.recognition.lang = "en-US";
       state.recognition.maxAlternatives = 1;
 
       state.recognition.onstart = function () {
@@ -106,6 +97,10 @@ mergeInto(LibraryManager.library, {
     state.targetName = targetName;
     state.finalTranscript = "";
     state.manualStop = false;
+    // Set on every start rather than only when the recogniser is built. The
+    // recogniser is built once and reused, and the Learner can leave a Filipino
+    // Classroom and start an English one without it being torn down.
+    state.recognition.lang = languageTag;
 
     if (state.isActive) {
       state.sendMessage("HandleSpeechStatus", "already-listening");

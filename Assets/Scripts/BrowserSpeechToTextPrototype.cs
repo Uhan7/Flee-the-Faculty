@@ -32,6 +32,15 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private bool hasSubmittedCurrentTranscript;
 
     public bool IsListening => isListening;
+
+    /// <summary>
+    /// Override the language the browser recogniser listens in, as a BCP-47 tag
+    /// such as en-US or fil-PH. Leave it empty and the Classroom that is running
+    /// decides, which is what the game wants. Set it only where there is no
+    /// Classroom to read, such as a standalone test scene.
+    /// </summary>
+    public string RecognitionLanguageTag { get; set; } = string.Empty;
+
     public bool RequiresTypedFallbackMode
     {
         get
@@ -79,21 +88,11 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private static extern int SpeechRecognition_IsSupported();
 
     [DllImport("__Internal")]
-    private static extern void SpeechRecognition_RequestMicrophonePermission();
-
-    [DllImport("__Internal")]
-    private static extern void SpeechRecognition_StartListening(string targetName);
+    private static extern void SpeechRecognition_StartListening(string targetName, string languageTag);
 
     [DllImport("__Internal")]
     private static extern void SpeechRecognition_StopListening();
 #endif
-
-    public static void RequestMicrophonePermission()
-    {
-#if UNITY_WEBGL && !UNITY_EDITOR
-        SpeechRecognition_RequestMicrophonePermission();
-#endif
-    }
 
     private void Awake()
     {
@@ -194,12 +193,11 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 
         if (!IsSpeechRecognitionSupported())
         {
-            const string unavailableMessage = "Speech recognition is not available in this browser.";
-            UpdateStatus(unavailableMessage);
+            UpdateStatus("Speech is not available here. Use the fallback text field, then click Submit.");
+            FocusFallbackInput();
             RefreshButtons();
             NotifyTranscriptChanged();
             NotifyListeningStateChanged();
-            SpeechError?.Invoke(unavailableMessage);
             return;
         }
 
@@ -379,7 +377,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 
         string submittedTranscript = GetSubmissionText();
         bool hasSubmittedWords = !string.IsNullOrWhiteSpace(submittedTranscript)
-            && submittedTranscript != "No speech was submitted.";
+            && submittedTranscript != "No speech or fallback text was submitted.";
 
         UpdateSubmittedTranscript(submittedTranscript);
         UpdateStatus("Submitted. Check the transcript below and the Console output.");
@@ -479,7 +477,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
             return fallbackText;
         }
 
-        return "No speech was submitted.";
+        return "No speech or fallback text was submitted.";
     }
 
     private string GetFallbackText()
@@ -504,8 +502,26 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private void BeginSpeechRecognition()
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
-        SpeechRecognition_StartListening(gameObject.name);
+        SpeechRecognition_StartListening(gameObject.name, ResolveRecognitionLanguageTag());
 #endif
+    }
+
+    /// <summary>
+    /// Which language the browser listens in. The recogniser takes one before
+    /// she speaks rather than detecting it, so a Filipino Classroom heard in
+    /// en-US comes back as mangled English.
+    ///
+    /// Resolved when listening starts rather than when this component is built,
+    /// because the controller is built once and reused across Classrooms. An
+    /// explicit <see cref="RecognitionLanguageTag"/> wins; otherwise it follows
+    /// the Classroom that is actually running, and falls back to en-US when
+    /// there is no Classroom, which is the standalone prototype scene.
+    /// </summary>
+    private string ResolveRecognitionLanguageTag()
+    {
+        return string.IsNullOrWhiteSpace(RecognitionLanguageTag)
+            ? FleeApiClient.ActiveRecognitionLanguageTag
+            : RecognitionLanguageTag.Trim();
     }
 
     private void EndSpeechRecognition()
