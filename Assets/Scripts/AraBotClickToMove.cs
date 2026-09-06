@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class AraBotClickToMove : MonoBehaviour
@@ -81,6 +80,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
     private bool hitStaticBlockerThisFrame;
     private bool isDetouringAroundDynamicBlocker;
     private bool isConversationMovementLocked;
+    private int navigationInputBlockedUntilFrame = -1;
     private bool isSeparatingForConversation;
     private Vector2 conversationSeparationTarget;
     private Collider2D conversationPartner;
@@ -192,6 +192,7 @@ public sealed class AraBotClickToMove : MonoBehaviour
 
     public void SetConversationMovementLocked(bool locked, Collider2D conversationPartner = null)
     {
+        bool wasLocked = isConversationMovementLocked;
         isConversationMovementLocked = locked;
         if (locked)
         {
@@ -202,13 +203,21 @@ public sealed class AraBotClickToMove : MonoBehaviour
         {
             isSeparatingForConversation = false;
             this.conversationPartner = null;
+            if (wasLocked)
+            {
+                // A UI button can end a conversation before this component's Update.
+                // Do not reinterpret that same pointer press as a floor destination.
+                navigationInputBlockedUntilFrame = Time.frameCount + 1;
+            }
         }
     }
 
     // Converts desktop clicks and mobile taps into 2D world targets sampled against the runtime NavMesh.
     private void HandleClick()
     {
-        if (isConversationMovementLocked || !TryGetDestinationPress(out Vector2 screenPosition))
+        if (isConversationMovementLocked
+            || Time.frameCount <= navigationInputBlockedUntilFrame
+            || !TryGetDestinationPress(out Vector2 screenPosition))
         {
             return;
         }
@@ -279,16 +288,9 @@ public sealed class AraBotClickToMove : MonoBehaviour
             new PointerEventData(eventSystem) { position = screenPosition },
             uiRaycastResults);
 
-        for (int index = 0; index < uiRaycastResults.Count; index++)
-        {
-            GameObject hitObject = uiRaycastResults[index].gameObject;
-            if (hitObject != null && hitObject.GetComponentInParent<Selectable>() != null)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        // Any raycastable UI should own the press. Restricting this to Selectables
+        // allowed clicks on dialogue panels and decorative UI to leak into movement.
+        return uiRaycastResults.Count > 0;
     }
 
     private void StopForConversation()

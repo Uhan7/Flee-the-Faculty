@@ -216,6 +216,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1859726876}
+  - {fileID: 900002001}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -245,6 +246,7 @@ MonoBehaviour:
   defaultNameBoxSprite: {fileID: -6844855711077257918, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
   studentDialogueBoxSprite: {fileID: -4838281946603112173, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
   studentNameBoxSprite: {fileID: 1228628871593904614, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
+  useSpeakerSpecificStyles: 1
   panelAppearDuration: 0.3
   panelAppearRiseDistance: 110
   panelAppearStartScale: 0.88
@@ -274,7 +276,6 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   viewProvider: {fileID: 392015446}
   advanceWithKeyboard: 1
-  advanceWithLeftClick: 1
   lettersPerVoiceTick: 3
 --- !u!1 &399008325
 GameObject:
@@ -1249,6 +1250,7 @@ RectTransform:
   m_Children:
   - {fileID: 399008326}
   - {fileID: 718829256}
+  - {fileID: 900001001}
   m_Father: {fileID: 392015445}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1390,6 +1392,42 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6423c6e068a0f42219909f90ea7a8857, type: 3}
++--- !u!1001 &900001000
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1859726876}
+    m_Modifications: []
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 24e00a13e07641229513423c1543e2f1, type: 3}
+--- !u!224 &900001001 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 100000002, guid: 24e00a13e07641229513423c1543e2f1, type: 3}
+  m_PrefabInstance: {fileID: 900001000}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &900002000
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 392015445}
+    m_Modifications: []
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2969a4f708474a3390bed2bd8c44283a, type: 3}
+--- !u!224 &900002001 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 200000002, guid: 2969a4f708474a3390bed2bd8c44283a, type: 3}
+  m_PrefabInstance: {fileID: 900002000}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

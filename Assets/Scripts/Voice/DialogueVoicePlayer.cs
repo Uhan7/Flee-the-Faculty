@@ -273,6 +273,40 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
     }
 
     /// <summary>
+    /// Gets the duration of a line's recorded voice when it is known.
+    ///
+    /// The dialogue view uses this to pace its text reveal to the spoken line.
+    /// Baked clips are available immediately; generated clips become available
+    /// as soon as their request finishes.
+    /// </summary>
+    public bool TryGetLineDuration(IDialogueLine line, out float durationSeconds)
+    {
+        durationSeconds = 0f;
+        if (line == null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(SpeakingLine, line) && source != null && source.clip != null)
+        {
+            durationSeconds = source.clip.length / Mathf.Max(0.01f, source.pitch);
+            return durationSeconds > 0f;
+        }
+
+        VoiceId voice = VoiceCatalog.VoiceOf(line.SpeakerReference);
+        AudioClip clip = library != null && voice != VoiceId.None
+            ? library.Find(voice, line.Text)
+            : null;
+        if (clip == null)
+        {
+            return false;
+        }
+
+        durationSeconds = clip.length / Mathf.Max(0.01f, source != null ? source.pitch : 1f);
+        return durationSeconds > 0f;
+    }
+
+    /// <summary>
     /// Start making every line of this conversation that is not already baked.
     ///
     /// A Pupil's reply is a restatement and a follow-up, delivered together, so

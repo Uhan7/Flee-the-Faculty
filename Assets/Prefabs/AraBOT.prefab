@@ -1280,14 +1280,14 @@ Canvas:
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
-  m_OverrideSorting: 0
+  m_OverrideSorting: 1
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 126519104
-  m_SortingOrder: 1
+  m_SortingLayerID: 126519107
+  m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &3486890089274701242
 MonoBehaviour:

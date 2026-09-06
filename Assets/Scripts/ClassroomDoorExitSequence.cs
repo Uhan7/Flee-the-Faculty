@@ -7,11 +7,15 @@ using UnityEngine.Rendering;
 [DisallowMultipleComponent]
 public sealed class ClassroomDoorExitSequence : MonoBehaviour
 {
+    private const string WorldUiSortingLayer = "World UI";
+
     [Header("Door References")]
     [SerializeField] private Transform leftDoor;
     [SerializeField] private Transform rightDoor;
     [SerializeField] private SpriteRenderer leftDoorRenderer;
     [SerializeField] private SpriteRenderer rightDoorRenderer;
+    [Tooltip("The dark opening behind the door panels. It stays behind the student.")]
+    [SerializeField] private SpriteRenderer doorwayBackgroundRenderer;
     [Tooltip("The wall or ceiling that should hide a student after they cross the doorway.")]
     [SerializeField] private SpriteRenderer doorwayForegroundRenderer;
 
@@ -41,7 +45,8 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
     private Vector3 rightHingeWorldPosition;
     private RendererSortState leftClosedSort;
     private RendererSortState rightClosedSort;
-    private RendererSortState doorwayForegroundClosedSort;
+    private readonly List<SpriteRenderer> doorwayForegroundRenderers = new List<SpriteRenderer>();
+    private readonly List<RendererSortState> doorwayForegroundClosedSorts = new List<RendererSortState>();
     private bool hasCapturedClosedState;
 
     public static ClassroomDoorExitSequence FindOrCreate()
@@ -114,6 +119,7 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         }
 
         PrepareStudentForExit(student);
+        KeepDoorwayBackgroundVisible();
         SetDoorPanelsInFront();
 
         Vector2 doorwayCenter = GetDoorwayCenter();
@@ -246,9 +252,16 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         }
 
         Canvas[] canvases = student.GetComponentsInChildren<Canvas>(true);
+        int worldUiLayerId = SortingLayer.NameToID(WorldUiSortingLayer);
         for (int index = 0; index < canvases.Length; index++)
         {
-            canvases[index].overrideSorting = false;
+            canvases[index].overrideSorting = true;
+            if (worldUiLayerId != 0)
+            {
+                canvases[index].sortingLayerID = worldUiLayerId;
+            }
+
+            canvases[index].sortingOrder = 0;
         }
     }
 
@@ -264,12 +277,14 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
             return;
         }
 
-        ConfigureDoorRenderer(leftDoorRenderer, layerId, foregroundSortingOrder);
-        ConfigureDoorRenderer(rightDoorRenderer, layerId, foregroundSortingOrder + 1);
-        ConfigureDoorRenderer(
-            doorwayForegroundRenderer,
-            layerId,
-            foregroundSortingOrder - 1);
+        for (int index = 0; index < doorwayForegroundRenderers.Count; index++)
+        {
+            SpriteRenderer renderer = doorwayForegroundRenderers[index];
+            ConfigureDoorRenderer(renderer, layerId, foregroundSortingOrder + 1);
+        }
+
+        ConfigureDoorRenderer(leftDoorRenderer, layerId, foregroundSortingOrder + 2);
+        ConfigureDoorRenderer(rightDoorRenderer, layerId, foregroundSortingOrder + 3);
     }
 
     private void RestoreDoorSorting()
@@ -280,7 +295,10 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         rightDoor.localPosition = rightClosedPosition;
         leftClosedSort.Apply(leftDoorRenderer);
         rightClosedSort.Apply(rightDoorRenderer);
-        doorwayForegroundClosedSort.Apply(doorwayForegroundRenderer);
+        for (int index = 0; index < doorwayForegroundRenderers.Count; index++)
+        {
+            doorwayForegroundClosedSorts[index].Apply(doorwayForegroundRenderers[index]);
+        }
     }
 
     private void CaptureClosedState()
@@ -298,8 +316,37 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         rightHingeWorldPosition = GetDoorEdgeWorldPosition(rightDoorRenderer, false);
         leftClosedSort = RendererSortState.Capture(leftDoorRenderer);
         rightClosedSort = RendererSortState.Capture(rightDoorRenderer);
-        doorwayForegroundClosedSort = RendererSortState.Capture(doorwayForegroundRenderer);
+        CaptureDoorwayForegroundRenderers();
         hasCapturedClosedState = true;
+    }
+
+    private void CaptureDoorwayForegroundRenderers()
+    {
+        doorwayForegroundRenderers.Clear();
+        doorwayForegroundClosedSorts.Clear();
+
+        Transform wallRoot = transform.parent;
+        if (wallRoot == null)
+        {
+            return;
+        }
+
+        SpriteRenderer[] renderers = wallRoot.GetComponentsInChildren<SpriteRenderer>(true);
+        for (int index = 0; index < renderers.Length; index++)
+        {
+            SpriteRenderer renderer = renderers[index];
+            if (renderer == null
+                || renderer == doorwayForegroundRenderer
+                || renderer.transform.IsChildOf(transform))
+            {
+                // Keep the wall base and dark opening behind the pupil. Only the
+                // individual bricks and door panels need to cover the exit route.
+                continue;
+            }
+
+            doorwayForegroundRenderers.Add(renderer);
+            doorwayForegroundClosedSorts.Add(RendererSortState.Capture(renderer));
+        }
     }
 
     private Vector2 GetDoorwayCenter()
@@ -329,10 +376,29 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
             rightDoorRenderer = rightDoor.GetComponent<SpriteRenderer>();
         }
 
+        if (doorwayBackgroundRenderer == null)
+        {
+            Transform background = transform.Find("Door Background");
+            doorwayBackgroundRenderer = background != null
+                ? background.GetComponent<SpriteRenderer>()
+                : null;
+        }
+
         if (doorwayForegroundRenderer == null && transform.parent != null)
         {
             doorwayForegroundRenderer = transform.parent.GetComponent<SpriteRenderer>();
         }
+    }
+
+    private void KeepDoorwayBackgroundVisible()
+    {
+        if (doorwayBackgroundRenderer == null)
+        {
+            return;
+        }
+
+        doorwayBackgroundRenderer.gameObject.SetActive(true);
+        doorwayBackgroundRenderer.enabled = true;
     }
 
     private static Vector3 GetDoorEdgeWorldPosition(SpriteRenderer renderer, bool leftEdge)

@@ -220,7 +220,8 @@ MonoBehaviour:
   studentBodyOrderOffset: 10
   deskFrontOrderOffset: 20
   studentHeadOrderOffset: 10
-  studentUiOrderOffset: 40
+  studentUiSortingLayer: World UI
+  studentUiOrderOffset: 0
 --- !u!1 &7934878490810604580
 GameObject:
   m_ObjectHideFlags: 0

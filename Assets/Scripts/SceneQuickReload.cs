@@ -64,7 +64,10 @@ public sealed class SceneQuickReload : MonoBehaviour
 
     private void Update()
     {
-        if (isReloading || IsTextInputFocused() || !WasReloadPressed())
+        if (!DebugModeStore.IsEnabled
+            || isReloading
+            || IsTextInputFocused()
+            || !WasReloadPressed())
         {
             return;
         }
@@ -74,7 +77,7 @@ public sealed class SceneQuickReload : MonoBehaviour
 
     public void ReloadActiveScene()
     {
-        if (isReloading)
+        if (!DebugModeStore.IsEnabled || isReloading)
         {
             return;
         }

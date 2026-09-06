@@ -768,7 +768,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
         SetLoadingTextVisible(true);
 
         targetLoadingProgress = Mathf.Clamp01(progress);
-        string safeStatus = string.IsNullOrWhiteSpace(status) ? "Loading..." : status.Trim();
+        string safeStatus = NormalizeLoadingStatus(status);
 
         if (loadingStatusText != null)
         {
@@ -782,13 +782,37 @@ public sealed class DoorSceneTransition : MonoBehaviour
     {
         if (loadingProgressFill != null)
         {
-            loadingProgressFill.fillAmount = displayedLoadingProgress;
+            RectTransform fillRect = loadingProgressFill.rectTransform;
+            RectTransform trackRect = fillRect != null ? fillRect.parent as RectTransform : null;
+            if (fillRect != null && trackRect != null)
+            {
+                const float horizontalInset = 8f;
+                const float verticalInset = 8f;
+                float availableWidth = Mathf.Max(0f, trackRect.rect.width - (horizontalInset * 2f));
+                float availableHeight = Mathf.Max(4f, trackRect.rect.height - (verticalInset * 2f));
+                fillRect.anchorMin = new Vector2(0f, 0.5f);
+                fillRect.anchorMax = new Vector2(0f, 0.5f);
+                fillRect.pivot = new Vector2(0f, 0.5f);
+                fillRect.anchoredPosition = new Vector2(horizontalInset, 0f);
+                fillRect.sizeDelta = new Vector2(availableWidth * displayedLoadingProgress, availableHeight);
+            }
         }
 
         if (loadingPercentText != null)
         {
             loadingPercentText.text = Mathf.RoundToInt(displayedLoadingProgress * 100f) + "%";
         }
+    }
+
+    private static string NormalizeLoadingStatus(string status)
+    {
+        string safeStatus = string.IsNullOrWhiteSpace(status) ? "Loading" : status.Trim();
+        while (safeStatus.EndsWith("...", System.StringComparison.Ordinal))
+        {
+            safeStatus = safeStatus.Substring(0, safeStatus.Length - 3).TrimEnd();
+        }
+
+        return safeStatus.TrimEnd('\u2026').TrimEnd();
     }
 
     private void ResetLoadingProgress()

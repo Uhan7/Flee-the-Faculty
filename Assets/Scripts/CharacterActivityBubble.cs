@@ -30,6 +30,7 @@ public sealed class CharacterActivityBubble : MonoBehaviour
     private DialogueManager dialogueManager;
     private bool manualThinking;
     private bool currentSpeaker;
+    private bool usesScreenSpaceLayout;
 
     private void Awake()
     {
@@ -82,6 +83,36 @@ public sealed class CharacterActivityBubble : MonoBehaviour
     {
         manualThinking = visible;
         ApplyVisibility(manualThinking || IsSpeaking());
+    }
+
+    public void ConfigureForScreenSpace()
+    {
+        if (usesScreenSpaceLayout)
+        {
+            return;
+        }
+
+        dotSize *= 100f;
+        dotSpacing *= 100f;
+        dotsOffset *= 100f;
+        bounceHeight *= 100f;
+        usesScreenSpaceLayout = true;
+
+        float totalWidth = dotSpacing * (DotCount - 1);
+        for (int index = 0; index < dots.Length; index++)
+        {
+            RectTransform dot = dots[index];
+            if (dot == null)
+            {
+                continue;
+            }
+
+            dot.sizeDelta = Vector2.one * dotSize;
+            dotBasePositions[index] = dotsOffset + new Vector2(
+                (index * dotSpacing) - (totalWidth * 0.5f),
+                0f);
+            dot.anchoredPosition = dotBasePositions[index];
+        }
     }
 
     private void ResolveReferences()

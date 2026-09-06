@@ -55,6 +55,7 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     private float clickJuiceElapsed = float.MaxValue;
     private bool isHovered;
     private bool isPressed;
+    private bool usesScreenSpaceLayout;
 
     private void Reset()
     {
@@ -234,6 +235,48 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
                 targetGraphic.color,
                 targetColor,
                 GetLerpFactor(colorLerpSpeed, deltaTime));
+        }
+    }
+
+    public void ConfigureForScreenSpace(Vector2 size)
+    {
+        if (rectTransform == null)
+        {
+            rectTransform = GetComponent<RectTransform>();
+        }
+
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.localScale = Vector3.one;
+        rectTransform.localRotation = Quaternion.identity;
+        baseScale = Vector3.one;
+        baseRotation = Quaternion.identity;
+
+        if (usesScreenSpaceLayout)
+        {
+            return;
+        }
+
+        bobAmplitude *= 100f;
+        hoverLift *= 100f;
+        pressedSink *= 100f;
+        clickBurstLift *= 100f;
+        usesScreenSpaceLayout = true;
+    }
+
+    public void SetBaseAnchoredPosition(Vector2 position)
+    {
+        if (rectTransform == null)
+        {
+            rectTransform = GetComponent<RectTransform>();
+        }
+
+        baseAnchoredPosition = position;
+        if (!gameObject.activeInHierarchy)
+        {
+            rectTransform.anchoredPosition = position;
         }
     }
 

@@ -10,31 +10,34 @@ using UnityEngine.InputSystem;
 public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 {
     private const string DefaultWaitingText = "AraBOT is listening";
-    private const string DefaultTypingText = "The mic did not catch anything clearly, so you can type your reply instead.";
-    private const string NoSpeechSubmittedText = "No speech or fallback text was submitted.";
+    private const string NoSpeechSubmittedText = "No speech was submitted.";
+    private const string TypeInsteadText = "Click here if you prefer to type.";
+    private const string TypedReplyPlaceholder = "Type your reply, then press Enter";
 
     private static DialogueSpeechCaptureFlow instance;
 
     [Header("Timing")]
-    [SerializeField, Min(0f)] private float fallbackKeyboardDelaySeconds = 7f;
     [SerializeField, Min(0f)] private float inputDebounceSeconds = 0.15f;
 
-    [Header("Listening")]
-    [SerializeField] private bool autoStartListening = true;
+    [Header("Prompt Layout")]
+    [SerializeField] private Vector3 promptWorldOffset = new Vector3(0f, 2.4f, 0f);
+    [SerializeField] private Vector2 promptScreenOffset = new Vector2(0f, 18f);
+    [SerializeField] private Vector2 promptScreenSize = new Vector2(112f, 112f);
 
     private BrowserSpeechToTextPrototype speechController;
     private SceneDialogueView dialogueView;
     private AraBotPromptButton[] promptButtons = Array.Empty<AraBotPromptButton>();
     private CharacterActivityBubble araBotActivityBubble;
+    private Transform promptWorldAnchor;
     private Action<string> onTranscriptConfirmed;
     private PromptState state = PromptState.Hidden;
     private string currentTitle = string.Empty;
     private string currentInstructions = string.Empty;
     private string liveTranscript = string.Empty;
     private string pendingTranscript = string.Empty;
-    private float listeningStartedAt;
     private float ignoreAdvanceUntil;
     private bool hasHeardSpeech;
+    private bool isTypingHintVisible;
 
     public static DialogueSpeechCaptureFlow GetOrCreate()
     {
@@ -59,6 +62,16 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         instance.EnsureBuilt();
         DontDestroyOnLoad(flowObject);
         return instance;
+    }
+
+    public static void AdvanceActivePrompt()
+    {
+        if (instance == null || instance.state != PromptState.Review)
+        {
+            return;
+        }
+
+        instance.ConfirmTranscript();
     }
 
     private void Awake()
@@ -87,13 +100,13 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             ApplyInputReference();
         }
 
-        if (promptButtons == null || promptButtons.Length == 0)
+        if (!HasUsablePromptButtons())
         {
             promptButtons = ResolvePromptButtons();
         }
 
+        UpdatePromptButtonPosition();
         UpdateBodyCopy();
-        UpdateListeningState();
         HandleAdvanceInput();
     }
 
@@ -120,26 +133,22 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         currentTitle = string.IsNullOrWhiteSpace(title) ? "AraBOT" : title.Trim();
         currentInstructions = string.IsNullOrWhiteSpace(instructions)
-            ? "Speak whenever you are ready."
+            ? "Click the mic above AraBOT to speak."
             : instructions.Trim();
         onTranscriptConfirmed = onSubmitted;
         liveTranscript = string.Empty;
         pendingTranscript = string.Empty;
+        isTypingHintVisible = false;
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
 
         speechController.ResetForReuse(
-            "Listening will begin automatically.",
+            "Click the mic above AraBOT to speak.",
             DefaultWaitingText,
             string.Empty);
 
-        ShowDialogueHint(currentTitle, currentInstructions);
-        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
+        ShowReadyPrompt();
+        ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
         state = PromptState.ReadyToListen;
-
-        if (autoStartListening)
-        {
-            BeginListening(keepMicVisible: true);
-        }
     }
 
     public void ShowProcessing(string studentName)
@@ -150,6 +159,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         liveTranscript = string.Empty;
         pendingTranscript = string.Empty;
+        isTypingHintVisible = false;
         onTranscriptConfirmed = null;
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
 
@@ -169,6 +179,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         onTranscriptConfirmed = null;
         liveTranscript = string.Empty;
         pendingTranscript = string.Empty;
+        isTypingHintVisible = false;
         state = PromptState.Hidden;
 
         if (speechController != null)
@@ -181,6 +192,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         if (dialogueView != null)
         {
+            dialogueView.SetExternalBodyAction(null);
             dialogueView.SetVisible(false);
         }
     }
@@ -202,11 +214,6 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private void BeginListening()
     {
-        BeginListening(keepMicVisible: true);
-    }
-
-    private void BeginListening(bool keepMicVisible)
-    {
         if (state == PromptState.Listening && speechController != null && speechController.IsListening)
         {
             return;
@@ -215,13 +222,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         liveTranscript = string.Empty;
         pendingTranscript = string.Empty;
         hasHeardSpeech = false;
-        listeningStartedAt = Time.unscaledTime;
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
-
-        if (dialogueView != null && dialogueView.ExternalInputField != null)
-        {
-            dialogueView.ExternalInputField.text = string.Empty;
-        }
 
         ApplyInputReference();
         speechController.ResetForReuse(
@@ -229,42 +230,12 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             DefaultWaitingText,
             string.Empty);
 
-        if (speechController.RequiresTypedFallbackMode)
-        {
-            ActivateKeyboardFallback();
-            return;
-        }
-
         state = PromptState.Listening;
         SetAraBotThinking(false);
-        if (keepMicVisible)
-        {
-            ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
-            ShowDialogueHint(currentTitle, currentInstructions);
-        }
-        else
-        {
-            ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
-            ShowDialogueHint(currentTitle, DefaultWaitingText);
-        }
+        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
+        ShowTypingFallbackHint();
 
         speechController.StartListening();
-    }
-
-    private void ActivateKeyboardFallback()
-    {
-        speechController.StopListeningWithoutSubmitting();
-        state = PromptState.TypingFallback;
-        ShowDialogueHint(currentTitle, DefaultTypingText);
-
-        if (dialogueView != null)
-        {
-            dialogueView.SetExternalInputVisible(true, "Type your reply here...", speechController.CurrentDisplayTranscript);
-            dialogueView.FocusExternalInputField();
-        }
-
-        ApplyInputReference();
-        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Keyboard);
     }
 
     private void HandleTranscriptSubmitted(string transcript)
@@ -277,8 +248,11 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
         if (dialogueView != null)
         {
+            dialogueView.SetExternalBodyAction(null);
             dialogueView.SetExternalInputVisible(false);
         }
+
+        isTypingHintVisible = false;
 
         ShowDialogue(pendingTranscript, true);
         ShowPromptButton(AraBotPromptButton.PromptRole.Redo, BeginListening);
@@ -291,6 +265,8 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         if (state == PromptState.Listening && !hasHeardSpeech && !string.IsNullOrWhiteSpace(liveTranscript))
         {
             hasHeardSpeech = true;
+            isTypingHintVisible = false;
+            dialogueView?.SetExternalBodyAction(null);
             ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
         }
     }
@@ -303,9 +279,10 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         }
 
         state = PromptState.ReadyToListen;
+        isTypingHintVisible = false;
         SetAraBotThinking(false);
-        ShowDialogueHint(currentTitle, currentInstructions);
-        ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Mic);
+        ShowReadyPrompt();
+        ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
     }
 
     private void UpdateBodyCopy()
@@ -320,55 +297,46 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             case PromptState.Listening:
                 if (string.IsNullOrWhiteSpace(liveTranscript))
                 {
-                    ShowDialogueHint(currentTitle, DefaultWaitingText);
+                    if (!isTypingHintVisible)
+                    {
+                        ShowTypingFallbackHint();
+                    }
                 }
                 else
                 {
-                    dialogueView.SetExternalBodyText(liveTranscript, false);
+                    isTypingHintVisible = false;
+                    dialogueView.SetExternalBodyAction(null);
+                    dialogueView.SetExternalBodyTextSmooth(liveTranscript, false);
                 }
                 break;
 
         }
     }
 
-    private void UpdateListeningState()
-    {
-        if (state != PromptState.Listening)
-        {
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(liveTranscript))
-        {
-            return;
-        }
-
-        if (Time.unscaledTime - listeningStartedAt >= fallbackKeyboardDelaySeconds)
-        {
-            ActivateKeyboardFallback();
-        }
-    }
-
     private void HandleAdvanceInput()
     {
-        if (Time.unscaledTime < ignoreAdvanceUntil || !WasAdvancePressed())
+        if (state == PromptState.Typing)
         {
+            if (Time.unscaledTime >= ignoreAdvanceUntil && WasEnterPressed())
+            {
+                SubmitTypedReply();
+            }
+
             return;
         }
 
-        if (state == PromptState.TypingFallback && dialogueView != null)
+        bool pointerPressed = WasPointerPressed();
+        if (Time.unscaledTime < ignoreAdvanceUntil
+            || (pointerPressed && IsPointerOverPromptButton())
+            || (pointerPressed && dialogueView != null && dialogueView.IsPointerOverControlButton())
+            || !WasAdvancePressed())
         {
-            TMP_InputField inputField = dialogueView.ExternalInputField;
-            if (inputField != null && inputField.isFocused)
-            {
-                return;
-            }
+            return;
         }
 
         switch (state)
         {
             case PromptState.Listening:
-            case PromptState.TypingFallback:
                 speechController.SubmitTranscript();
                 ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
                 break;
@@ -387,6 +355,63 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         callback?.Invoke(confirmedTranscript);
     }
 
+    private void ShowTypingFallbackHint()
+    {
+        ShowDialogueHint(currentTitle, DefaultWaitingText + "\n\n" + TypeInsteadText);
+        dialogueView?.SetExternalBodyAction(BeginTyping);
+        isTypingHintVisible = true;
+    }
+
+    private void ShowReadyPrompt()
+    {
+        ShowDialogueHint(currentTitle, currentInstructions + "\n\n" + TypeInsteadText);
+        dialogueView?.SetExternalBodyAction(BeginTyping);
+        isTypingHintVisible = true;
+    }
+
+    private void BeginTyping()
+    {
+        if (state != PromptState.Listening && state != PromptState.ReadyToListen)
+        {
+            return;
+        }
+
+        speechController?.StopListeningWithoutSubmitting();
+        state = PromptState.Typing;
+        isTypingHintVisible = false;
+        ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
+        ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
+
+        if (dialogueView == null)
+        {
+            dialogueView = SceneDialogueView.ActiveInstance;
+        }
+
+        if (dialogueView == null)
+        {
+            return;
+        }
+
+        dialogueView.SetExternalBodyAction(null);
+        dialogueView.SetExternalInputVisible(true, TypedReplyPlaceholder, string.Empty);
+        dialogueView.FocusExternalInputField();
+    }
+
+    private void SubmitTypedReply()
+    {
+        TMP_InputField inputField = dialogueView != null ? dialogueView.ExternalInputField : null;
+        string typedReply = inputField != null ? inputField.text.Trim() : string.Empty;
+        if (string.IsNullOrWhiteSpace(typedReply))
+        {
+            dialogueView?.SetExternalInputVisible(true, "Type something before pressing Enter", string.Empty);
+            dialogueView?.FocusExternalInputField();
+            return;
+        }
+
+        pendingTranscript = typedReply;
+        ConfirmTranscript();
+    }
+
     private void ShowDialogue(string speaker, string body, bool canAdvance)
     {
         dialogueView = SceneDialogueView.ActiveInstance;
@@ -396,7 +421,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         }
 
         ApplyInputReference();
-        dialogueView.ShowExternalContent(speaker, body, canAdvance);
+        dialogueView.ShowExternalContentSmooth(speaker, body, canAdvance);
     }
 
     private void ShowDialogue(string body, bool canAdvance)
@@ -433,13 +458,12 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             return;
         }
 
-        TMP_InputField inputField = dialogueView != null ? dialogueView.ExternalInputField : null;
         speechController.SetReferences(
             null,
             null,
             null,
             null,
-            inputField,
+            dialogueView != null ? dialogueView.ExternalInputField : null,
             null,
             null);
     }
@@ -479,7 +503,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private void ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole role)
     {
-        SetAraBotThinking(false);
+        SetAraBotThinking(role == AraBotPromptButton.PromptRole.Thinking);
         promptButtons = ResolvePromptButtons();
 
         for (int index = 0; index < promptButtons.Length; index++)
@@ -571,6 +595,12 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private AraBotPromptButton[] ResolvePromptButtons()
     {
+        if (HasUsablePromptButtons())
+        {
+            AttachPromptButtonsToDialogueCanvas(promptButtons);
+            return promptButtons;
+        }
+
 #if UNITY_2023_1_OR_NEWER
         DialogueActor[] actors = FindObjectsByType<DialogueActor>(FindObjectsSortMode.None);
 #else
@@ -587,11 +617,167 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
             AraBotPromptButton[] foundButtons = actor.GetComponentsInChildren<AraBotPromptButton>(true);
             if (foundButtons != null && foundButtons.Length > 0)
             {
+                promptWorldAnchor = actor.transform;
+                araBotActivityBubble = actor.GetComponent<CharacterActivityBubble>();
+                AttachPromptButtonsToDialogueCanvas(foundButtons);
                 return foundButtons;
             }
         }
 
+        promptWorldAnchor = null;
         return Array.Empty<AraBotPromptButton>();
+    }
+
+    private bool HasUsablePromptButtons()
+    {
+        if (promptButtons == null || promptButtons.Length == 0)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < promptButtons.Length; index++)
+        {
+            if (promptButtons[index] != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AttachPromptButtonsToDialogueCanvas(AraBotPromptButton[] buttons)
+    {
+        dialogueView = SceneDialogueView.ActiveInstance;
+        RectTransform controlsRoot = dialogueView != null ? dialogueView.DialogueControlsRoot : null;
+        if (controlsRoot == null || buttons == null)
+        {
+            return;
+        }
+
+        Canvas dialogueCanvas = controlsRoot.GetComponentInParent<Canvas>();
+        Canvas previousPromptCanvas = null;
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            AraBotPromptButton promptButton = buttons[index];
+            RectTransform promptRect = promptButton != null
+                ? promptButton.transform as RectTransform
+                : null;
+            if (promptRect == null)
+            {
+                continue;
+            }
+
+            if (promptRect.parent != controlsRoot)
+            {
+                Canvas currentCanvas = promptRect.GetComponentInParent<Canvas>();
+                if (currentCanvas != null && currentCanvas != dialogueCanvas)
+                {
+                    previousPromptCanvas = currentCanvas;
+                }
+
+                promptRect.SetParent(controlsRoot, false);
+                promptRect.SetAsLastSibling();
+            }
+
+            promptRect.anchorMin = new Vector2(0.5f, 0.5f);
+            promptRect.anchorMax = new Vector2(0.5f, 0.5f);
+            promptRect.pivot = new Vector2(0.5f, 0.5f);
+            promptRect.sizeDelta = promptScreenSize;
+            promptRect.localScale = Vector3.one;
+            SetLayerRecursively(promptRect.gameObject, controlsRoot.gameObject.layer);
+
+            QuestionButtonAnimator animator = promptButton.GetComponent<QuestionButtonAnimator>();
+            if (animator != null)
+            {
+                animator.ConfigureForScreenSpace(promptScreenSize);
+            }
+        }
+
+        if (previousPromptCanvas != null && previousPromptCanvas.transform.childCount == 0)
+        {
+            previousPromptCanvas.gameObject.SetActive(false);
+        }
+
+        araBotActivityBubble?.ConfigureForScreenSpace();
+        UpdatePromptButtonPosition();
+    }
+
+    private void UpdatePromptButtonPosition()
+    {
+        if (!HasUsablePromptButtons() || promptWorldAnchor == null || dialogueView == null)
+        {
+            return;
+        }
+
+        RectTransform controlsRoot = dialogueView.DialogueControlsRoot;
+        Camera worldCamera = Camera.main;
+        if (controlsRoot == null || worldCamera == null)
+        {
+            return;
+        }
+
+        Vector3 screenPoint = worldCamera.WorldToScreenPoint(promptWorldAnchor.position + promptWorldOffset);
+        if (screenPoint.z <= 0f)
+        {
+            return;
+        }
+
+        Canvas dialogueCanvas = controlsRoot.GetComponentInParent<Canvas>();
+        Camera eventCamera = dialogueCanvas != null && dialogueCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? (dialogueCanvas.worldCamera != null ? dialogueCanvas.worldCamera : worldCamera)
+            : null;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                controlsRoot,
+                screenPoint,
+                eventCamera,
+                out Vector2 localPoint))
+        {
+            return;
+        }
+
+        localPoint += promptScreenOffset;
+        Vector2 halfSize = promptScreenSize * 0.5f;
+        Rect availableRect = controlsRoot.rect;
+        localPoint.x = Mathf.Clamp(localPoint.x, availableRect.xMin + halfSize.x, availableRect.xMax - halfSize.x);
+        localPoint.y = Mathf.Clamp(localPoint.y, availableRect.yMin + halfSize.y, availableRect.yMax - halfSize.y);
+
+        for (int index = 0; index < promptButtons.Length; index++)
+        {
+            AraBotPromptButton promptButton = promptButtons[index];
+            RectTransform promptRect = promptButton != null
+                ? promptButton.transform as RectTransform
+                : null;
+            if (promptRect == null)
+            {
+                continue;
+            }
+
+            QuestionButtonAnimator animator = promptButton.GetComponent<QuestionButtonAnimator>();
+            if (animator != null)
+            {
+                animator.SetBaseAnchoredPosition(localPoint);
+            }
+            else
+            {
+                promptRect.anchoredPosition = localPoint;
+            }
+        }
+    }
+
+    private static void SetLayerRecursively(GameObject root, int layer)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        root.layer = layer;
+        Transform rootTransform = root.transform;
+        for (int index = 0; index < rootTransform.childCount; index++)
+        {
+            SetLayerRecursively(rootTransform.GetChild(index).gameObject, layer);
+        }
     }
 
     private static AraBotPromptButton.PromptRole GetPromptRole(AraBotPromptButton promptButton)
@@ -633,59 +819,94 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
 
     private bool WasAdvancePressed()
     {
-        bool keyboardPressed = false;
-        bool pointerPressed = false;
-        Vector2 pointerPosition = Vector2.zero;
+        bool pressed = false;
 
 #if ENABLE_INPUT_SYSTEM
-        if (Mouse.current != null)
-        {
-            pointerPressed |= Mouse.current.leftButton.wasPressedThisFrame;
-            pointerPosition = Mouse.current.position.ReadValue();
-        }
-
         if (Keyboard.current != null)
         {
-            keyboardPressed |= Keyboard.current.spaceKey.wasPressedThisFrame;
-            keyboardPressed |= Keyboard.current.enterKey.wasPressedThisFrame;
+            pressed |= Keyboard.current.spaceKey.wasPressedThisFrame;
+            pressed |= Keyboard.current.enterKey.wasPressedThisFrame;
+        }
+
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+        pressed |= Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
+#endif
+
+        return pressed || WasPointerPressed();
+    }
+
+    private static bool WasEnterPressed()
+    {
+        bool pressed = false;
+
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current != null)
+        {
+            pressed |= Keyboard.current.enterKey.wasPressedThisFrame;
+            pressed |= Keyboard.current.numpadEnterKey.wasPressedThisFrame;
         }
 #endif
 
 #if ENABLE_LEGACY_INPUT_MANAGER
-        if (Input.GetMouseButtonDown(0))
-        {
-            pointerPressed = true;
-            pointerPosition = Input.mousePosition;
-        }
-
-        keyboardPressed |= Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return);
+        pressed |= Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
 #endif
 
-        return keyboardPressed || (pointerPressed && !IsPointerOverPromptButton(pointerPosition));
+        return pressed;
     }
 
-    private bool IsPointerOverPromptButton(Vector2 screenPosition)
+    private static bool WasPointerPressed()
     {
+        bool pressed = false;
+
+#if ENABLE_INPUT_SYSTEM
+        if (Mouse.current != null)
+        {
+            pressed |= Mouse.current.leftButton.wasPressedThisFrame;
+        }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+        pressed |= Input.GetMouseButtonDown(0);
+#endif
+
+        return pressed;
+    }
+
+    private bool IsPointerOverPromptButton()
+    {
+        Vector2 pointerPosition;
+#if ENABLE_INPUT_SYSTEM
+        if (Mouse.current != null)
+        {
+            pointerPosition = Mouse.current.position.ReadValue();
+        }
+        else
+#endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+        {
+            pointerPosition = Input.mousePosition;
+        }
+#else
+        {
+            return false;
+        }
+#endif
+
         promptButtons = ResolvePromptButtons();
         for (int index = 0; index < promptButtons.Length; index++)
         {
             AraBotPromptButton promptButton = promptButtons[index];
-            if (promptButton == null || !promptButton.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
-
-            RectTransform buttonRect = promptButton.transform as RectTransform;
-            if (buttonRect == null)
-            {
-                continue;
-            }
-
-            Canvas canvas = promptButton.GetComponentInParent<Canvas>();
-            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-                ? canvas.worldCamera != null ? canvas.worldCamera : Camera.main
+            RectTransform promptRect = promptButton != null && promptButton.gameObject.activeInHierarchy
+                ? promptButton.transform as RectTransform
                 : null;
-            if (RectTransformUtility.RectangleContainsScreenPoint(buttonRect, screenPosition, eventCamera))
+            Canvas promptCanvas = promptButton != null ? promptButton.GetComponentInParent<Canvas>() : null;
+            Camera eventCamera = promptCanvas != null && promptCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? (promptCanvas.worldCamera != null ? promptCanvas.worldCamera : Camera.main)
+                : null;
+            if (promptRect != null
+                && RectTransformUtility.RectangleContainsScreenPoint(promptRect, pointerPosition, eventCamera))
             {
                 return true;
             }
@@ -699,7 +920,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         Hidden,
         ReadyToListen,
         Listening,
-        TypingFallback,
+        Typing,
         Review,
         Processing
     }

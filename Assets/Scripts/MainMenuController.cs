@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -57,7 +58,18 @@ public sealed class MainMenuController : MonoBehaviour
             mouthBaseRotation = mouth.localRotation;
         }
 
+        ConfigureDebugUnlock();
+        ClassroomSelectionBootstrap.EnsureFor(this);
+
         ClosePanels();
+    }
+
+    private IEnumerator Start()
+    {
+        // Wait until the title screen has rendered before the browser opens its
+        // microphone permission prompt.
+        yield return null;
+        BrowserSpeechToTextPrototype.RequestMicrophonePermission();
     }
 
     private void Update()
@@ -241,6 +253,24 @@ public sealed class MainMenuController : MonoBehaviour
     {
         Transform target = transform.Find(path);
         return target as RectTransform;
+    }
+
+    private void ConfigureDebugUnlock()
+    {
+        RectTransform titleLogo = FindRectTransform("Title Logo");
+        RectTransform menuCanvas = transform as RectTransform;
+        if (titleLogo == null || menuCanvas == null)
+        {
+            return;
+        }
+
+        MainMenuDebugUnlock unlock = titleLogo.GetComponent<MainMenuDebugUnlock>();
+        if (unlock == null)
+        {
+            unlock = titleLogo.gameObject.AddComponent<MainMenuDebugUnlock>();
+        }
+
+        unlock.Configure(menuCanvas);
     }
 
     private static float GetLerpFactor(float speed, float deltaTime)

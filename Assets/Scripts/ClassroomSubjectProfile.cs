@@ -4,9 +4,9 @@ using UnityEngine;
 public sealed class ClassroomSubjectProfile : MonoBehaviour
 {
     [SerializeField] private bool generateFromTopic;
-    [SerializeField] private string topic = "photosynthesis";
+    [SerializeField] private string topic = "scientific investigation";
     [SerializeField, Range(1, 12)] private int gradeLevel = 5;
-    [SerializeField] private string preparedPresetId = "photosynthesis";
+    [SerializeField] private string preparedPresetId = "scientific-investigation";
 
     private void Awake()
     {

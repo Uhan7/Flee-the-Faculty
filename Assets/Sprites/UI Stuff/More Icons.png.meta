@@ -175,10 +175,10 @@ TextureImporter:
       name: More Icons_0
       rect:
         serializedVersion: 2
-        x: 14
-        y: 18
-        width: 242
-        height: 256
+        x: 13
+        y: 19
+        width: 244
+        height: 258
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -197,10 +197,10 @@ TextureImporter:
       name: More Icons_1
       rect:
         serializedVersion: 2
-        x: 324
-        y: 68
-        width: 70
-        height: 170
+        x: 312
+        y: 66
+        width: 210
+        height: 134
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -219,10 +219,10 @@ TextureImporter:
       name: More Icons_2
       rect:
         serializedVersion: 2
-        x: 414
-        y: 68
-        width: 69
-        height: 170
+        x: 612
+        y: 47
+        width: 138
+        height: 178
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -241,10 +241,10 @@ TextureImporter:
       name: More Icons_3
       rect:
         serializedVersion: 2
-        x: 569
-        y: 64
-        width: 168
-        height: 167
+        x: 843
+        y: 61
+        width: 161
+        height: 172
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -263,10 +263,10 @@ TextureImporter:
       name: More Icons_4
       rect:
         serializedVersion: 2
-        x: 839
-        y: 38
-        width: 245
-        height: 204
+        x: 1088
+        y: 58
+        width: 170
+        height: 169
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -285,9 +285,9 @@ TextureImporter:
       name: More Icons_5
       rect:
         serializedVersion: 2
-        x: 1146
-        y: 34
-        width: 244
+        x: 1358
+        y: 31
+        width: 247
         height: 206
       alignment: 0
       pivot: {x: 0, y: 0}
@@ -307,10 +307,10 @@ TextureImporter:
       name: More Icons_6
       rect:
         serializedVersion: 2
-        x: 1473
-        y: 21
-        width: 244
-        height: 203
+        x: 1665
+        y: 27
+        width: 246
+        height: 209
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -329,10 +329,10 @@ TextureImporter:
       name: More Icons_7
       rect:
         serializedVersion: 2
-        x: 1815
-        y: 18
-        width: 243
-        height: 205
+        x: 1992
+        y: 14
+        width: 246
+        height: 206
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -351,10 +351,10 @@ TextureImporter:
       name: More Icons_8
       rect:
         serializedVersion: 2
-        x: 2204
-        y: 174
-        width: 92
-        height: 93
+        x: 2334
+        y: 12
+        width: 245
+        height: 206
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -373,10 +373,10 @@ TextureImporter:
       name: More Icons_9
       rect:
         serializedVersion: 2
-        x: 2410
-        y: 82
-        width: 221
-        height: 166
+        x: 2720
+        y: 40
+        width: 107
+        height: 222
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -395,10 +395,10 @@ TextureImporter:
       name: More Icons_10
       rect:
         serializedVersion: 2
-        x: 2782
-        y: 76
-        width: 172
-        height: 172
+        x: 2929
+        y: 75
+        width: 223
+        height: 169
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -417,10 +417,10 @@ TextureImporter:
       name: More Icons_11
       rect:
         serializedVersion: 2
-        x: 2201
-        y: 47
-        width: 105
-        height: 115
+        x: 3301
+        y: 69
+        width: 174
+        height: 175
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -448,7 +448,19 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      More Icons_0: 1737024605550171525
+      More Icons_1: -3102571223647074069
+      More Icons_10: 2054946388302293409
+      More Icons_11: 5941837698600612386
+      More Icons_2: -4810430396686739110
+      More Icons_3: 2757547376411209980
+      More Icons_4: 6366427164184689404
+      More Icons_5: -1233992816912432306
+      More Icons_6: -2251796939733215249
+      More Icons_7: -4364193748411605284
+      More Icons_8: 3369640075118907984
+      More Icons_9: 4431239835815638222
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

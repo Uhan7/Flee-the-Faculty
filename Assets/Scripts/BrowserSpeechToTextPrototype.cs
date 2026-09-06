@@ -79,11 +79,21 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private static extern int SpeechRecognition_IsSupported();
 
     [DllImport("__Internal")]
+    private static extern void SpeechRecognition_RequestMicrophonePermission();
+
+    [DllImport("__Internal")]
     private static extern void SpeechRecognition_StartListening(string targetName);
 
     [DllImport("__Internal")]
     private static extern void SpeechRecognition_StopListening();
 #endif
+
+    public static void RequestMicrophonePermission()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        SpeechRecognition_RequestMicrophonePermission();
+#endif
+    }
 
     private void Awake()
     {
@@ -184,11 +194,12 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 
         if (!IsSpeechRecognitionSupported())
         {
-            UpdateStatus("Speech is not available here. Use the fallback text field, then click Submit.");
-            FocusFallbackInput();
+            const string unavailableMessage = "Speech recognition is not available in this browser.";
+            UpdateStatus(unavailableMessage);
             RefreshButtons();
             NotifyTranscriptChanged();
             NotifyListeningStateChanged();
+            SpeechError?.Invoke(unavailableMessage);
             return;
         }
 
@@ -368,7 +379,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
 
         string submittedTranscript = GetSubmissionText();
         bool hasSubmittedWords = !string.IsNullOrWhiteSpace(submittedTranscript)
-            && submittedTranscript != "No speech or fallback text was submitted.";
+            && submittedTranscript != "No speech was submitted.";
 
         UpdateSubmittedTranscript(submittedTranscript);
         UpdateStatus("Submitted. Check the transcript below and the Console output.");
@@ -468,7 +479,7 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
             return fallbackText;
         }
 
-        return "No speech or fallback text was submitted.";
+        return "No speech was submitted.";
     }
 
     private string GetFallbackText()

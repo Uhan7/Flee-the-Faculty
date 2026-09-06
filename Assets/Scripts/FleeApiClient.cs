@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -22,10 +23,11 @@ public sealed class FleeApiClient : MonoBehaviour
     [Tooltip("Generate a fresh Classroom so the backend can choose misconception, "
         + "identification, computation, and short-answer questions. Turn off for the "
         + "instant prepared-preset path.")]
-    [SerializeField] private bool generateClassroomFromTopic = true;
-    [SerializeField] private string classroomTopic = "photosynthesis";
+    [SerializeField] private bool generateClassroomFromTopic;
+    [SerializeField] private string classroomTopic = "scientific investigation";
     [SerializeField, Range(1, 12)] private int classroomGradeLevel = 5;
-    [SerializeField] private string presetId = "photosynthesis";
+    [SerializeField] private string presetId = "scientific-investigation";
+    [SerializeField] private string[] classroomMaterialIds = Array.Empty<string>();
 
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
@@ -40,12 +42,19 @@ public sealed class FleeApiClient : MonoBehaviour
         int gradeLevel,
         string preparedPresetId)
     {
+        classroomMaterialIds = Array.Empty<string>();
         generateClassroomFromTopic = generateFromTopic;
-        classroomTopic = string.IsNullOrWhiteSpace(topic) ? "photosynthesis" : topic.Trim();
+        classroomTopic = string.IsNullOrWhiteSpace(topic) ? "scientific investigation" : topic.Trim();
         classroomGradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
         presetId = string.IsNullOrWhiteSpace(preparedPresetId)
-            ? "photosynthesis"
+            ? "scientific-investigation"
             : preparedPresetId.Trim();
+    }
+
+    public void ConfigureClassroomMaterials(string[] materialIds)
+    {
+        classroomMaterialIds = materialIds ?? Array.Empty<string>();
+        generateClassroomFromTopic = false;
     }
 
     public static void ResetClassroomSession()
@@ -102,6 +111,61 @@ public sealed class FleeApiClient : MonoBehaviour
         }
     }
 
+    public IEnumerator UploadClassroomMaterial(
+        string fileName,
+        byte[] fileBytes,
+        string contentType,
+        Action<FleeMaterialSession> onSuccess,
+        Action<FleeApiFailure> onFailure,
+        Action<float, string> onProgress = null)
+    {
+        if (fileBytes == null || fileBytes.Length == 0)
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The selected file was empty."));
+            yield break;
+        }
+
+        string safeFileName = string.IsNullOrWhiteSpace(fileName)
+            ? "learning-material.pdf"
+            : fileName.Trim();
+        string safeContentType = string.IsNullOrWhiteSpace(contentType)
+            ? "application/octet-stream"
+            : contentType.Trim();
+        List<IMultipartFormSection> sections = new List<IMultipartFormSection>
+        {
+            new MultipartFormFileSection("file", fileBytes, safeFileName, safeContentType)
+        };
+
+        UnityWebRequest request = UnityWebRequest.Post(BuildUrl("/v1/materials"), sections);
+        request.timeout = Mathf.Max(10, requestTimeoutSeconds);
+        ApplyRequestHeaders(request, false);
+
+        onProgress?.Invoke(0.05f, "Uploading " + safeFileName);
+        UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+        while (!operation.isDone)
+        {
+            float requestProgress = request.uploadProgress >= 0f
+                ? request.uploadProgress
+                : 0f;
+            onProgress?.Invoke(
+                Mathf.Lerp(0.05f, 0.55f, requestProgress),
+                requestProgress < 0.98f
+                    ? "Uploading " + safeFileName
+                    : "Reading the learning material");
+            yield return null;
+        }
+
+        HandleResponse<FleeMaterialResponse>(
+            "/v1/materials",
+            request,
+            response =>
+            {
+                onProgress?.Invoke(1f, "Learning material is ready.");
+                onSuccess?.Invoke(ToMaterialSession(response));
+            },
+            onFailure);
+    }
+
     public IEnumerator PrepareClassroom(
         Action<FleeClassroomSession> onSuccess,
         Action<FleeApiFailure> onFailure,
@@ -142,15 +206,20 @@ public sealed class FleeApiClient : MonoBehaviour
             ResetClassroomSession();
         }
 
+        bool generateFromMaterial = classroomMaterialIds != null
+            && classroomMaterialIds.Length > 0
+            && !string.IsNullOrWhiteSpace(classroomMaterialIds[0]);
         string safeTopic = string.IsNullOrWhiteSpace(classroomTopic)
-            ? "photosynthesis"
+            ? "scientific investigation"
             : classroomTopic.Trim();
         int safeGradeLevel = Mathf.Clamp(classroomGradeLevel, 1, 12);
         onProgress?.Invoke(
             0.08f,
-            generateClassroomFromTopic
-                ? $"Generating a Grade {safeGradeLevel} {safeTopic} classroom..."
-                : "Loading prepared classroom...");
+            generateFromMaterial
+                ? "Reading the uploaded learning material"
+                : generateClassroomFromTopic
+                ? $"Connecting to the Grade {safeGradeLevel} {safeTopic} classroom"
+                : "Connecting to the prepared classroom");
 
         FleeClassroomResponse classroom = null;
         FleeApiFailure failure = null;
@@ -158,15 +227,33 @@ public sealed class FleeApiClient : MonoBehaviour
             "/v1/classrooms",
             new FleeClassroomRequest
             {
-                source = generateClassroomFromTopic ? "topic" : "preset",
-                topic = generateClassroomFromTopic ? safeTopic : null,
-                gradeLevel = generateClassroomFromTopic ? safeGradeLevel : 0,
-                presetId = generateClassroomFromTopic
+                source = generateFromMaterial
+                    ? "source-material"
+                    : (generateClassroomFromTopic ? "topic" : "preset"),
+                materialIds = generateFromMaterial ? classroomMaterialIds : null,
+                topic = !generateFromMaterial && generateClassroomFromTopic ? safeTopic : null,
+                gradeLevel = !generateFromMaterial && generateClassroomFromTopic ? safeGradeLevel : 0,
+                presetId = generateFromMaterial || generateClassroomFromTopic
                     ? null
-                    : (string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim())
+                    : (string.IsNullOrWhiteSpace(presetId) ? "scientific-investigation" : presetId.Trim())
             },
             response => classroom = response,
-            error => failure = error);
+            error => failure = error,
+            elapsed =>
+            {
+                float stagedProgress = Mathf.Lerp(
+                    0.1f,
+                    0.82f,
+                    1f - Mathf.Exp(-elapsed / 18f));
+                onProgress?.Invoke(
+                    stagedProgress,
+                    DescribeClassroomRequestStage(
+                        elapsed,
+                        generateClassroomFromTopic,
+                        generateFromMaterial,
+                        safeTopic,
+                        safeGradeLevel));
+            });
 
         if (failure != null)
         {
@@ -181,7 +268,7 @@ public sealed class FleeApiClient : MonoBehaviour
         }
 
         SetActiveClassroom(classroom);
-        onProgress?.Invoke(1f, "Classroom is ready.");
+        onProgress?.Invoke(0.85f, "Reading the classroom roster");
         onSuccess?.Invoke(ToClassroomSession(activeClassroom));
     }
 
@@ -207,7 +294,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
         FleeEncounterOpening opening = null;
         FleeApiFailure failure = null;
-        onProgress?.Invoke(0.72f, "Generating " + safePupilName + "'s question...");
+        onProgress?.Invoke(0.1f, "Requesting " + safePupilName + "'s question");
         yield return PostJson<FleeEncounterRequest, FleeEncounterOpening>(
             "/v1/encounters",
             new FleeEncounterRequest
@@ -216,7 +303,20 @@ public sealed class FleeApiClient : MonoBehaviour
                 pupilId = pupil.pupilId
             },
             response => opening = response,
-            error => failure = error);
+            error => failure = error,
+            elapsed =>
+            {
+                float stagedProgress = Mathf.Lerp(
+                    0.15f,
+                    0.9f,
+                    1f - Mathf.Exp(-elapsed / 10f));
+                string stage = elapsed < 2f
+                    ? "Requesting " + safePupilName + "'s question"
+                    : elapsed < 10f
+                        ? "Loading " + safePupilName + "'s question"
+                        : "Waiting for " + safePupilName + "'s question";
+                onProgress?.Invoke(stagedProgress, stage);
+            });
 
         if (failure != null)
         {
@@ -230,7 +330,7 @@ public sealed class FleeApiClient : MonoBehaviour
             yield break;
         }
 
-        onProgress?.Invoke(1f, safePupilName + " is ready.");
+        onProgress?.Invoke(0.95f, "Reading " + safePupilName + "'s question");
         onSuccess?.Invoke(new FleeEncounterSession(
             activeClassroom.classroomId,
             pupil.pupilId,
@@ -456,7 +556,8 @@ public sealed class FleeApiClient : MonoBehaviour
 
     public IEnumerator RunTeacherScene(
         Action<FleeTeacherSceneResult> onSuccess,
-        Action<FleeApiFailure> onFailure)
+        Action<FleeApiFailure> onFailure,
+        Action<float, string> onProgress = null)
     {
         if (activeClassroom == null || string.IsNullOrWhiteSpace(activeClassroom.classroomId))
         {
@@ -466,6 +567,7 @@ public sealed class FleeApiClient : MonoBehaviour
 
         FleeTeacherResponse response = null;
         FleeApiFailure failure = null;
+        onProgress?.Invoke(0.35f, DescribeTeacherEvaluationStage(0f));
         yield return PostJson<FleeTeacherRequest, FleeTeacherResponse>(
             "/v1/teacher",
             new FleeTeacherRequest
@@ -473,7 +575,15 @@ public sealed class FleeApiClient : MonoBehaviour
                 classroomId = activeClassroom.classroomId
             },
             result => response = result,
-            error => failure = error);
+            error => failure = error,
+            elapsed =>
+            {
+                float stagedProgress = Mathf.Lerp(
+                    0.35f,
+                    0.92f,
+                    1f - Mathf.Exp(-elapsed / 10f));
+                onProgress?.Invoke(stagedProgress, DescribeTeacherEvaluationStage(elapsed));
+            });
 
         if (failure != null)
         {
@@ -486,6 +596,8 @@ public sealed class FleeApiClient : MonoBehaviour
             onFailure?.Invoke(new FleeApiFailure(0, "The Teacher did not return any Pupil results."));
             yield break;
         }
+
+        onProgress?.Invoke(0.96f, "Reading the Teacher's evaluations");
 
         FleeTeacherPupilResult[] results = new FleeTeacherPupilResult[response.results.Length];
         for (int index = 0; index < response.results.Length; index++)
@@ -512,11 +624,34 @@ public sealed class FleeApiClient : MonoBehaviour
             response.pattern));
     }
 
+    private string DescribeTeacherEvaluationStage(float elapsed)
+    {
+        FleePupilResponse[] pupils = activeClassroom != null
+            ? activeClassroom.pupils
+            : null;
+        if (pupils == null || pupils.Length == 0)
+        {
+            return "Preparing the Teacher's evaluations";
+        }
+
+        const float secondsPerPupilStatus = 4f;
+        int pupilIndex = Mathf.FloorToInt(elapsed / secondsPerPupilStatus);
+        if (pupilIndex >= pupils.Length)
+        {
+            return "Finishing the Teacher's report";
+        }
+
+        FleePupilResponse pupil = pupils[Mathf.Clamp(pupilIndex, 0, pupils.Length - 1)];
+        return "Loading " + SafePupilName(pupil != null ? pupil.name : string.Empty) +
+            "'s evaluation";
+    }
+
     private IEnumerator PostJson<TRequest, TResponse>(
         string path,
         TRequest payload,
         Action<TResponse> onSuccess,
-        Action<FleeApiFailure> onFailure)
+        Action<FleeApiFailure> onFailure,
+        Action<float> onWaiting = null)
     {
         string json = JsonUtility.ToJson(payload);
         string url = BuildUrl(path);
@@ -530,9 +665,44 @@ public sealed class FleeApiClient : MonoBehaviour
         };
         ApplyRequestHeaders(request, true);
 
-        yield return request.SendWebRequest();
+        float startedAt = Time.unscaledTime;
+        UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+        while (!operation.isDone)
+        {
+            onWaiting?.Invoke(Time.unscaledTime - startedAt);
+            yield return null;
+        }
 
         HandleResponse(path, request, onSuccess, onFailure);
+    }
+
+    private static string DescribeClassroomRequestStage(
+        float elapsed,
+        bool generateFromTopic,
+        bool generateFromMaterial,
+        string topic,
+        int gradeLevel)
+    {
+        if (elapsed < 2f)
+        {
+            return generateFromMaterial
+                ? "Building a classroom from the uploaded lesson"
+                : generateFromTopic
+                ? $"Requesting a Grade {gradeLevel} {topic} classroom"
+                : "Requesting the prepared classroom";
+        }
+
+        if (elapsed < 8f)
+        {
+            return "Waiting for the classroom roster";
+        }
+
+        if (elapsed < 20f)
+        {
+            return "Loading student profiles";
+        }
+
+        return "Waiting for backend classroom generation";
     }
 
     private IEnumerator GetJson<TResponse>(
@@ -768,6 +938,24 @@ public sealed class FleeApiClient : MonoBehaviour
             pupils);
     }
 
+    private static FleeMaterialSession ToMaterialSession(FleeMaterialResponse material)
+    {
+        if (material == null || string.IsNullOrWhiteSpace(material.materialId))
+        {
+            return null;
+        }
+
+        return new FleeMaterialSession(
+            material.materialId,
+            material.filename,
+            material.topics,
+            material.unreadable,
+            material.subject,
+            material.estimatedGradeLevel,
+            material.vocabulary,
+            material.sampleQuestions);
+    }
+
     private static string SafePupilName(string pupilName)
     {
         return string.IsNullOrWhiteSpace(pupilName) ? "Mary" : pupilName.Trim();
@@ -822,6 +1010,7 @@ public sealed class FleeApiClient : MonoBehaviour
     private sealed class FleeClassroomRequest
     {
         public string source;
+        public string[] materialIds;
         public string topic;
         public int gradeLevel;
         public string presetId;
@@ -834,6 +1023,19 @@ public sealed class FleeApiClient : MonoBehaviour
         public string topic;
         public FleePupilResponse[] pupils;
         public int rescueQuota;
+    }
+
+    [Serializable]
+    private sealed class FleeMaterialResponse
+    {
+        public string materialId;
+        public string filename;
+        public string[] topics;
+        public string[] unreadable;
+        public string subject;
+        public int estimatedGradeLevel;
+        public string[] vocabulary;
+        public string[] sampleQuestions;
     }
 
     [Serializable]
@@ -929,6 +1131,38 @@ public sealed class FleeApiClient : MonoBehaviour
     {
         public string detail;
     }
+}
+
+public sealed class FleeMaterialSession
+{
+    public FleeMaterialSession(
+        string materialId,
+        string fileName,
+        string[] topics,
+        string[] unreadable,
+        string subject,
+        int estimatedGradeLevel,
+        string[] vocabulary,
+        string[] sampleQuestions)
+    {
+        MaterialId = materialId;
+        FileName = fileName ?? string.Empty;
+        Topics = topics ?? Array.Empty<string>();
+        Unreadable = unreadable ?? Array.Empty<string>();
+        Subject = subject ?? string.Empty;
+        EstimatedGradeLevel = estimatedGradeLevel;
+        Vocabulary = vocabulary ?? Array.Empty<string>();
+        SampleQuestions = sampleQuestions ?? Array.Empty<string>();
+    }
+
+    public string MaterialId { get; }
+    public string FileName { get; }
+    public string[] Topics { get; }
+    public string[] Unreadable { get; }
+    public string Subject { get; }
+    public int EstimatedGradeLevel { get; }
+    public string[] Vocabulary { get; }
+    public string[] SampleQuestions { get; }
 }
 
 public sealed class FleeEncounterSession
@@ -1162,16 +1396,16 @@ public sealed class FleeApiFailure
             case 401:
                 return "I couldn't connect to our science classroom. The client token is missing or incorrect.";
             case 429:
-                return "Sorry, I got distracted for a moment. Could you say that again?";
+                return "Sorry, I got distracted for a moment. Let's try that again.";
             case 502:
             case 503:
-                return "I couldn't think that through just now. Can we try again in a moment?";
+                return "I couldn't think that through just now. Let's try again in a moment.";
             case 422:
-                return "I didn't catch an explanation. Could you say it again?";
+                return "I didn't catch an explanation. Let's try that again.";
             case 409:
                 return "I don't have another question right now.";
             default:
-                return "I couldn't reach the science classroom just now. Can we try again in a moment?";
+                return "I couldn't reach the science classroom just now. Let's try again in a moment.";
         }
     }
 }

@@ -7,6 +7,22 @@ mergeInto(LibraryManager.library, {
     return window.SpeechRecognition || window.webkitSpeechRecognition ? 1 : 0;
   },
 
+  SpeechRecognition_RequestMicrophonePermission: function () {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      var tracks = stream.getTracks();
+      for (var i = 0; i < tracks.length; i++) {
+        tracks[i].stop();
+      }
+    }).catch(function () {
+      // The regular speech prompt will surface denial/unsupported errors when
+      // the learner later clicks AraBOT's mic.
+    });
+  },
+
   SpeechRecognition_StartListening: function (targetNamePointer) {
     if (typeof window === "undefined") {
       return;

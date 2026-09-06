@@ -8,11 +8,27 @@ public static class AudioSettingsStore
 {
     private const string MusicKey = "Flee.MusicVolume";
     private const string SfxKey = "Flee.SfxVolume";
+    private const string DefaultsVersionKey = "Flee.AudioDefaultsVersion";
+    private const int CurrentDefaultsVersion = 1;
+    private const float DefaultMusicVolume = 0.5f;
 
     public static event System.Action MusicVolumeChanged;
 
-    public static float MusicVolume => PlayerPrefs.GetFloat(MusicKey, 1f);
+    public static float MusicVolume => PlayerPrefs.GetFloat(MusicKey, DefaultMusicVolume);
     public static float SfxVolume => PlayerPrefs.GetFloat(SfxKey, 1f);
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void ApplyCurrentDefaultsOnce()
+    {
+        if (PlayerPrefs.GetInt(DefaultsVersionKey, 0) >= CurrentDefaultsVersion)
+        {
+            return;
+        }
+
+        PlayerPrefs.SetFloat(MusicKey, DefaultMusicVolume);
+        PlayerPrefs.SetInt(DefaultsVersionKey, CurrentDefaultsVersion);
+        PlayerPrefs.Save();
+    }
 
     public static void SetMusicVolume(float value)
     {

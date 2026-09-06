@@ -10,14 +10,24 @@ public sealed class DialogueExitConversationButton : MonoBehaviour
     private void Awake()
     {
         exitButton = GetComponent<Button>();
-        exitButton.onClick.AddListener(StudentDialogueInteraction.ExitActiveConversation);
+        exitButton.onClick.AddListener(RequestExit);
+    }
+
+    private void RequestExit()
+    {
+        if (!StudentDialogueInteraction.HasActiveConversation)
+        {
+            return;
+        }
+
+        StudentDialogueInteraction.ExitActiveConversation();
     }
 
     private void OnDestroy()
     {
         if (exitButton != null)
         {
-            exitButton.onClick.RemoveListener(StudentDialogueInteraction.ExitActiveConversation);
+            exitButton.onClick.RemoveListener(RequestExit);
         }
     }
 }

@@ -60,5 +60,8 @@ TagManager:
   - name: Foreground FX
     uniqueID: 126519106
     locked: 0
+  - name: World UI
+    uniqueID: 126519107
+    locked: 0
   m_RenderingLayers:
   - Default

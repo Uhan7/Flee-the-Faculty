@@ -18,7 +18,8 @@ public sealed class ArmchairSeat : MonoBehaviour
     [SerializeField] private int studentBodyOrderOffset = 10;
     [SerializeField] private int deskFrontOrderOffset = 20;
     [SerializeField] private int studentHeadOrderOffset = 10;
-    [SerializeField] private int studentUiOrderOffset = 40;
+    [SerializeField] private string studentUiSortingLayer = "World UI";
+    [SerializeField] private int studentUiOrderOffset;
 
     public Vector2 WorldSeatPosition =>
         transform.TransformPoint(new Vector3(localStudentOffset.x, localStudentOffset.y, 0f));
@@ -40,7 +41,6 @@ public sealed class ArmchairSeat : MonoBehaviour
             studentHeadOrderOffset,
             chairBackOrderOffset + 1,
             deskFrontOrderOffset - 1);
-        studentUiOrderOffset = Mathf.Max(deskFrontOrderOffset + 1, studentUiOrderOffset);
     }
 
     public void SeatStudent(GameObject student)
@@ -82,11 +82,12 @@ public sealed class ArmchairSeat : MonoBehaviour
         }
 
         Canvas[] canvases = student.GetComponentsInChildren<Canvas>(true);
+        int uiSortingLayerId = ResolveSortingLayerId(studentUiSortingLayer, sortingLayerId);
         for (int index = 0; index < canvases.Length; index++)
         {
             canvases[index].overrideSorting = true;
-            canvases[index].sortingLayerID = sortingLayerId;
-            canvases[index].sortingOrder = baseOrder + studentUiOrderOffset;
+            canvases[index].sortingLayerID = uiSortingLayerId;
+            canvases[index].sortingOrder = studentUiOrderOffset;
         }
     }
 
@@ -125,6 +126,12 @@ public sealed class ArmchairSeat : MonoBehaviour
         }
 
         return deskFront != null ? deskFront.sortingLayerID : 0;
+    }
+
+    private static int ResolveSortingLayerId(string layerName, int fallbackLayerId)
+    {
+        int layerId = SortingLayer.NameToID(layerName);
+        return layerId != 0 || layerName == "Default" ? layerId : fallbackLayerId;
     }
 
     private static void ConfigureStudentSection(

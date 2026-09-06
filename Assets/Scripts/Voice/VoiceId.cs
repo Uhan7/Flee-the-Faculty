@@ -128,6 +128,69 @@ public static class VoiceCatalog
                 return TryParseKey(wireValue.Trim().ToLowerInvariant(), out voice);
         }
     }
+
+    /// <summary>
+    /// Keep the service's per-Pupil slot when it belongs to the correct voice
+    /// family, otherwise recover the fixed slot owned by that Character.
+    ///
+    /// The backend is the normal authority for this value. The local cast map is
+    /// only a guard against an older/malformed Classroom response making a girl
+    /// ask for the boy model (or vice versa), or dropping to a generic prefab
+    /// voice when the slot is missing.
+    /// </summary>
+    public static string ResolveStudentSlot(string pupilId, string pupilName, string wireSlot)
+    {
+        string canonicalSlot = CanonicalStudentSlot(pupilId, pupilName);
+        if (string.IsNullOrEmpty(canonicalSlot))
+        {
+            return TryParseWire(wireSlot, out _)
+                ? wireSlot.Trim()
+                : string.Empty;
+        }
+
+        TryParseWire(canonicalSlot, out VoiceId expectedVoice);
+        if (IsNumberedSlot(wireSlot)
+            && TryParseWire(wireSlot, out VoiceId receivedVoice)
+            && receivedVoice == expectedVoice)
+        {
+            return wireSlot.Trim().ToUpperInvariant();
+        }
+
+        return canonicalSlot;
+    }
+
+    private static bool IsNumberedSlot(string wireSlot)
+    {
+        if (string.IsNullOrWhiteSpace(wireSlot))
+        {
+            return false;
+        }
+
+        string normalized = wireSlot.Trim().ToUpperInvariant();
+        return normalized.Length == 2
+            && normalized[0] == 'V'
+            && normalized[1] >= '1'
+            && normalized[1] <= '6';
+    }
+
+    private static string CanonicalStudentSlot(string pupilId, string pupilName)
+    {
+        string identity = string.IsNullOrWhiteSpace(pupilId) ? pupilName : pupilId;
+        switch ((identity ?? string.Empty).Trim().ToLowerInvariant())
+        {
+            case "mary": return "V3";
+            case "emmie": return "V2";
+            case "megan": return "V2";
+            case "reanne": return "V1";
+            case "ayanah": return "V1";
+            case "maria": return "V3";
+            case "zion": return "V4";
+            case "jairus": return "V6";
+            case "jan": return "V5";
+            case "ruben": return "V4";
+            default: return string.Empty;
+        }
+    }
 }
 
 /// <summary>

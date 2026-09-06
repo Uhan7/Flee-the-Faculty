@@ -42,6 +42,8 @@ public sealed class DialogueManager : MonoBehaviour
     public IDialogueLine ActiveLine => activeLine;
     public bool IsPlaying => activeDialogue != null;
     public bool IsTyping => view != null && !view.IsRevealComplete;
+    public bool CanGoBack => IsPlaying && FindPreviousLineIndex(activeLineIndex) >= 0;
+    public bool HasNextLine => IsPlaying && FindNextLineIndex(activeLineIndex) >= 0;
     public bool UseTextToSpeech => useTextToSpeech;
     public int LettersPerVoiceTick => Mathf.Max(1, lettersPerVoiceTick);
 
@@ -114,7 +116,12 @@ public sealed class DialogueManager : MonoBehaviour
         return PlayInternal(dialogue);
     }
 
-    private bool PlayInternal(IDialogueSequence dialogue)
+    public bool PlayLastLine(IDialogueSequence dialogue)
+    {
+        return PlayInternal(dialogue, true);
+    }
+
+    private bool PlayInternal(IDialogueSequence dialogue, bool startAtLastLine = false)
     {
         if (dialogue == null || !dialogue.HasLines)
         {
@@ -132,25 +139,68 @@ public sealed class DialogueManager : MonoBehaviour
         activeLineIndex = -1;
         view.SetVisible(true);
         DialogueStarted?.Invoke(activeDialogue);
-        ShowNextLine();
+
+        if (startAtLastLine)
+        {
+            int lastLineIndex = FindLastLineIndex();
+            if (lastLineIndex < 0)
+            {
+                EndDialogue();
+                return false;
+            }
+
+            ShowLine(lastLineIndex);
+        }
+        else
+        {
+            ShowNextLine();
+        }
+
         return true;
     }
 
     public void Advance()
     {
-        if (!IsPlaying || Time.unscaledTime < advanceAllowedAt)
+        if (!IsPlaying)
         {
             return;
         }
 
         if (!view.IsRevealComplete)
         {
+            DialogueVoicePlayer voicePlayer = DialogueVoicePlayer.Instance;
+            if (voicePlayer != null && voicePlayer.IsPreparingLine(activeLine))
+            {
+                return;
+            }
+
             view.CompleteReveal();
             advanceAllowedAt = Time.unscaledTime + RevealSkipDebounceSeconds;
             return;
         }
 
+        if (Time.unscaledTime < advanceAllowedAt)
+        {
+            return;
+        }
+
         ShowNextLine();
+    }
+
+    public void GoBack()
+    {
+        if (!IsPlaying)
+        {
+            return;
+        }
+
+        int previousLineIndex = FindPreviousLineIndex(activeLineIndex);
+        if (previousLineIndex < 0)
+        {
+            return;
+        }
+
+        ShowLine(previousLineIndex);
     }
 
     public void EndDialogue()
@@ -190,26 +240,89 @@ public sealed class DialogueManager : MonoBehaviour
 
     private void ShowNextLine()
     {
-        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
-        do
-        {
-            activeLineIndex++;
-        }
-        while (activeLineIndex < lines.Count && lines[activeLineIndex] == null);
-
-        if (activeLineIndex >= lines.Count)
+        int nextLineIndex = FindNextLineIndex(activeLineIndex);
+        if (nextLineIndex < 0)
         {
             EndDialogue();
             return;
         }
 
+        ShowLine(nextLineIndex);
+    }
+
+    private void ShowLine(int lineIndex)
+    {
+        if (!IsPlaying || lineIndex < 0 || lineIndex >= activeDialogue.Lines.Count)
+        {
+            return;
+        }
+
         activeSpeakerActor?.StopVoice();
+        activeLineIndex = lineIndex;
+        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
         activeLine = lines[activeLineIndex];
         activeSpeakerActor = ResolveDialogueActor(activeLine);
         lettersSinceVoiceTick = 0;
         advanceAllowedAt = Time.unscaledTime + MinimumLineDisplaySeconds;
         LineChanged?.Invoke(activeLine, activeLineIndex);
         view.DisplayLine(activeLine, activeLine.Text, true);
+    }
+
+    private int FindNextLineIndex(int fromLineIndex)
+    {
+        if (!IsPlaying)
+        {
+            return -1;
+        }
+
+        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
+        for (int index = Mathf.Max(0, fromLineIndex + 1); index < lines.Count; index++)
+        {
+            if (lines[index] != null)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindPreviousLineIndex(int fromLineIndex)
+    {
+        if (!IsPlaying)
+        {
+            return -1;
+        }
+
+        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
+        for (int index = Mathf.Min(fromLineIndex - 1, lines.Count - 1); index >= 0; index--)
+        {
+            if (lines[index] != null)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private int FindLastLineIndex()
+    {
+        if (!IsPlaying)
+        {
+            return -1;
+        }
+
+        IReadOnlyList<IDialogueLine> lines = activeDialogue.Lines;
+        for (int index = lines.Count - 1; index >= 0; index--)
+        {
+            if (lines[index] != null)
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 
     private static DialogueActor ResolveDialogueActor(IDialogueLine line)
@@ -310,7 +423,7 @@ public sealed class DialogueManager : MonoBehaviour
 
         if (advanceWithLeftClick && Mouse.current != null)
         {
-            pressed |= Mouse.current.leftButton.wasPressedThisFrame;
+            pressed |= Mouse.current.leftButton.wasPressedThisFrame && !IsPointerOverControlButton();
         }
 #endif
 
@@ -322,10 +435,16 @@ public sealed class DialogueManager : MonoBehaviour
 
         if (advanceWithLeftClick)
         {
-            pressed |= Input.GetMouseButtonDown(0);
+            pressed |= Input.GetMouseButtonDown(0) && !IsPointerOverControlButton();
         }
 #endif
 
         return pressed;
+    }
+
+    private static bool IsPointerOverControlButton()
+    {
+        SceneDialogueView sceneView = SceneDialogueView.ActiveInstance;
+        return sceneView != null && sceneView.IsPointerOverControlButton();
     }
 }

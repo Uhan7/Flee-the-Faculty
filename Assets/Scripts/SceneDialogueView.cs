@@ -5,6 +5,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 public enum DialogueRevealMode
 {
     Instant = 0,
@@ -22,6 +26,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField] private TMP_Text speakerText;
     [SerializeField] private TMP_Text bodyText;
     [SerializeField] private GameObject continueIndicator;
+    [SerializeField] private Button backButton;
 
     [Header("Speaker Styles")]
     [SerializeField] private Image dialogueBoxImage;
@@ -33,12 +38,20 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField] private Sprite studentDialogueBoxSprite;
     [SerializeField] private Sprite studentNameBoxSprite;
     [SerializeField] private Sprite studentPointingArrowSprite;
+    [SerializeField] private bool useSpeakerSpecificStyles = true;
 
     [Header("Panel Juice")]
+    [SerializeField] private bool animatePanelAppearance;
     [SerializeField, Min(0.01f)] private float panelAppearDuration = 0.3f;
     [SerializeField, Min(0f)] private float panelAppearRiseDistance = 110f;
     [SerializeField, Range(0.1f, 1f)] private float panelAppearStartScale = 0.88f;
     [SerializeField, Range(1f, 1.2f)] private float panelAppearOvershootScale = 1.035f;
+
+    [Header("Back Button Juice")]
+    [SerializeField, Min(0.01f)] private float backButtonAppearDuration = 0.24f;
+    [SerializeField, Min(0f)] private float backButtonAppearRiseDistance = 28f;
+    [SerializeField, Range(0.1f, 1f)] private float backButtonAppearStartScale = 0.82f;
+    [SerializeField, Range(1f, 1.2f)] private float backButtonAppearOvershootScale = 1.04f;
 
     [Header("Reveal")]
     [SerializeField] private DialogueRevealMode revealMode = DialogueRevealMode.PerLetter;
@@ -46,6 +59,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField, Min(1f)] private float lettersPerSecond = 24f;
     [SerializeField, Min(0f)] private float punctuationPauseSeconds = 0.18f;
     [SerializeField, Min(0f)] private float whitespacePauseSeconds = 0.1f;
+    [SerializeField, Min(1f)] private float liveTranscriptCharactersPerSecond = 42f;
 
     [Header("Letter Juice")]
     [SerializeField, Min(0.01f)] private float letterSpawnDuration = 0.16f;
@@ -61,9 +75,18 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField, Range(0f, 1f)] private float externalHintAlpha = 0.48f;
     [SerializeField] private Color externalHintColor = new Color(0.45f, 0.45f, 0.45f, 1f);
 
+    [Header("AraBOT Response Scrolling")]
+    [SerializeField, Min(1)] private int responseLinesBeforeScrolling = 3;
+    [SerializeField, Min(4f)] private float responseScrollbarWidth = 12f;
+
     private Coroutine revealRoutine;
+    private Coroutine liveTranscriptRoutine;
     private Coroutine panelAppearRoutine;
+    private Coroutine backButtonAppearRoutine;
     private RectTransform dialogueContainerRect;
+    private RectTransform backButtonRect;
+    private Vector2 backButtonBasePosition;
+    private Vector3 backButtonBaseScale = Vector3.one;
     private CanvasGroup dialogueCanvasGroup;
     private Vector2 dialogueContainerBasePosition;
     private Vector3 dialogueContainerBaseScale = Vector3.one;
@@ -73,15 +96,51 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     private Color bodyTextBaseColor = Color.white;
     private FontStyles bodyTextBaseFontStyle = FontStyles.Normal;
     private string currentFullText = string.Empty;
+    private string liveTranscriptTarget = string.Empty;
     private bool canAdvance;
+    private bool hasCompletedDialoguePage;
     private TMP_InputField externalInputField;
     private TMP_Text externalInputText;
     private TMP_Text externalInputPlaceholderText;
+    private Button externalBodyActionButton;
     private TMP_MeshInfo[] cachedBodyMeshInfo;
+    private ScrollRect responseScrollRect;
+    private RectTransform responseViewportRect;
+    private RectTransform responseContentRect;
+    private GameObject responseScrollbarObject;
+    private TextOverflowModes bodyTextBaseOverflowMode;
+    private bool isAraBotTurn;
+    private bool isNonSpokenContent;
+    private bool isResponseScrollable;
     private readonly List<ActiveGlyphAnimation> activeGlyphAnimations = new List<ActiveGlyphAnimation>();
 
     public static SceneDialogueView ActiveInstance { get; private set; }
     public bool IsRevealComplete { get; private set; } = true;
+    public RectTransform DialogueControlsRoot
+    {
+        get
+        {
+            if (dialogueContainerRect == null)
+            {
+                CacheDialogueContainer();
+            }
+
+            return dialogueContainerRect;
+        }
+    }
+
+    public RectTransform DialogueCanvasRoot
+    {
+        get
+        {
+            RectTransform controlsRoot = DialogueControlsRoot;
+            Canvas dialogueCanvas = controlsRoot != null
+                ? controlsRoot.GetComponentInParent<Canvas>()
+                : null;
+            return dialogueCanvas != null ? dialogueCanvas.transform as RectTransform : null;
+        }
+    }
+
     public TMP_InputField ExternalInputField
     {
         get
@@ -96,11 +155,14 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         ActiveInstance = this;
         CacheDialogueContainer();
         ResolveSpeakerStyleReferences();
+        InitializeBackButton();
 
         if (bodyText != null)
         {
             bodyTextBaseColor = bodyText.color;
             bodyTextBaseFontStyle = bodyText.fontStyle;
+            bodyTextBaseOverflowMode = bodyText.overflowMode;
+            InitializeResponseScrollView();
         }
 
         if (continueIndicator != null)
@@ -119,14 +181,51 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         UpdateContinueIndicator();
         UpdateActiveGlyphAnimations();
+        RefreshBackButton();
     }
 
     private void OnDestroy()
     {
+        if (backButton != null)
+        {
+            backButton.onClick.RemoveListener(HandleBackPressed);
+            StopBackButtonAppearRoutine();
+        }
+
         if (ActiveInstance == this)
         {
             ActiveInstance = null;
         }
+    }
+
+    public void SetExternalBodyAction(UnityEngine.Events.UnityAction action)
+    {
+        if (bodyText == null)
+        {
+            return;
+        }
+
+        if (externalBodyActionButton == null)
+        {
+            externalBodyActionButton = bodyText.GetComponent<Button>();
+            if (externalBodyActionButton == null)
+            {
+                externalBodyActionButton = bodyText.gameObject.AddComponent<Button>();
+            }
+
+            externalBodyActionButton.transition = Selectable.Transition.None;
+            externalBodyActionButton.targetGraphic = bodyText;
+        }
+
+        externalBodyActionButton.onClick.RemoveAllListeners();
+        if (action != null)
+        {
+            externalBodyActionButton.onClick.AddListener(action);
+        }
+
+        externalBodyActionButton.enabled = action != null;
+        externalBodyActionButton.interactable = action != null;
+        bodyText.raycastTarget = action != null;
     }
 
     private void UpdateContinueIndicator()
@@ -200,10 +299,15 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
 
         StopRevealRoutine();
+        StopLiveTranscriptRoutine();
         ClearActiveGlyphAnimations();
         IsRevealComplete = true;
+        hasCompletedDialoguePage = false;
         currentFullText = string.Empty;
         canAdvance = false;
+        isAraBotTurn = false;
+        isNonSpokenContent = false;
+        SetExternalBodyAction(null);
         SetExternalInputVisible(false);
 
         if (speakerText != null)
@@ -217,6 +321,8 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             bodyText.maxVisibleCharacters = 0;
         }
 
+        RefreshResponseScrolling(true);
+
         SetContinueIndicator(false);
     }
 
@@ -224,7 +330,18 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         ShowDialogueContainer();
         ApplySpeakerStyle(UsesBrownSpeakerStyle(line));
+        StopLiveTranscriptRoutine();
 
+        // The voice player normally receives LineChanged before the view does,
+        // but it can be bootstrapped later when entering a scene. Resolve it
+        // here too so generated text never starts revealing before its speech
+        // request has registered.
+        DialogueVoicePlayer voicePlayer = DialogueVoicePlayer.GetOrCreate();
+        bool waitingForVoice = voicePlayer != null && voicePlayer.IsPreparingLine(line);
+        isAraBotTurn = IsAraBotSpeaker(line);
+        isNonSpokenContent = waitingForVoice;
+
+        SetExternalBodyAction(null);
         SetExternalInputVisible(false);
         RestoreBodyTextAppearance();
 
@@ -235,6 +352,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         currentFullText = visibleText ?? string.Empty;
         canAdvance = lineCanAdvance;
+        hasCompletedDialoguePage = false;
         SetContinueIndicator(false);
         StopRevealRoutine();
         ClearActiveGlyphAnimations();
@@ -251,15 +369,24 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             bodyText.maxVisibleCharacters = int.MaxValue;
             CacheBodyTextMesh();
             IsRevealComplete = true;
+            hasCompletedDialoguePage = true;
+            RefreshResponseScrolling(true);
             SetContinueIndicator(canAdvance);
+            RefreshBackButton();
             return;
         }
 
-        bodyText.text = currentFullText;
-        bodyText.maxVisibleCharacters = 0;
+        bodyText.text = waitingForVoice ? GetThinkingMessage(line) : currentFullText;
+        bodyText.maxVisibleCharacters = waitingForVoice ? int.MaxValue : 0;
+        if (waitingForVoice)
+        {
+            ApplyExternalHintAppearance();
+        }
         CacheBodyTextMesh();
+        RefreshResponseScrolling(true);
         IsRevealComplete = false;
         revealRoutine = StartCoroutine(RevealRoutine(line));
+        RefreshBackButton();
     }
 
     public void ShowExternalContent(
@@ -272,13 +399,18 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         ApplySpeakerStyle(useStudentStyle);
 
         StopRevealRoutine();
+        StopLiveTranscriptRoutine();
         ClearActiveGlyphAnimations();
+        SetExternalBodyAction(null);
         SetExternalInputVisible(false);
         RestoreBodyTextAppearance();
 
         currentFullText = body ?? string.Empty;
         canAdvance = lineCanAdvance;
         IsRevealComplete = true;
+        hasCompletedDialoguePage = true;
+        isAraBotTurn = IsAraBotSpeakerName(speaker);
+        isNonSpokenContent = false;
 
         if (speakerText != null)
         {
@@ -293,7 +425,31 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             CacheBodyTextMesh();
         }
 
+        RefreshResponseScrolling(true);
+
         SetContinueIndicator(canAdvance);
+        RefreshBackButton();
+    }
+
+    public void ShowExternalContentSmooth(
+        string speaker,
+        string body,
+        bool lineCanAdvance,
+        bool useStudentStyle = false)
+    {
+        ShowDialogueContainer();
+        ApplySpeakerStyle(useStudentStyle);
+
+        if (speakerText != null)
+        {
+            speakerText.text = speaker ?? string.Empty;
+        }
+
+        isAraBotTurn = IsAraBotSpeakerName(speaker);
+        isNonSpokenContent = false;
+        hasCompletedDialoguePage = true;
+        SetExternalBodyTextSmooth(body, lineCanAdvance);
+        RefreshBackButton();
     }
 
     public void ShowExternalHint(
@@ -303,16 +459,14 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         bool useStudentStyle = false)
     {
         ShowExternalContent(speaker, hint, canAdvance, useStudentStyle);
+        isNonSpokenContent = true;
 
         if (bodyText != null)
         {
-            bodyText.color = new Color(
-                externalHintColor.r,
-                externalHintColor.g,
-                externalHintColor.b,
-                bodyTextBaseColor.a * externalHintAlpha);
-            bodyText.fontStyle = bodyTextBaseFontStyle | FontStyles.Italic;
+            ApplyExternalHintAppearance();
         }
+
+        RefreshResponseScrolling(true);
     }
 
     private void CacheDialogueContainer()
@@ -337,6 +491,263 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
     }
 
+    private void InitializeBackButton()
+    {
+        if (dialogueContainer == null)
+        {
+            return;
+        }
+
+        if (backButton == null)
+        {
+            Transform existingButton = dialogueContainer.transform.Find("Dialogue Back Button");
+            if (existingButton == null)
+            {
+                existingButton = dialogueContainer.transform.Find("Back Button");
+            }
+
+            backButton = existingButton != null ? existingButton.GetComponent<Button>() : null;
+        }
+
+        if (backButton == null)
+        {
+            backButton = CreateRuntimeBackButton();
+        }
+
+        if (backButton == null)
+        {
+            return;
+        }
+
+        if (backButton.targetGraphic == null)
+        {
+            backButton.targetGraphic = backButton.GetComponent<Image>();
+        }
+
+        backButton.onClick.RemoveListener(HandleBackPressed);
+        backButton.onClick.AddListener(HandleBackPressed);
+        backButtonRect = backButton.transform as RectTransform;
+        if (backButtonRect != null)
+        {
+            backButtonBasePosition = backButtonRect.anchoredPosition;
+            backButtonBaseScale = backButtonRect.localScale;
+        }
+        backButton.gameObject.SetActive(false);
+    }
+
+    private Button CreateRuntimeBackButton()
+    {
+        if (dialogueContainer == null)
+        {
+            return null;
+        }
+
+        GameObject buttonObject = new GameObject(
+            "Dialogue Back Button",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(Button));
+        buttonObject.layer = dialogueContainer.layer;
+
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        buttonRect.SetParent(dialogueContainer.transform, false);
+        buttonRect.anchorMin = Vector2.zero;
+        buttonRect.anchorMax = Vector2.zero;
+        buttonRect.pivot = Vector2.zero;
+        buttonRect.anchoredPosition = new Vector2(150f, 70f);
+        buttonRect.sizeDelta = new Vector2(130f, 100f);
+
+        Image buttonImage = buttonObject.GetComponent<Image>();
+        DialogueUiIconLibrary icons = DialogueUiIconLibrary.Load();
+        buttonImage.sprite = icons != null ? icons.BackIcon : null;
+        buttonImage.type = Image.Type.Simple;
+        buttonImage.preserveAspect = true;
+        buttonImage.color = Color.white;
+
+        Button createdButton = buttonObject.GetComponent<Button>();
+        createdButton.targetGraphic = buttonImage;
+        return createdButton;
+    }
+
+    private void RefreshBackButton()
+    {
+        if (backButton == null)
+        {
+            return;
+        }
+
+        DialogueManager manager = DialogueManager.Instance;
+        bool canGoBack = manager != null && manager.CanGoBack;
+        bool canRevisitQuestion = StudentDialogueInteraction.CanRevisitActiveQuestion();
+        bool shouldShow = dialogueContainer != null
+            && dialogueContainer.activeInHierarchy
+            && isAraBotTurn
+            && hasCompletedDialoguePage
+            && (canGoBack || canRevisitQuestion);
+
+        if (shouldShow && !backButton.gameObject.activeSelf)
+        {
+            ShowBackButton();
+        }
+        else if (!shouldShow && backButton.gameObject.activeSelf)
+        {
+            HideBackButton();
+        }
+    }
+
+    private void ShowBackButton()
+    {
+        backButton.gameObject.SetActive(true);
+        RestoreBackButtonTransform();
+
+        if (backButtonRect == null)
+        {
+            return;
+        }
+
+        StopBackButtonAppearRoutine();
+        backButtonAppearRoutine = StartCoroutine(AnimateBackButtonIn());
+    }
+
+    private void HideBackButton()
+    {
+        StopBackButtonAppearRoutine();
+        RestoreBackButtonTransform();
+        backButton.gameObject.SetActive(false);
+    }
+
+    private IEnumerator AnimateBackButtonIn()
+    {
+        Vector2 startPosition = backButtonBasePosition + (Vector2.down * backButtonAppearRiseDistance);
+        float elapsed = 0f;
+
+        while (elapsed < backButtonAppearDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / Mathf.Max(backButtonAppearDuration, 0.01f));
+            float easedPosition = 1f - Mathf.Pow(1f - progress, 3f);
+            backButtonRect.anchoredPosition = Vector2.LerpUnclamped(
+                startPosition,
+                backButtonBasePosition,
+                easedPosition);
+
+            float scale = EvaluateBackButtonAppearScale(progress);
+            backButtonRect.localScale = new Vector3(
+                backButtonBaseScale.x * scale,
+                backButtonBaseScale.y * scale,
+                backButtonBaseScale.z);
+            yield return null;
+        }
+
+        RestoreBackButtonTransform();
+        backButtonAppearRoutine = null;
+    }
+
+    private float EvaluateBackButtonAppearScale(float progress)
+    {
+        const float overshootPoint = 0.72f;
+        if (progress < overshootPoint)
+        {
+            float riseProgress = Mathf.SmoothStep(0f, 1f, progress / overshootPoint);
+            return Mathf.LerpUnclamped(backButtonAppearStartScale, backButtonAppearOvershootScale, riseProgress);
+        }
+
+        float settleProgress = Mathf.SmoothStep(0f, 1f, (progress - overshootPoint) / (1f - overshootPoint));
+        return Mathf.LerpUnclamped(backButtonAppearOvershootScale, 1f, settleProgress);
+    }
+
+    private void StopBackButtonAppearRoutine()
+    {
+        if (backButtonAppearRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(backButtonAppearRoutine);
+        backButtonAppearRoutine = null;
+    }
+
+    private void RestoreBackButtonTransform()
+    {
+        if (backButtonRect == null)
+        {
+            return;
+        }
+
+        backButtonRect.anchoredPosition = backButtonBasePosition;
+        backButtonRect.localScale = backButtonBaseScale;
+    }
+
+    private void HandleBackPressed()
+    {
+        if (!isAraBotTurn)
+        {
+            return;
+        }
+
+        DialogueManager manager = DialogueManager.Instance;
+        if (manager != null && manager.CanGoBack)
+        {
+            manager.GoBack();
+            return;
+        }
+
+        StudentDialogueInteraction.RevisitActiveQuestion();
+    }
+
+    public bool IsPointerOverControlButton()
+    {
+        if (!TryGetPointerPosition(out Vector2 pointerPosition))
+        {
+            return false;
+        }
+
+        if (dialogueContainer != null)
+        {
+            Button[] buttons = dialogueContainer.GetComponentsInChildren<Button>(false);
+            for (int index = 0; index < buttons.Length; index++)
+            {
+                RectTransform buttonRect = buttons[index] != null
+                    ? buttons[index].transform as RectTransform
+                    : null;
+                if (buttonRect != null
+                    && RectTransformUtility.RectangleContainsScreenPoint(buttonRect, pointerPosition))
+                {
+                    return true;
+                }
+            }
+        }
+
+        if (isResponseScrollable
+            && responseViewportRect != null
+            && RectTransformUtility.RectangleContainsScreenPoint(responseViewportRect, pointerPosition))
+        {
+            return true;
+        }
+
+        return PauseMenuController.IsPointerOverPauseButton(pointerPosition);
+    }
+
+    private static bool TryGetPointerPosition(out Vector2 pointerPosition)
+    {
+#if ENABLE_INPUT_SYSTEM
+        if (Mouse.current != null)
+        {
+            pointerPosition = Mouse.current.position.ReadValue();
+            return true;
+        }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+        pointerPosition = Input.mousePosition;
+        return true;
+#else
+        pointerPosition = Vector2.zero;
+        return false;
+#endif
+    }
+
     private void ShowDialogueContainer()
     {
         if (dialogueContainer == null)
@@ -347,8 +758,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         bool shouldAnimate = !dialogueContainer.activeSelf;
         dialogueContainer.SetActive(true);
 
-        if (!shouldAnimate)
+        if (!shouldAnimate || !animatePanelAppearance)
         {
+            RestoreDialogueContainerTransform();
             return;
         }
 
@@ -443,6 +855,21 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
     }
 
+    private void ApplyExternalHintAppearance()
+    {
+        if (bodyText == null)
+        {
+            return;
+        }
+
+        bodyText.color = new Color(
+            externalHintColor.r,
+            externalHintColor.g,
+            externalHintColor.b,
+            bodyTextBaseColor.a * externalHintAlpha);
+        bodyText.fontStyle = bodyTextBaseFontStyle | FontStyles.Italic;
+    }
+
     private void ResolveSpeakerStyleReferences()
     {
         if (dialogueBoxImage == null && bodyText != null)
@@ -468,6 +895,11 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     private void ApplySpeakerStyle(bool useStudentStyle)
     {
+        if (!useSpeakerSpecificStyles)
+        {
+            return;
+        }
+
         ApplySlicedSprite(dialogueBoxImage, useStudentStyle ? studentDialogueBoxSprite : defaultDialogueBoxSprite);
         ApplySlicedSprite(nameBoxImage, useStudentStyle ? studentNameBoxSprite : defaultNameBoxSprite);
         ApplySlicedSprite(pointingArrowImage, useStudentStyle ? studentPointingArrowSprite : defaultPointingArrowSprite);
@@ -513,14 +945,63 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         return false;
     }
 
+    private static bool IsAraBotSpeaker(IDialogueLine line)
+    {
+        return line != null && IsAraBotSpeakerName(line.SpeakerName);
+    }
+
+    private static bool IsAraBotSpeakerName(string speakerName)
+    {
+        return !string.IsNullOrWhiteSpace(speakerName)
+            && speakerName.IndexOf("arabot", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
     public void SetExternalBodyText(string body, bool lineCanAdvance)
     {
         ShowExternalContent(speakerText != null ? speakerText.text : string.Empty, body, lineCanAdvance);
     }
 
+    /// <summary>
+    /// Updates live speech-recognition text without resetting the dialogue panel
+    /// every frame. New words ease in while recognition corrections replace only
+    /// the changed suffix.
+    /// </summary>
+    public void SetExternalBodyTextSmooth(string body, bool lineCanAdvance)
+    {
+        ShowDialogueContainer();
+        StopRevealRoutine();
+        SetExternalBodyAction(null);
+        SetExternalInputVisible(false);
+        RestoreBodyTextAppearance();
+
+        currentFullText = body ?? string.Empty;
+        liveTranscriptTarget = currentFullText;
+        canAdvance = lineCanAdvance;
+        IsRevealComplete = true;
+        hasCompletedDialoguePage = true;
+        isNonSpokenContent = false;
+        SetContinueIndicator(canAdvance);
+
+        if (bodyText == null)
+        {
+            return;
+        }
+
+        bodyText.gameObject.SetActive(true);
+        if (liveTranscriptRoutine == null)
+        {
+            liveTranscriptRoutine = StartCoroutine(RevealLiveTranscriptRoutine());
+        }
+
+        RefreshResponseScrolling();
+    }
+
     public void SetExternalInputVisible(bool visible, string placeholder = null, string currentValue = null)
     {
-        EnsureExternalInputField();
+        if (visible)
+        {
+            EnsureExternalInputField();
+        }
 
         if (bodyText != null)
         {
@@ -567,6 +1048,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         StopRevealRoutine();
         ClearActiveGlyphAnimations();
         IsRevealComplete = true;
+        hasCompletedDialoguePage = true;
 
         if (bodyText != null)
         {
@@ -575,19 +1057,17 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             CacheBodyTextMesh();
         }
 
+        isNonSpokenContent = false;
+        RestoreBodyTextAppearance();
+        RefreshResponseScrolling();
+
         SetContinueIndicator(canAdvance);
     }
 
     private IEnumerator RevealRoutine(IDialogueLine line)
     {
-        DialogueVoicePlayer voicePlayer = DialogueVoicePlayer.Instance;
+        DialogueVoicePlayer voicePlayer = DialogueVoicePlayer.GetOrCreate();
         bool waitingForVoice = voicePlayer != null && voicePlayer.IsPreparingLine(line);
-        if (waitingForVoice && bodyText != null)
-        {
-            bodyText.text = "...";
-            bodyText.maxVisibleCharacters = int.MaxValue;
-            CacheBodyTextMesh();
-        }
 
         while (voicePlayer != null && voicePlayer.IsPreparingLine(line))
         {
@@ -596,10 +1076,17 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         if (waitingForVoice && bodyText != null)
         {
+            isNonSpokenContent = false;
+            RestoreBodyTextAppearance();
             bodyText.text = currentFullText;
             bodyText.maxVisibleCharacters = 0;
             CacheBodyTextMesh();
+            RefreshResponseScrolling(true);
         }
+
+        // Let the voice player start the clip before reading its duration. This
+        // is normally one frame and avoids a visual head start on cached clips.
+        yield return null;
 
         if (revealMode == DialogueRevealMode.Instant)
         {
@@ -615,6 +1102,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         }
 
         int visibleCharacterCount = 0;
+        float delayScale = GetVoiceRevealDelayScale(voicePlayer, line, chunks);
 
         for (int index = 0; index < chunks.Count; index++)
         {
@@ -629,15 +1117,25 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
             if (index < chunks.Count - 1)
             {
-                yield return WaitForSecondsRealtime(GetChunkDelaySeconds(chunk));
+                yield return WaitForSecondsRealtime(GetChunkDelaySeconds(chunk) * delayScale);
             }
         }
 
         revealRoutine = null;
         IsRevealComplete = true;
+        hasCompletedDialoguePage = true;
         bodyText.maxVisibleCharacters = int.MaxValue;
         CacheBodyTextMesh();
+        RefreshResponseScrolling();
         SetContinueIndicator(canAdvance);
+    }
+
+    private static string GetThinkingMessage(IDialogueLine line)
+    {
+        string speakerName = line != null ? line.SpeakerName : string.Empty;
+        return string.IsNullOrWhiteSpace(speakerName)
+            ? "Student is thinking..."
+            : speakerName.Trim() + " is thinking...";
     }
 
     private void SetContinueIndicator(bool visible)
@@ -663,6 +1161,276 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         StopCoroutine(revealRoutine);
         revealRoutine = null;
+    }
+
+    private void StopLiveTranscriptRoutine()
+    {
+        if (liveTranscriptRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(liveTranscriptRoutine);
+        liveTranscriptRoutine = null;
+        liveTranscriptTarget = string.Empty;
+    }
+
+    private IEnumerator RevealLiveTranscriptRoutine()
+    {
+        string displayedText = bodyText != null ? bodyText.text : string.Empty;
+        float secondsPerCharacter = 1f / Mathf.Max(1f, liveTranscriptCharactersPerSecond);
+
+        while (bodyText != null)
+        {
+            string target = liveTranscriptTarget ?? string.Empty;
+            int sharedLength = GetSharedPrefixLength(displayedText, target);
+            if (sharedLength < displayedText.Length)
+            {
+                ClearActiveGlyphAnimations();
+                displayedText = displayedText.Substring(0, sharedLength);
+                bodyText.text = displayedText;
+                bodyText.maxVisibleCharacters = int.MaxValue;
+                CacheBodyTextMesh();
+                RefreshResponseScrolling();
+            }
+
+            if (displayedText.Length < target.Length)
+            {
+                displayedText += target[displayedText.Length];
+                bodyText.text = displayedText;
+                bodyText.maxVisibleCharacters = int.MaxValue;
+                CacheBodyTextMesh();
+                QueueLatestVisibleGlyphAnimation();
+                RefreshResponseScrolling();
+                UpdateActiveGlyphAnimations();
+                yield return WaitForSecondsRealtime(secondsPerCharacter);
+                continue;
+            }
+
+            yield return null;
+        }
+
+        liveTranscriptRoutine = null;
+    }
+
+    private void QueueLatestVisibleGlyphAnimation()
+    {
+        if (bodyText == null || bodyText.textInfo == null || bodyText.textInfo.characterCount <= 0)
+        {
+            return;
+        }
+
+        int characterIndex = bodyText.textInfo.characterCount - 1;
+        char character = bodyText.textInfo.characterInfo[characterIndex].character;
+        if (char.IsWhiteSpace(character))
+        {
+            return;
+        }
+
+        activeGlyphAnimations.Add(new ActiveGlyphAnimation(characterIndex, Time.unscaledTime));
+    }
+
+    private float GetVoiceRevealDelayScale(
+        DialogueVoicePlayer voicePlayer,
+        IDialogueLine line,
+        List<RevealChunk> chunks)
+    {
+        if (voicePlayer == null || !voicePlayer.TryGetLineDuration(line, out float voiceDuration))
+        {
+            return 1f;
+        }
+
+        float defaultRevealDuration = 0f;
+        for (int index = 0; index < chunks.Count - 1; index++)
+        {
+            defaultRevealDuration += GetChunkDelaySeconds(chunks[index]);
+        }
+
+        return defaultRevealDuration > 0.01f
+            ? Mathf.Clamp(voiceDuration / defaultRevealDuration, 0.2f, 4f)
+            : 1f;
+    }
+
+    private static int GetSharedPrefixLength(string left, string right)
+    {
+        int maxLength = Mathf.Min(left.Length, right.Length);
+        int index = 0;
+        while (index < maxLength && left[index] == right[index])
+        {
+            index++;
+        }
+
+        return index;
+    }
+
+    private void InitializeResponseScrollView()
+    {
+        if (bodyText == null || responseScrollRect != null)
+        {
+            return;
+        }
+
+        RectTransform bodyRect = bodyText.rectTransform;
+        if (bodyRect == null || bodyRect.parent == null)
+        {
+            return;
+        }
+
+        Transform originalParent = bodyRect.parent;
+        int originalSiblingIndex = bodyRect.GetSiblingIndex();
+
+        GameObject viewportObject = new GameObject(
+            "AraBOT Response Viewport",
+            typeof(RectTransform),
+            typeof(RectMask2D),
+            typeof(ScrollRect));
+        viewportObject.layer = bodyText.gameObject.layer;
+
+        responseViewportRect = viewportObject.GetComponent<RectTransform>();
+        responseViewportRect.SetParent(originalParent, false);
+        responseViewportRect.SetSiblingIndex(originalSiblingIndex);
+        responseViewportRect.anchorMin = bodyRect.anchorMin;
+        responseViewportRect.anchorMax = bodyRect.anchorMax;
+        responseViewportRect.pivot = bodyRect.pivot;
+        responseViewportRect.anchoredPosition = bodyRect.anchoredPosition;
+        responseViewportRect.sizeDelta = bodyRect.sizeDelta;
+        responseViewportRect.localRotation = bodyRect.localRotation;
+        responseViewportRect.localScale = bodyRect.localScale;
+
+        bodyRect.SetParent(responseViewportRect, false);
+        bodyRect.anchorMin = Vector2.zero;
+        bodyRect.anchorMax = Vector2.one;
+        bodyRect.pivot = new Vector2(0.5f, 1f);
+        bodyRect.anchoredPosition = Vector2.zero;
+        bodyRect.sizeDelta = Vector2.zero;
+        bodyRect.localRotation = Quaternion.identity;
+        bodyRect.localScale = Vector3.one;
+        responseContentRect = bodyRect;
+
+        responseScrollRect = viewportObject.GetComponent<ScrollRect>();
+        responseScrollRect.content = responseContentRect;
+        responseScrollRect.viewport = responseViewportRect;
+        responseScrollRect.horizontal = false;
+        responseScrollRect.vertical = true;
+        responseScrollRect.movementType = ScrollRect.MovementType.Clamped;
+        responseScrollRect.inertia = true;
+        responseScrollRect.decelerationRate = 0.12f;
+        responseScrollRect.scrollSensitivity = 28f;
+
+        Scrollbar scrollbar = CreateResponseScrollbar(responseViewportRect);
+        if (scrollbar != null)
+        {
+            responseScrollbarObject = scrollbar.gameObject;
+            responseScrollRect.verticalScrollbar = scrollbar;
+            responseScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+            responseScrollRect.verticalScrollbarSpacing = 4f;
+        }
+
+        RefreshResponseScrolling(true);
+    }
+
+    private Scrollbar CreateResponseScrollbar(RectTransform parent)
+    {
+        if (parent == null)
+        {
+            return null;
+        }
+
+        GameObject scrollbarObject = new GameObject(
+            "AraBOT Response Scrollbar",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image),
+            typeof(Scrollbar));
+        scrollbarObject.layer = bodyText.gameObject.layer;
+        RectTransform scrollbarRect = scrollbarObject.GetComponent<RectTransform>();
+        scrollbarRect.SetParent(parent, false);
+        scrollbarRect.anchorMin = new Vector2(1f, 0f);
+        scrollbarRect.anchorMax = Vector2.one;
+        scrollbarRect.pivot = new Vector2(1f, 0.5f);
+        scrollbarRect.anchoredPosition = Vector2.zero;
+        scrollbarRect.sizeDelta = new Vector2(responseScrollbarWidth, 0f);
+
+        Image background = scrollbarObject.GetComponent<Image>();
+        background.color = new Color(bodyTextBaseColor.r, bodyTextBaseColor.g, bodyTextBaseColor.b, 0.18f);
+
+        GameObject handleObject = new GameObject(
+            "Handle",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image));
+        handleObject.layer = bodyText.gameObject.layer;
+        RectTransform handleRect = handleObject.GetComponent<RectTransform>();
+        handleRect.SetParent(scrollbarRect, false);
+        handleRect.anchorMin = Vector2.zero;
+        handleRect.anchorMax = Vector2.one;
+        handleRect.offsetMin = new Vector2(2f, 2f);
+        handleRect.offsetMax = new Vector2(-2f, -2f);
+
+        Image handleImage = handleObject.GetComponent<Image>();
+        handleImage.color = new Color(bodyTextBaseColor.r, bodyTextBaseColor.g, bodyTextBaseColor.b, 0.72f);
+
+        Scrollbar scrollbar = scrollbarObject.GetComponent<Scrollbar>();
+        scrollbar.handleRect = handleRect;
+        scrollbar.targetGraphic = handleImage;
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.value = 1f;
+        scrollbarObject.SetActive(false);
+        return scrollbar;
+    }
+
+    private void RefreshResponseScrolling(bool resetPosition = false)
+    {
+        if (bodyText == null
+            || responseScrollRect == null
+            || responseViewportRect == null
+            || responseContentRect == null)
+        {
+            return;
+        }
+
+        bodyText.overflowMode = bodyTextBaseOverflowMode;
+        bodyText.ForceMeshUpdate();
+        bool shouldScroll = isAraBotTurn
+            && !isNonSpokenContent
+            && !string.IsNullOrWhiteSpace(bodyText.text)
+            && bodyText.textInfo != null
+            && bodyText.textInfo.lineCount > Mathf.Max(1, responseLinesBeforeScrolling);
+        bool justEnabled = shouldScroll && !isResponseScrollable;
+
+        if (shouldScroll)
+        {
+            responseContentRect.anchorMin = new Vector2(0f, 1f);
+            responseContentRect.anchorMax = Vector2.one;
+            responseContentRect.pivot = new Vector2(0.5f, 1f);
+            responseContentRect.anchoredPosition = Vector2.zero;
+            float viewportHeight = Mathf.Max(1f, responseViewportRect.rect.height);
+            float contentHeight = Mathf.Max(viewportHeight, bodyText.preferredHeight + 4f);
+            responseContentRect.sizeDelta = new Vector2(0f, contentHeight);
+        }
+        else
+        {
+            responseContentRect.anchorMin = Vector2.zero;
+            responseContentRect.anchorMax = Vector2.one;
+            responseContentRect.pivot = new Vector2(0.5f, 1f);
+            responseContentRect.anchoredPosition = Vector2.zero;
+            responseContentRect.sizeDelta = Vector2.zero;
+        }
+
+        isResponseScrollable = shouldScroll;
+        responseScrollRect.vertical = shouldScroll;
+        responseScrollRect.enabled = shouldScroll;
+        if (responseScrollbarObject != null)
+        {
+            responseScrollbarObject.SetActive(shouldScroll);
+        }
+
+        if (!shouldScroll || resetPosition || justEnabled)
+        {
+            responseScrollRect.verticalNormalizedPosition = 1f;
+        }
+
+        CacheBodyTextMesh();
     }
 
     private void EnsureExternalInputField()
@@ -692,7 +1460,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         inputBackground.color = new Color(0.91f, 0.97f, 1f, 0.18f);
 
         externalInputField = inputRoot.AddComponent<TMP_InputField>();
-        externalInputField.lineType = TMP_InputField.LineType.MultiLineNewline;
+        externalInputField.lineType = TMP_InputField.LineType.SingleLine;
         externalInputField.caretColor = bodyText.color;
 
         GameObject textAreaObject = new GameObject("Text Area");

@@ -592,11 +592,12 @@ MonoBehaviour:
   questionButton: {fileID: 3255658466205299809}
   questionButtonRoot: {fileID: 2461117383281765137}
   restartButtonSprite: {fileID: 1737024605550171525, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  completedButtonSprite: {fileID: 2054946388302293409, guid: 9645efc001b554679b437b9fb16de438, type: 3}
   useSpeechReplyFlow: 1
   studentActor: {fileID: 5088951843667480379}
   fallbackQuestionText: Hey, AraBOT. What should I say to the teacher?
   speechPromptTitle: AraBOT
-  speechPromptInstructions: Speak whenever you are ready.
+  speechPromptInstructions: Click the mic above AraBOT to speak.
   repeatLineFormat: 'Okay, so you said: "{0}"'
   emptyTranscriptFallback: I did not catch that.
   useBackendReplyFlow: 0
@@ -1535,14 +1536,14 @@ Canvas:
   m_PlaneDistance: 100
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
-  m_OverrideSorting: 0
+  m_OverrideSorting: 1
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 126519104
-  m_SortingOrder: 1
+  m_SortingLayerID: 126519107
+  m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &2378645887519452891
 MonoBehaviour:
