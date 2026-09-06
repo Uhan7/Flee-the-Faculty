@@ -16,6 +16,11 @@ public sealed class FleeApiClient : MonoBehaviour
     private const string LocalTokenFileName = "flee-client-token.txt";
     private const string ActiveClassroomIdKey = "Flee.ActiveClassroomId";
 
+    /// <summary>
+    /// `contract.MAX_ADDITIONAL_NOTES` in the service. A longer note is a 422.
+    /// </summary>
+    private const int MaxAdditionalNotesLength = 500;
+
     [SerializeField] private string baseUrl = DefaultBaseUrl;
 
     [Header("Classroom Source")]
@@ -27,12 +32,50 @@ public sealed class FleeApiClient : MonoBehaviour
     [SerializeField, Range(1, 12)] private int classroomGradeLevel = 5;
     [SerializeField] private string presetId = "photosynthesis";
 
+    /// <summary>
+    /// What the next Classroom is played in. Every line a Pupil speaks comes
+    /// back in this language, and it is deliberately independent of the language
+    /// of the material: her Science worksheet is in English and her Araling
+    /// Panlipunan worksheet is in Filipino, and which one she needs to practise
+    /// explaining in today is not decided by which photograph she took.
+    /// A prepared preset ignores it, because a preset is written text.
+    /// </summary>
+    [Tooltip("What the Classroom is played in. Independent of the language of "
+        + "the material. A prepared preset keeps the language it was written in, "
+        + "so read the language back off the session rather than assuming this one.")]
+    [SerializeField] private FleeClassroomLanguage classroomLanguage = FleeClassroomLanguage.English;
+
+    /// <summary>
+    /// Extra instructions for building the next Classroom, in the setter-up's
+    /// own words: a topic to leave out, a term her class uses, an angle to
+    /// weight. Capped at 500 characters by the service, which answers a longer
+    /// one with a 422. It shapes what the Classroom is about and never how a
+    /// turn is judged, and a prepared preset has nothing to apply it to.
+    /// </summary>
+    [Tooltip("A note for whoever builds the Classroom: a topic to leave out, a "
+        + "term her class uses, an angle to weight. Up to 500 characters. It "
+        + "changes what the Classroom is about, never how a turn is judged.")]
+    [SerializeField, TextArea(2, 4)] private string additionalNotes = string.Empty;
+
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
     private static FleeApiClient instance;
     private FleeClassroomResponse activeClassroom;
 
     public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
+
+    /// <summary>
+    /// The language tag the browser recogniser should listen in, read off the
+    /// Classroom that is actually running rather than off the one that was
+    /// asked for. Those two differ on the paths that cannot honour the request:
+    /// a preset keeps the language it was written in, and a failed generation
+    /// falls back to a preset. Defaults to English before a Classroom exists.
+    /// </summary>
+    public static string ActiveRecognitionLanguageTag =>
+        instance != null && instance.activeClassroom != null
+            ? FleeClassroomLanguages.ToRecognitionTag(
+                FleeClassroomLanguages.FromWireValue(instance.activeClassroom.language))
+            : FleeClassroomLanguages.ToRecognitionTag(FleeClassroomLanguage.English);
 
     public void ConfigureClassroomSource(
         bool generateFromTopic,
@@ -46,6 +89,17 @@ public sealed class FleeApiClient : MonoBehaviour
         presetId = string.IsNullOrWhiteSpace(preparedPresetId)
             ? "photosynthesis"
             : preparedPresetId.Trim();
+    }
+
+    /// <summary>
+    /// What the create-a-classroom screen sets alongside the source. Both apply
+    /// to a generated Classroom; a prepared preset ignores both, because it is
+    /// written text and no model call turns it into another language.
+    /// </summary>
+    public void ConfigureClassroomLanguage(FleeClassroomLanguage language, string notes)
+    {
+        classroomLanguage = language;
+        additionalNotes = notes ?? string.Empty;
     }
 
     public static void ResetClassroomSession()
@@ -163,7 +217,14 @@ public sealed class FleeApiClient : MonoBehaviour
                 gradeLevel = generateClassroomFromTopic ? safeGradeLevel : 0,
                 presetId = generateClassroomFromTopic
                     ? null
-                    : (string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim())
+                    : (string.IsNullOrWhiteSpace(presetId) ? "photosynthesis" : presetId.Trim()),
+                // Sent on both sources, and the service applies it to the
+                // generated one only: a preset keeps the language it was
+                // written in. Never null, whatever the source, because
+                // JsonUtility would write that as "" and the service takes
+                // null or one of the two codes.
+                language = FleeClassroomLanguages.ToWireValue(classroomLanguage),
+                additionalNotes = SafeAdditionalNotes()
             },
             response => classroom = response,
             error => failure = error);
@@ -765,12 +826,31 @@ public sealed class FleeApiClient : MonoBehaviour
             classroom.classroomId,
             classroom.topic,
             classroom.rescueQuota,
-            pupils);
+            pupils,
+            FleeClassroomLanguages.FromWireValue(classroom.language));
     }
 
     private static string SafePupilName(string pupilName)
     {
         return string.IsNullOrWhiteSpace(pupilName) ? "Mary" : pupilName.Trim();
+    }
+
+    /// <summary>
+    /// The note, trimmed and capped at what the service accepts. Trimming here
+    /// rather than letting the service refuse it turns a typo into a shorter
+    /// note instead of into a 422 in front of a loading screen.
+    /// </summary>
+    private string SafeAdditionalNotes()
+    {
+        if (string.IsNullOrWhiteSpace(additionalNotes))
+        {
+            return string.Empty;
+        }
+
+        string trimmed = additionalNotes.Trim();
+        return trimmed.Length <= MaxAdditionalNotesLength
+            ? trimmed
+            : trimmed.Substring(0, MaxAdditionalNotesLength);
     }
 
     private static FleeApiFailure BuildFailure(UnityWebRequest request)
@@ -825,6 +905,20 @@ public sealed class FleeApiClient : MonoBehaviour
         public string topic;
         public int gradeLevel;
         public string presetId;
+
+        /// <summary>
+        /// `en` or `fil`. Always a real value, never an empty string:
+        /// JsonUtility writes a null string as "", the service takes null or one
+        /// of the two codes, and "" is neither, so an unset field here would be
+        /// a 422 on every call.
+        /// </summary>
+        public string language;
+
+        /// <summary>
+        /// Up to 500 characters. An empty string is safe to send: the service
+        /// reads it as no note at all.
+        /// </summary>
+        public string additionalNotes;
     }
 
     [Serializable]
@@ -834,6 +928,14 @@ public sealed class FleeApiClient : MonoBehaviour
         public string topic;
         public FleePupilResponse[] pupils;
         public int rescueQuota;
+
+        /// <summary>
+        /// What the Classroom is actually played in, which is not always what
+        /// was asked for. A preset keeps the language it was written in and a
+        /// failed generation falls back to a preset. Missing on a response from
+        /// a service built before the field existed, which reads as English.
+        /// </summary>
+        public string language;
     }
 
     [Serializable]
@@ -989,18 +1091,76 @@ public sealed class FleeClassroomSession
         string classroomId,
         string topic,
         int rescueQuota,
-        FleePupilSession[] pupils)
+        FleePupilSession[] pupils,
+        FleeClassroomLanguage language = FleeClassroomLanguage.English)
     {
         ClassroomId = classroomId;
         Topic = topic;
         RescueQuota = rescueQuota;
         Pupils = pupils ?? Array.Empty<FleePupilSession>();
+        Language = language;
     }
 
     public string ClassroomId { get; }
     public string Topic { get; }
     public int RescueQuota { get; }
     public FleePupilSession[] Pupils { get; }
+
+    /// <summary>
+    /// What every line in this Classroom is spoken in. Read it off here rather
+    /// than off whatever was asked for: a preset keeps the language it was
+    /// written in, and a failed generation falls back to a preset.
+    /// </summary>
+    public FleeClassroomLanguage Language { get; }
+
+    /// <summary>What the browser recogniser should listen in for this Classroom.</summary>
+    public string RecognitionLanguageTag => FleeClassroomLanguages.ToRecognitionTag(Language);
+}
+
+/// <summary>
+/// Which language a Classroom is played in. A property of the Learner rather
+/// than of her Source Material: a Filipino worksheet can build an English
+/// Classroom, because which language she is practising in is her choice.
+/// </summary>
+public enum FleeClassroomLanguage
+{
+    English = 0,
+    Filipino = 1
+}
+
+public static class FleeClassroomLanguages
+{
+    private const string EnglishWireValue = "en";
+    private const string FilipinoWireValue = "fil";
+
+    /// <summary>What `ClassroomRequest.language` accepts.</summary>
+    public static string ToWireValue(FleeClassroomLanguage language)
+    {
+        return language == FleeClassroomLanguage.Filipino ? FilipinoWireValue : EnglishWireValue;
+    }
+
+    /// <summary>
+    /// Reads `ClassroomView.language` back. Anything unrecognised, including the
+    /// null a service built before the field existed leaves behind, is English.
+    /// </summary>
+    public static FleeClassroomLanguage FromWireValue(string value)
+    {
+        return string.Equals(
+            (value ?? string.Empty).Trim(),
+            FilipinoWireValue,
+            StringComparison.OrdinalIgnoreCase)
+            ? FleeClassroomLanguage.Filipino
+            : FleeClassroomLanguage.English;
+    }
+
+    /// <summary>
+    /// The BCP-47 tag for the browser's SpeechRecognition, which takes a
+    /// language before she speaks rather than detecting one.
+    /// </summary>
+    public static string ToRecognitionTag(FleeClassroomLanguage language)
+    {
+        return language == FleeClassroomLanguage.Filipino ? "fil-PH" : "en-US";
+    }
 }
 
 public sealed class FleePupilSession
