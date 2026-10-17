@@ -1,0 +1,72 @@
+{
+  "classroomId": "mock-classroom",
+  "topic": "Photosynthesis",
+  "language": "en",
+  "sections": [
+    {
+      "sectionId": "section-1",
+      "title": "How plants make their food",
+      "steps": [
+        {
+          "stepId": "step-1",
+          "dialogue": [
+            "Hello, AraBOT! Today we are learning how plants make their own food. It is called photosynthesis.",
+            "Think of a plant as a tiny kitchen. A kitchen needs ingredients, some energy, and a cook. A plant has all three, and it never needs a delivery."
+          ],
+          "whiteboard": {
+            "heading": "Photosynthesis",
+            "bullets": [
+              "Plants make their own food",
+              "A plant is like a tiny kitchen"
+            ],
+            "figureId": null
+          },
+          "arabotQuestion": null
+        },
+        {
+          "stepId": "step-2",
+          "dialogue": [
+            "First, the ingredients. Every kitchen starts with them. A plant uses three: sunlight, water, and carbon dioxide.",
+            "Sunlight is the energy, like the stove. Water comes up from the roots. Carbon dioxide is a gas that the leaves take in from the air, through tiny openings."
+          ],
+          "whiteboard": {
+            "heading": "The ingredients",
+            "bullets": [
+              "Sunlight: the energy",
+              "Water: taken in by the roots",
+              "Carbon dioxide: taken in from the air by the leaves"
+            ],
+            "figureId": null
+          },
+          "arabotQuestion": {
+            "questionId": "arabot-1",
+            "line": "Wait, so the leaves breathe in air to help make food? Which part of the air is it?"
+          }
+        },
+        {
+          "stepId": "step-3",
+          "dialogue": [
+            "Now, the cooking. Inside the green parts of the leaf, the plant mixes the ingredients using the energy from sunlight.",
+            "Out come two things. One is sugar, which is the plant's food. The other is oxygen, which goes out into the air. Photosynthesis in one line: light, water and carbon dioxide make sugar and oxygen."
+          ],
+          "whiteboard": {
+            "heading": "What the plant makes",
+            "bullets": [
+              "Sugar: the plant's food",
+              "Oxygen: released into the air",
+              "Light + water + carbon dioxide gives sugar + oxygen"
+            ],
+            "figureId": null
+          },
+          "arabotQuestion": null
+        }
+      ],
+      "checks": [
+        {
+          "checkId": "check-1",
+          "question": "In your own words, what does a plant need for photosynthesis, and what does it make?"
+        }
+      ]
+    }
+  ]
+}
