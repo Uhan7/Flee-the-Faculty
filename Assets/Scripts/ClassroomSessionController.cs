@@ -150,10 +150,16 @@ public sealed class ClassroomSessionController : MonoBehaviour
         CreateProceedToEvaluationButton();
         CreateDebugEvaluationButton();
 
+        // The Learning phase builds the Classroom before this scene opens, so a
+        // Classroom that is already in memory is the one to play. Resetting it
+        // here would build a second, different one under the Learner. Opened on
+        // its own (the editor, the debug reload) there is none, so it resets as
+        // it always has.
         if (string.Equals(
                 SceneManager.GetActiveScene().name,
                 GameplayClassroomSceneName,
-                StringComparison.Ordinal))
+                StringComparison.Ordinal)
+            && !FleeApiClient.HasActiveClassroom)
         {
             FleeApiClient.ResetClassroomSession();
         }
@@ -606,7 +612,9 @@ public sealed class ClassroomSessionController : MonoBehaviour
             source.ClassroomId,
             source.Topic,
             source.RescueQuota,
-            pupils);
+            pupils,
+            source.Language,
+            source.HasLesson);
     }
 
     private Vector2 GetSpawnPosition(

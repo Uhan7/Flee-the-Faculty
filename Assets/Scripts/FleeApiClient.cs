@@ -21,6 +21,20 @@ public sealed class FleeApiClient : MonoBehaviour
     /// </summary>
     private const int MaxAdditionalNotesLength = 500;
 
+    /// <summary>
+    /// The longest question or answer the service takes from her, set in its
+    /// `contract.py` beside the cap on additional notes. A longer one is a 422.
+    /// </summary>
+    private const int MaxLessonTextLength = 300;
+
+    private const string MockLessonResourcePath = "Mock/lesson-view.photosynthesis";
+    private const string MockTeacherReplayLine = "Good question, Ara! Let me go over that part again.";
+    private const string MockCheckTeacherLine = "Thanks for sharing, Ara! Here is how I would put it.";
+    private const string MockCheckModelAnswer =
+        "A plant needs sunlight, water and carbon dioxide, and it makes sugar and oxygen.";
+    private const string MockAraBotLine = "Ohh, that makes sense now! Thanks, Ara!";
+    private const string LessonFailureMessage = "The lesson service could not take that just now.";
+
     [SerializeField] private string baseUrl = DefaultBaseUrl;
 
     [Header("Classroom Source")]
@@ -57,12 +71,32 @@ public sealed class FleeApiClient : MonoBehaviour
         + "changes what the Classroom is about, never how a turn is judged.")]
     [SerializeField, TextArea(2, 4)] private string additionalNotes = string.Empty;
 
+    [Header("Learning")]
+    [Tooltip("Teach the built-in photosynthesis Lesson (Resources/Mock/lesson-view."
+        + "photosynthesis.json) instead of asking the service for one, and answer "
+        + "her questions and answers with canned lines. The Classroom itself still "
+        + "comes from the service, so use the prepared-preset path for a quick run. "
+        + "No model is called and nothing she says leaves the browser.")]
+    [SerializeField] private bool useMockLesson;
+
     [SerializeField, Min(10)] private int requestTimeoutSeconds = 120;
 
     private static FleeApiClient instance;
     private FleeClassroomResponse activeClassroom;
 
     public FleeClassroomSession ActiveClassroom => ToClassroomSession(activeClassroom);
+
+    /// <summary>
+    /// True while a Classroom is already prepared in memory. The Learning phase
+    /// builds the Classroom, so the gameplay scene must keep it rather than
+    /// reset it into a second, different one. False before anything is built,
+    /// which is what a Classroom scene opened on its own sees.
+    /// </summary>
+    public static bool HasActiveClassroom =>
+        instance != null && instance.activeClassroom != null;
+
+    /// <summary>Whether Lessons are served from the built-in mock. See <c>useMockLesson</c>.</summary>
+    public static bool UsesMockLesson => instance != null && instance.useMockLesson;
 
     /// <summary>
     /// The language tag the browser recogniser should listen in, read off the
@@ -573,11 +607,290 @@ public sealed class FleeApiClient : MonoBehaviour
             response.pattern));
     }
 
+    /// <summary>
+    /// Fetch the Lesson the Learning phase teaches.
+    ///
+    /// Calls <paramref name="onSuccess"/> with null when there is nothing to
+    /// teach, and that is not an error: a 404 means this Classroom has no Lesson
+    /// (a generated one that failed verification, or a preset not yet written),
+    /// and so does an answer with no steps in it. The caller carries on to the
+    /// Classroom. Only a failure to reach the service is an error, and the
+    /// caller should treat that the same way, because Learning never blocks the
+    /// game.
+    /// </summary>
+    public IEnumerator GetLesson(
+        string classroomId,
+        Action<FleeLessonView> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        if (useMockLesson)
+        {
+            FleeLessonView mockLesson = LoadMockLesson(ResolveClassroomId(classroomId));
+            if (mockLesson == null)
+            {
+                onFailure?.Invoke(new FleeApiFailure(
+                    0,
+                    "The mock Lesson could not be read from Resources/" + MockLessonResourcePath + "."));
+                yield break;
+            }
+
+            onSuccess?.Invoke(mockLesson);
+            yield break;
+        }
+
+        string safeClassroomId = ResolveClassroomId(classroomId);
+        if (string.IsNullOrEmpty(safeClassroomId))
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "There is no active Classroom to teach."));
+            yield break;
+        }
+
+        FleeLessonView lesson = null;
+        FleeApiFailure failure = null;
+        yield return GetJson<FleeLessonView>(
+            "/v1/classrooms/" + UnityWebRequest.EscapeURL(safeClassroomId) + "/lesson",
+            response => lesson = response,
+            error => failure = error,
+            quietNotFound: true);
+
+        if (failure != null)
+        {
+            if (failure.StatusCode == 404)
+            {
+                onSuccess?.Invoke(null);
+            }
+            else
+            {
+                onFailure?.Invoke(failure);
+            }
+
+            yield break;
+        }
+
+        if (!IsUsableLesson(lesson))
+        {
+            Debug.LogWarning("The Lesson came back without any steps, so Learning will be skipped.", this);
+            onSuccess?.Invoke(null);
+            yield break;
+        }
+
+        onSuccess?.Invoke(lesson);
+    }
+
+    /// <summary>
+    /// She answered a Comprehension Check aloud. The service answers with the
+    /// Teacher's line and the verified model answer, and grades nothing: no
+    /// score, no Rescue, no model call.
+    ///
+    /// Nothing she said is logged, here or in the failure that comes back.
+    /// </summary>
+    public IEnumerator AnswerCheck(
+        string classroomId,
+        string checkId,
+        string answer,
+        Action<FleeCheckAnswerResponse> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        string safeAnswer = SafeLessonText(answer);
+        if (string.IsNullOrEmpty(safeAnswer) || string.IsNullOrWhiteSpace(checkId))
+        {
+            onFailure?.Invoke(new FleeApiFailure(422, "There was no answer to check."));
+            yield break;
+        }
+
+        if (useMockLesson)
+        {
+            onSuccess?.Invoke(new FleeCheckAnswerResponse
+            {
+                teacherLine = MockCheckTeacherLine,
+                modelAnswer = MockCheckModelAnswer
+            });
+            yield break;
+        }
+
+        string safeClassroomId = ResolveClassroomId(classroomId);
+        FleeCheckAnswerResponse response = null;
+        FleeApiFailure failure = null;
+        yield return PostJson<FleeCheckAnswerRequest, FleeCheckAnswerResponse>(
+            "/v1/lessons/checks",
+            new FleeCheckAnswerRequest
+            {
+                classroomId = safeClassroomId,
+                checkId = checkId.Trim(),
+                answer = safeAnswer
+            },
+            result => response = result,
+            error => failure = error,
+            redactFailure: true);
+
+        if (failure != null)
+        {
+            onFailure?.Invoke(failure);
+            yield break;
+        }
+
+        if (response == null || string.IsNullOrWhiteSpace(response.teacherLine))
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The Teacher did not respond to that answer."));
+            yield break;
+        }
+
+        onSuccess?.Invoke(new FleeCheckAnswerResponse
+        {
+            teacherLine = response.teacherLine.Trim(),
+            modelAnswer = string.IsNullOrWhiteSpace(response.modelAnswer)
+                ? string.Empty
+                : response.modelAnswer.Trim()
+        });
+    }
+
+    /// <summary>
+    /// She answered an AraBOT Question aloud. The service sends back AraBOT's
+    /// pregenerated reaction, and optionally a Teacher line and a step to play
+    /// again. Blank <c>teacherLine</c> and <c>replayStepId</c> mean none.
+    ///
+    /// Nothing she said is logged, here or in the failure that comes back.
+    /// </summary>
+    public IEnumerator AnswerAraBot(
+        string classroomId,
+        string questionId,
+        string answer,
+        Action<FleeAraBotAnswerResponse> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        string safeAnswer = SafeLessonText(answer);
+        if (string.IsNullOrEmpty(safeAnswer) || string.IsNullOrWhiteSpace(questionId))
+        {
+            onFailure?.Invoke(new FleeApiFailure(422, "There was no answer for AraBOT."));
+            yield break;
+        }
+
+        if (useMockLesson)
+        {
+            onSuccess?.Invoke(new FleeAraBotAnswerResponse
+            {
+                arabotLine = MockAraBotLine,
+                teacherLine = string.Empty,
+                replayStepId = string.Empty
+            });
+            yield break;
+        }
+
+        string safeClassroomId = ResolveClassroomId(classroomId);
+        FleeAraBotAnswerResponse response = null;
+        FleeApiFailure failure = null;
+        yield return PostJson<FleeAraBotAnswerRequest, FleeAraBotAnswerResponse>(
+            "/v1/lessons/arabot",
+            new FleeAraBotAnswerRequest
+            {
+                classroomId = safeClassroomId,
+                questionId = questionId.Trim(),
+                answer = safeAnswer
+            },
+            result => response = result,
+            error => failure = error,
+            redactFailure: true);
+
+        if (failure != null)
+        {
+            onFailure?.Invoke(failure);
+            yield break;
+        }
+
+        if (response == null || string.IsNullOrWhiteSpace(response.arabotLine))
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "AraBOT did not respond to that answer."));
+            yield break;
+        }
+
+        onSuccess?.Invoke(new FleeAraBotAnswerResponse
+        {
+            arabotLine = response.arabotLine.Trim(),
+            teacherLine = string.IsNullOrWhiteSpace(response.teacherLine)
+                ? string.Empty
+                : response.teacherLine.Trim(),
+            replayStepId = string.IsNullOrWhiteSpace(response.replayStepId)
+                ? string.Empty
+                : response.replayStepId.Trim()
+        });
+    }
+
+    /// <summary>
+    /// A Learner Interjection: she pressed the mic and asked the Teacher
+    /// something. <paramref name="stepId"/> is the step she was on. The service
+    /// picks which step to play again, or defers, and the words are its own
+    /// template lines rather than anything a model wrote. The one model call
+    /// only chooses the step.
+    ///
+    /// Her question is trimmed and capped at what the service takes. It is
+    /// never logged, here or in the failure that comes back.
+    /// </summary>
+    public IEnumerator AskTeacher(
+        string classroomId,
+        string stepId,
+        string question,
+        Action<FleeLessonQuestionResponse> onSuccess,
+        Action<FleeApiFailure> onFailure)
+    {
+        string safeQuestion = SafeLessonText(question);
+        if (string.IsNullOrEmpty(safeQuestion))
+        {
+            onFailure?.Invoke(new FleeApiFailure(422, "There was no question to ask."));
+            yield break;
+        }
+
+        if (useMockLesson)
+        {
+            onSuccess?.Invoke(new FleeLessonQuestionResponse
+            {
+                teacherLine = MockTeacherReplayLine,
+                replayStepId = string.IsNullOrWhiteSpace(stepId) ? string.Empty : stepId.Trim()
+            });
+            yield break;
+        }
+
+        string safeClassroomId = ResolveClassroomId(classroomId);
+        FleeLessonQuestionResponse response = null;
+        FleeApiFailure failure = null;
+        yield return PostJson<FleeLessonQuestionRequest, FleeLessonQuestionResponse>(
+            "/v1/lessons/questions",
+            new FleeLessonQuestionRequest
+            {
+                classroomId = safeClassroomId,
+                stepId = string.IsNullOrWhiteSpace(stepId) ? string.Empty : stepId.Trim(),
+                question = safeQuestion
+            },
+            result => response = result,
+            error => failure = error,
+            redactFailure: true);
+
+        if (failure != null)
+        {
+            onFailure?.Invoke(failure);
+            yield break;
+        }
+
+        if (response == null || string.IsNullOrWhiteSpace(response.teacherLine))
+        {
+            onFailure?.Invoke(new FleeApiFailure(0, "The Teacher did not answer that question."));
+            yield break;
+        }
+
+        onSuccess?.Invoke(new FleeLessonQuestionResponse
+        {
+            teacherLine = response.teacherLine.Trim(),
+            replayStepId = string.IsNullOrWhiteSpace(response.replayStepId)
+                ? string.Empty
+                : response.replayStepId.Trim()
+        });
+    }
+
     private IEnumerator PostJson<TRequest, TResponse>(
         string path,
         TRequest payload,
         Action<TResponse> onSuccess,
-        Action<FleeApiFailure> onFailure)
+        Action<FleeApiFailure> onFailure,
+        bool redactFailure = false)
     {
         string json = JsonUtility.ToJson(payload);
         string url = BuildUrl(path);
@@ -593,13 +906,14 @@ public sealed class FleeApiClient : MonoBehaviour
 
         yield return request.SendWebRequest();
 
-        HandleResponse(path, request, onSuccess, onFailure);
+        HandleResponse(path, request, onSuccess, onFailure, false, redactFailure);
     }
 
     private IEnumerator GetJson<TResponse>(
         string path,
         Action<TResponse> onSuccess,
-        Action<FleeApiFailure> onFailure)
+        Action<FleeApiFailure> onFailure,
+        bool quietNotFound = false)
     {
         UnityWebRequest request = UnityWebRequest.Get(BuildUrl(path));
         request.timeout = Mathf.Max(10, requestTimeoutSeconds);
@@ -607,14 +921,23 @@ public sealed class FleeApiClient : MonoBehaviour
 
         yield return request.SendWebRequest();
 
-        HandleResponse(path, request, onSuccess, onFailure);
+        HandleResponse(path, request, onSuccess, onFailure, quietNotFound, false);
     }
 
+    /// <summary>
+    /// <paramref name="quietNotFound"/> keeps a 404 out of the error log for a
+    /// call where it is an ordinary answer, as it is for a Classroom's Lesson.
+    /// <paramref name="redactFailure"/> is for the calls that carry her own
+    /// words: the failure the caller gets then has a fixed message and the log
+    /// line has none, because a 422 body can echo the input back.
+    /// </summary>
     private void HandleResponse<TResponse>(
         string path,
         UnityWebRequest request,
         Action<TResponse> onSuccess,
-        Action<FleeApiFailure> onFailure)
+        Action<FleeApiFailure> onFailure,
+        bool quietNotFound,
+        bool redactFailure)
     {
         if (request == null)
         {
@@ -629,10 +952,22 @@ public sealed class FleeApiClient : MonoBehaviour
         if (!succeeded)
         {
             FleeApiFailure failure = BuildFailure(request);
-            Debug.LogError(
-                "Flee API " + path + " failed (" + failure.StatusCode + "): " + failure.Message
-                    + DescribeLikelyCause(failure.StatusCode),
-                this);
+            if (redactFailure)
+            {
+                failure = new FleeApiFailure(
+                    failure.StatusCode,
+                    LessonFailureMessage,
+                    failure.RetryAfterSeconds);
+            }
+
+            if (!(quietNotFound && failure.StatusCode == 404))
+            {
+                Debug.LogError(
+                    "Flee API " + path + " failed (" + failure.StatusCode + "): " + failure.Message
+                        + DescribeLikelyCause(failure.StatusCode),
+                    this);
+            }
+
             onFailure?.Invoke(failure);
             request.Dispose();
             return;
@@ -827,7 +1162,8 @@ public sealed class FleeApiClient : MonoBehaviour
             classroom.topic,
             classroom.rescueQuota,
             pupils,
-            FleeClassroomLanguages.FromWireValue(classroom.language));
+            FleeClassroomLanguages.FromWireValue(classroom.language),
+            classroom.hasLesson || (instance != null && instance.useMockLesson));
     }
 
     private static string SafePupilName(string pupilName)
@@ -851,6 +1187,72 @@ public sealed class FleeApiClient : MonoBehaviour
         return trimmed.Length <= MaxAdditionalNotesLength
             ? trimmed
             : trimmed.Substring(0, MaxAdditionalNotesLength);
+    }
+
+    /// <summary>
+    /// Her question or answer, trimmed and capped at what the service accepts.
+    /// Capping here turns an unusually long transcription into a shorter one
+    /// instead of a 422 in the middle of a Lesson.
+    /// </summary>
+    private static string SafeLessonText(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        string trimmed = text.Trim();
+        return trimmed.Length <= MaxLessonTextLength
+            ? trimmed
+            : trimmed.Substring(0, MaxLessonTextLength);
+    }
+
+    private string ResolveClassroomId(string classroomId)
+    {
+        if (!string.IsNullOrWhiteSpace(classroomId))
+        {
+            return classroomId.Trim();
+        }
+
+        return activeClassroom != null && !string.IsNullOrWhiteSpace(activeClassroom.classroomId)
+            ? activeClassroom.classroomId.Trim()
+            : string.Empty;
+    }
+
+    private static bool IsUsableLesson(FleeLessonView lesson)
+    {
+        return new LessonCursor(lesson).HasSteps;
+    }
+
+    private static FleeLessonView LoadMockLesson(string classroomId)
+    {
+        TextAsset asset = Resources.Load<TextAsset>(MockLessonResourcePath);
+        if (asset == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            FleeLessonView lesson = JsonUtility.FromJson<FleeLessonView>(asset.text);
+            if (!IsUsableLesson(lesson))
+            {
+                return null;
+            }
+
+            // Tie it to the Classroom that is running, so what the controller
+            // sends back names a Classroom that exists.
+            if (!string.IsNullOrEmpty(classroomId))
+            {
+                lesson.classroomId = classroomId;
+            }
+
+            return lesson;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private static FleeApiFailure BuildFailure(UnityWebRequest request)
@@ -936,6 +1338,12 @@ public sealed class FleeApiClient : MonoBehaviour
         /// a service built before the field existed, which reads as English.
         /// </summary>
         public string language;
+
+        /// <summary>
+        /// Whether `GET /v1/classrooms/{id}/lesson` has a Lesson to send. Missing
+        /// on a response from a service built before Lessons, which reads as no.
+        /// </summary>
+        public bool hasLesson;
     }
 
     [Serializable]
@@ -1092,13 +1500,15 @@ public sealed class FleeClassroomSession
         string topic,
         int rescueQuota,
         FleePupilSession[] pupils,
-        FleeClassroomLanguage language = FleeClassroomLanguage.English)
+        FleeClassroomLanguage language = FleeClassroomLanguage.English,
+        bool hasLesson = false)
     {
         ClassroomId = classroomId;
         Topic = topic;
         RescueQuota = rescueQuota;
         Pupils = pupils ?? Array.Empty<FleePupilSession>();
         Language = language;
+        HasLesson = hasLesson;
     }
 
     public string ClassroomId { get; }
@@ -1115,6 +1525,14 @@ public sealed class FleeClassroomSession
 
     /// <summary>What the browser recogniser should listen in for this Classroom.</summary>
     public string RecognitionLanguageTag => FleeClassroomLanguages.ToRecognitionTag(Language);
+
+    /// <summary>
+    /// Whether the Learning phase has a Lesson to teach. When the client runs
+    /// with its mock Lesson this is true whatever the service said, so the
+    /// controller needs no special case. False means skip straight to the
+    /// Classroom.
+    /// </summary>
+    public bool HasLesson { get; }
 }
 
 /// <summary>
