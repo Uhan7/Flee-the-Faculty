@@ -161,6 +161,19 @@ public sealed class LessonControlsView : MonoBehaviour
     }
 
     /// <summary>
+    /// Relabel the mic button, for the stretch where it means Cancel or Skip
+    /// instead of "ask the Teacher". Null or blank puts the usual label back.
+    /// </summary>
+    public void SetMicLabel(string text)
+    {
+        TMP_Text label = micButton != null ? micButton.GetComponentInChildren<TMP_Text>(true) : null;
+        if (label != null)
+        {
+            label.text = string.IsNullOrWhiteSpace(text) ? MicLabelText : text;
+        }
+    }
+
+    /// <summary>
     /// Hide or show all three, for the stretches where the controls would get
     /// in the way, such as while she is answering aloud.
     /// </summary>

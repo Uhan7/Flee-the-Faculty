@@ -8,6 +8,7 @@ public sealed class PauseMenuController : MonoBehaviour
 {
     private const string ClassroomSceneName = "Classroom and Movement";
     private const string EvaluationSceneName = "Teacher Evaluation";
+    private const string LearningSceneName = "Learning";
     private const string MainMenuSceneName = "Main Menu";
     private const string MainMenuScenePath = "Assets/Scenes/Main Menu.unity";
 
@@ -44,7 +45,9 @@ public sealed class PauseMenuController : MonoBehaviour
 
     private static void HandleSceneLoaded(Scene scene, LoadSceneMode _)
     {
-        if (scene.name != ClassroomSceneName && scene.name != EvaluationSceneName)
+        if (scene.name != ClassroomSceneName
+            && scene.name != EvaluationSceneName
+            && scene.name != LearningSceneName)
         {
             return;
         }

@@ -445,6 +445,7 @@ public sealed class DialogueManager : MonoBehaviour
     private static bool IsPointerOverControlButton()
     {
         SceneDialogueView sceneView = SceneDialogueView.ActiveInstance;
-        return sceneView != null && sceneView.IsPointerOverControlButton();
+        return (sceneView != null && sceneView.IsPointerOverControlButton())
+            || LessonControlsView.IsPointerOverControls();
     }
 }
