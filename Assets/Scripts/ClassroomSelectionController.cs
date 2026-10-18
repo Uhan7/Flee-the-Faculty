@@ -364,7 +364,10 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     private void BeginClassroomTransition()
     {
         gameObject.SetActive(false);
-        DoorSceneTransition.LoadScene(ClassroomSceneName, ClassroomScenePath);
+        // The Learning phase comes first when its scene is in the build, and the
+        // Classroom otherwise, so a checkout that has not built it still plays.
+        LearningPhaseController.ResolveEntryScene(out string entrySceneName, out string entryScenePath);
+        DoorSceneTransition.LoadScene(entrySceneName, entryScenePath);
     }
 
     private void ShowSelection()
