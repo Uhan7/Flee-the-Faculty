@@ -48,6 +48,7 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
     private readonly List<SpriteRenderer> doorwayForegroundRenderers = new List<SpriteRenderer>();
     private readonly List<RendererSortState> doorwayForegroundClosedSorts = new List<RendererSortState>();
     private bool hasCapturedClosedState;
+    private float playbackSpeedMultiplier = 1f;
 
     public static ClassroomDoorExitSequence FindOrCreate()
     {
@@ -102,6 +103,11 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         Gizmos.DrawWireSphere(beyondPosition, 0.18f);
     }
 
+    public void SetPlaybackSpeed(float multiplier)
+    {
+        playbackSpeedMultiplier = Mathf.Max(1f, multiplier);
+    }
+
     public IEnumerator PlayStudentExit(GameObject student)
     {
         if (student == null)
@@ -132,7 +138,7 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
 
         if (openHoldDuration > 0f)
         {
-            yield return WaitForSeconds(openHoldDuration);
+            yield return WaitForSeconds(openHoldDuration / playbackSpeedMultiplier);
         }
 
         yield return MoveStudentAlongRoute(
@@ -188,8 +194,8 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
                 float deltaTime = Mathf.Max(Time.deltaTime, 0.0001f);
                 currentSpeed = Mathf.MoveTowards(
                     currentSpeed,
-                    studentMoveSpeed,
-                    studentAcceleration * deltaTime);
+                    studentMoveSpeed * playbackSpeedMultiplier,
+                    studentAcceleration * playbackSpeedMultiplier * deltaTime);
                 Vector2 nextPosition = Vector2.MoveTowards(
                     student.position,
                     waypoint,
@@ -207,7 +213,7 @@ public sealed class ClassroomDoorExitSequence : MonoBehaviour
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed += Time.deltaTime * playbackSpeedMultiplier;
             float progress = Mathf.Clamp01(elapsed / duration);
             float easedProgress = progress * progress * (3f - (2f * progress));
             ApplyDoorScale(Mathf.Lerp(fromScale, toScale, easedProgress));

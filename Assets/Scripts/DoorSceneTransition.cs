@@ -51,7 +51,6 @@ public sealed class DoorSceneTransition : MonoBehaviour
     [SerializeField, Min(0f)] private float deferredLoadRegistrationGraceSeconds = 0.08f;
     [SerializeField] private float loadingSpinnerDegreesPerSecond = -120f;
     [SerializeField, Min(0.05f)] private float loadingDotIntervalSeconds = 0.35f;
-    [SerializeField, Min(0.05f)] private float loadingProgressUnitsPerSecond = 0.45f;
 
     private bool isTransitioning;
     private bool isWaitingForSceneLoad;
@@ -272,10 +271,6 @@ public sealed class DoorSceneTransition : MonoBehaviour
                 loadingHeadingText.text = "Loading" + new string('.', dotCount);
             }
 
-            displayedLoadingProgress = Mathf.MoveTowards(
-                displayedLoadingProgress,
-                targetLoadingProgress,
-                loadingProgressUnitsPerSecond * Time.unscaledDeltaTime);
             ApplyLoadingProgressVisuals();
         }
     }
@@ -650,11 +645,10 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield break;
         }
 
-        float waitStartedAt = Time.unscaledTime;
         while (HasPendingDeferredLoads())
         {
             UpdateLoadingText(
-                CalculateDeferredDisplayProgress(waitStartedAt),
+                CalculateDeferredLoadProgress(),
                 GetPrimaryDeferredLoadStatus("Preparing classroom..."));
             yield return null;
         }
@@ -678,13 +672,12 @@ public sealed class DoorSceneTransition : MonoBehaviour
             yield break;
         }
 
-        float waitStartedAt = Time.unscaledTime;
         while (HasPendingDeferredLoads())
         {
             float overallProgress = Mathf.Lerp(
                 0.25f,
                 1f,
-                CalculateDeferredDisplayProgress(waitStartedAt));
+                CalculateDeferredLoadProgress());
             UpdateLoadingText(overallProgress, GetPrimaryDeferredLoadStatus("Preparing classroom..."));
             yield return null;
         }
@@ -729,14 +722,6 @@ public sealed class DoorSceneTransition : MonoBehaviour
         return Mathf.Clamp01(weightedProgress / totalWeight);
     }
 
-    private float CalculateDeferredDisplayProgress(float waitStartedAt)
-    {
-        float actualProgress = CalculateDeferredLoadProgress();
-        float elapsed = Mathf.Max(0f, Time.unscaledTime - waitStartedAt);
-        float gradualProgress = 0.08f + (0.84f * (1f - Mathf.Exp(-elapsed / 22f)));
-        return Mathf.Min(0.92f, Mathf.Max(actualProgress, gradualProgress));
-    }
-
     private string GetPrimaryDeferredLoadStatus(string fallbackStatus)
     {
         foreach (KeyValuePair<string, DeferredLoadTask> entry in deferredLoadTasks)
@@ -768,6 +753,7 @@ public sealed class DoorSceneTransition : MonoBehaviour
         SetLoadingTextVisible(true);
 
         targetLoadingProgress = Mathf.Clamp01(progress);
+        displayedLoadingProgress = targetLoadingProgress;
         string safeStatus = NormalizeLoadingStatus(status);
 
         if (loadingStatusText != null)
@@ -824,14 +810,9 @@ public sealed class DoorSceneTransition : MonoBehaviour
 
     private IEnumerator WaitForDisplayedLoadingProgress()
     {
-        float deadline = Time.unscaledTime + 2.5f;
-        while (displayedLoadingProgress < 0.995f && Time.unscaledTime < deadline)
-        {
-            yield return null;
-        }
-
-        displayedLoadingProgress = 1f;
+        displayedLoadingProgress = targetLoadingProgress;
         ApplyLoadingProgressVisuals();
+        yield break;
     }
 
     private void SetLoadingTextVisible(bool visible)

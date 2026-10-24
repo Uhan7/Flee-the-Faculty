@@ -47,8 +47,14 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   teacherActor: {fileID: 1140000000000000001}
   evaluationHud: {fileID: 0}
-  cameraFocusLeadSeconds: 0.3
+  cameraFocusLeadSeconds: 0.1
   evaluationStudentLift: {x: 0, y: 0.68}
+  evaluationExitSpeedMultiplier: 2.5
+  reportTitle: AraBOT's Class Report
+  reportSavedLabel: Students helped
+  reportAccuracyLabel: Answer success
+  reportTeacherNoteLabel: Teacher's note
+  reportReturnLabel: Return to Main Menu
 --- !u!114 &1140000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

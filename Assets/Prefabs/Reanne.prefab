@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: voice
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 554563037739883886, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: conversationId
       value: reanne_intro
@@ -85,48 +81,12 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: voice
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: displayName
       value: Reanne
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: explanationNeed
-      value: Needs the point up front and gets impatient if the explanation circles before landing.
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: quirk
-      value: 'Tells you that you are wrong before you have finished, and brings up something Zion got wrong last week.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: generalVibe
-      value: 'Funny, cool, artistic.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: speechStyle
-      value: 'Sarcastic and casual.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: commonPhrases
-      value: 'gorl | wowowowow'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: confusionLine
-      value: 'huh'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: wrongAnswerLine
-      value: 'what no'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: understandingLine
-      value: 'oh oki'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: preferredExplanationStyle
-      value: 'Step-by-step (tentative).'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: recognizableHabit
-      value: 'Says gorl.'
       objectReference: {fileID: 0}
     - target: {fileID: 5195349869047736649, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder
@@ -156,9 +116,55 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 0.26
       objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: Tells you that you are wrong before you have finished, and brings up
+        something Zion got wrong last week.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: generalVibe
+      value: Funny, cool, artistic.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: speechStyle
+      value: Sarcastic and casual.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: commonPhrases
+      value: gorl | wowowowow
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: confusionLine
+      value: huh
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs the point up front and gets impatient if the explanation circles
+        before landing.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: wrongAnswerLine
+      value: what no
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: recognizableHabit
+      value: Says gorl.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: understandingLine
+      value: oh oki
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: preferredExplanationStyle
+      value: Step-by-step (tentative).
+      objectReference: {fileID: 0}
     - target: {fileID: 6293557560880508391, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.236
+      objectReference: {fileID: 0}
+    - target: {fileID: 7334684474033452891, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.2997826
       objectReference: {fileID: 0}
     - target: {fileID: 8050012587980911786, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder

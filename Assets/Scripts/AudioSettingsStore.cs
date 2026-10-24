@@ -8,6 +8,7 @@ public static class AudioSettingsStore
 {
     private const string MusicKey = "Flee.MusicVolume";
     private const string SfxKey = "Flee.SfxVolume";
+    private const string TextToSpeechKey = "Flee.TextToSpeechEnabled";
     private const string DefaultsVersionKey = "Flee.AudioDefaultsVersion";
     private const int CurrentDefaultsVersion = 1;
     private const float DefaultMusicVolume = 0.5f;
@@ -16,6 +17,7 @@ public static class AudioSettingsStore
 
     public static float MusicVolume => PlayerPrefs.GetFloat(MusicKey, DefaultMusicVolume);
     public static float SfxVolume => PlayerPrefs.GetFloat(SfxKey, 1f);
+    public static bool TextToSpeechEnabled => PlayerPrefs.GetInt(TextToSpeechKey, 1) != 0;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void ApplyCurrentDefaultsOnce()
@@ -40,6 +42,12 @@ public static class AudioSettingsStore
     public static void SetSfxVolume(float value)
     {
         PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value));
+        PlayerPrefs.Save();
+    }
+
+    public static void SetTextToSpeechEnabled(bool enabled)
+    {
+        PlayerPrefs.SetInt(TextToSpeechKey, enabled ? 1 : 0);
         PlayerPrefs.Save();
     }
 

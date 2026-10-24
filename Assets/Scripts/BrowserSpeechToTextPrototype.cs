@@ -88,11 +88,21 @@ public sealed class BrowserSpeechToTextPrototype : MonoBehaviour
     private static extern int SpeechRecognition_IsSupported();
 
     [DllImport("__Internal")]
+    private static extern void SpeechRecognition_RequestMicrophonePermission();
+
+    [DllImport("__Internal")]
     private static extern void SpeechRecognition_StartListening(string targetName, string languageTag);
 
     [DllImport("__Internal")]
     private static extern void SpeechRecognition_StopListening();
 #endif
+
+    public static void RequestMicrophonePermission()
+    {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        SpeechRecognition_RequestMicrophonePermission();
+#endif
+    }
 
     private void Awake()
     {

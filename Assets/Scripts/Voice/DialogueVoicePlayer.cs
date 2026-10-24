@@ -41,7 +41,7 @@ public sealed class DialogueVoicePlayer : MonoBehaviour
 
     [Tooltip("Longest the text and syllable ticks wait for fetched speech. Past this, the "
         + "text starts with ticks and late audio is not played over it.")]
-    [SerializeField, Min(0f)] private float tickHoldSeconds = 12f;
+    [SerializeField, Min(0f)] private float tickHoldSeconds = 5f;
 
     [Header("Diagnostics")]
     [Tooltip("Log lines that have a voice but no baked clip. Turn off once every line is baked.")]

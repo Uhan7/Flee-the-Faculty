@@ -17,8 +17,16 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
     [Header("Evaluation Progress")]
     [SerializeField] private EvaluationProgressView evaluationHud;
-    [SerializeField, Min(0f)] private float cameraFocusLeadSeconds = 0.3f;
+    [SerializeField, Min(0f)] private float cameraFocusLeadSeconds = 0.1f;
     [SerializeField] private Vector2 evaluationStudentLift = new Vector2(0f, 0.68f);
+    [SerializeField, Min(1f)] private float evaluationExitSpeedMultiplier = 2.5f;
+
+    [Header("End Report Copy")]
+    [SerializeField] private string reportTitle = "AraBOT's Class Report";
+    [SerializeField] private string reportSavedLabel = "Students helped";
+    [SerializeField] private string reportAccuracyLabel = "Answer success";
+    [SerializeField] private string reportTeacherNoteLabel = "Teacher's note";
+    [SerializeField] private string reportReturnLabel = "Return to Main Menu";
 
     private ClassroomSessionController classroomSession;
     private DialogueConversationCamera conversationCamera;
@@ -125,6 +133,8 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             teacherActor,
             "Teacher",
             summary));
+
+        ShowEvaluationReport();
     }
 
     private void ConfigureEvaluationMode()
@@ -153,6 +163,8 @@ public sealed class TeacherEvaluationController : MonoBehaviour
         {
             doorExitSequence = ClassroomDoorExitSequence.FindOrCreate();
         }
+
+        doorExitSequence?.SetPlaybackSpeed(evaluationExitSpeedMultiplier);
     }
 
     private IEnumerator WaitForClassroom()
@@ -444,9 +456,32 @@ public sealed class TeacherEvaluationController : MonoBehaviour
 
     private static string BuildGroundedAnswer(FleePupilSession pupil)
     {
-        return string.IsNullOrWhiteSpace(pupil.LearnedAnswer)
+        string answer = string.IsNullOrWhiteSpace(pupil.LearnedAnswer)
             ? "I don't know yet."
             : pupil.LearnedAnswer.Trim();
+        return EndsAsQuestion(answer)
+            ? answer + " That is what I learned."
+            : answer;
+    }
+
+    private void ShowEvaluationReport()
+    {
+        List<FleePupilSession> reportPupils = new List<FleePupilSession>();
+        for (int index = 0; index < participants.Count; index++)
+        {
+            reportPupils.Add(participants[index].Pupil);
+        }
+
+        EvaluationReportView.Show(
+            classroomSession.Classroom,
+            reportPupils,
+            teacherResult,
+            reportTitle,
+            reportSavedLabel,
+            reportAccuracyLabel,
+            reportTeacherNoteLabel,
+            reportReturnLabel,
+            () => DoorSceneTransition.LoadScene(MainMenuSceneName, MainMenuScenePath));
     }
 
     private static string BuildGroundedSummary(int rescued, int rescueQuota)

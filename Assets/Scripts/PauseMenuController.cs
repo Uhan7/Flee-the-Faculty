@@ -16,6 +16,8 @@ public sealed class PauseMenuController : MonoBehaviour
     private GameObject pausePanelObject;
     private Slider musicSlider;
     private TMP_Text musicValue;
+    private Toggle textToSpeechToggle;
+    private TMP_Text textToSpeechValue;
     private float previousTimeScale = 1f;
     private bool isPaused;
 
@@ -86,6 +88,11 @@ public sealed class PauseMenuController : MonoBehaviour
             musicSlider.onValueChanged.RemoveListener(HandleMusicVolumeChanged);
         }
 
+        if (textToSpeechToggle != null)
+        {
+            textToSpeechToggle.onValueChanged.RemoveListener(HandleTextToSpeechChanged);
+        }
+
         if (pauseButton != null)
         {
             pauseButton.onClick.RemoveListener(TogglePause);
@@ -118,6 +125,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
         Transform pauseButtonParent = ResolvePauseButtonParent(canvasObject.transform);
         TMP_FontAsset font = ResolveInterfaceFont();
+        DialogueUiIconLibrary iconLibrary = DialogueUiIconLibrary.Load();
         pauseButton = FindExistingPauseButton(pauseButtonParent);
         if (pauseButton == null)
         {
@@ -130,8 +138,9 @@ public sealed class PauseMenuController : MonoBehaviour
                 new Vector2(1f, 1f),
                 new Vector2(-24f, -24f),
                 new Vector2(90f, 64f));
-            ConfigureIconButton(pauseButton, DialogueUiIconLibrary.Load()?.PauseIcon);
         }
+
+        ConfigurePauseButton(pauseButton, iconLibrary);
 
         pauseButtonObject = pauseButton.gameObject;
         pauseButton.onClick.RemoveListener(TogglePause);
@@ -174,20 +183,67 @@ public sealed class PauseMenuController : MonoBehaviour
         return dialogueCanvasRoot != null ? dialogueCanvasRoot : fallback;
     }
 
-    private static void ConfigureIconButton(Button button, Sprite icon)
+    private static void ConfigurePauseButton(Button button, DialogueUiIconLibrary iconLibrary)
     {
-        if (button == null || icon == null)
+        if (button == null)
         {
             return;
         }
 
-        Image image = button.GetComponent<Image>();
-        if (image != null)
+        RectTransform buttonRect = button.transform as RectTransform;
+        if (buttonRect != null)
         {
-            image.sprite = icon;
-            image.type = Image.Type.Simple;
-            image.preserveAspect = true;
-            image.color = Color.white;
+            buttonRect.anchorMin = Vector2.one;
+            buttonRect.anchorMax = Vector2.one;
+            buttonRect.pivot = Vector2.one;
+            buttonRect.anchoredPosition = new Vector2(-30f, -30f);
+            buttonRect.sizeDelta = new Vector2(110f, 110f);
+        }
+
+        Image background = button.GetComponent<Image>();
+        if (background != null && iconLibrary != null && iconLibrary.PauseButtonBackground != null)
+        {
+            background.sprite = iconLibrary.PauseButtonBackground;
+            background.type = Image.Type.Sliced;
+            background.preserveAspect = false;
+            background.color = Color.white;
+        }
+
+        Transform iconTransform = button.transform.Find("Pause Icon");
+        GameObject iconObject;
+        if (iconTransform != null)
+        {
+            iconObject = iconTransform.gameObject;
+        }
+        else
+        {
+            iconObject = new GameObject(
+                "Pause Icon",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+            iconObject.layer = button.gameObject.layer;
+            iconObject.transform.SetParent(button.transform, false);
+        }
+
+        RectTransform iconRect = iconObject.transform as RectTransform;
+        if (iconRect != null)
+        {
+            iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.anchoredPosition = Vector2.zero;
+            iconRect.sizeDelta = new Vector2(60f, 60f);
+        }
+
+        Image iconImage = iconObject.GetComponent<Image>();
+        if (iconImage != null)
+        {
+            iconImage.sprite = iconLibrary != null ? iconLibrary.PauseIcon : null;
+            iconImage.type = Image.Type.Simple;
+            iconImage.preserveAspect = true;
+            iconImage.color = Color.white;
+            iconImage.raycastTarget = false;
         }
 
         Shadow shadow = button.GetComponent<Shadow>();
@@ -221,7 +277,7 @@ public sealed class PauseMenuController : MonoBehaviour
         GameObject panel = CreateUiObject(
             overlay.transform,
             "Pause Panel",
-            new Vector2(540f, 400f),
+            new Vector2(540f, 500f),
             Vector2.zero);
         Image panelImage = panel.AddComponent<Image>();
         panelImage.color = new Color(1f, 0.955f, 0.85f, 1f);
@@ -236,7 +292,7 @@ public sealed class PauseMenuController : MonoBehaviour
             font,
             42f,
             new Vector2(420f, 70f),
-            new Vector2(0f, 132f));
+            new Vector2(0f, 182f));
         CreateText(
             panel.transform,
             "Music Label",
@@ -244,9 +300,9 @@ public sealed class PauseMenuController : MonoBehaviour
             font,
             27f,
             new Vector2(360f, 50f),
-            new Vector2(0f, 66f));
+            new Vector2(0f, 105f));
 
-        musicSlider = CreateMusicSlider(panel.transform, new Vector2(0f, 15f));
+        musicSlider = CreateMusicSlider(panel.transform, new Vector2(0f, 58f));
         musicSlider.SetValueWithoutNotify(AudioSettingsStore.MusicVolume);
         musicSlider.onValueChanged.AddListener(HandleMusicVolumeChanged);
 
@@ -257,8 +313,25 @@ public sealed class PauseMenuController : MonoBehaviour
             font,
             23f,
             new Vector2(160f, 42f),
-            new Vector2(0f, -34f));
+            new Vector2(0f, 17f));
         RefreshMusicValue();
+
+        CreateText(
+            panel.transform,
+            "Spoken Dialogue Label",
+            "Spoken Dialogue",
+            font,
+            25f,
+            new Vector2(290f, 48f),
+            new Vector2(-72f, -48f));
+        textToSpeechToggle = CreateTextToSpeechToggle(
+            panel.transform,
+            font,
+            new Vector2(155f, -48f),
+            out textToSpeechValue);
+        textToSpeechToggle.SetIsOnWithoutNotify(AudioSettingsStore.TextToSpeechEnabled);
+        textToSpeechToggle.onValueChanged.AddListener(HandleTextToSpeechChanged);
+        RefreshTextToSpeechValue();
 
         Button resumeButton = CreateStyledButton(
             panel.transform,
@@ -267,7 +340,7 @@ public sealed class PauseMenuController : MonoBehaviour
             font,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -100f),
+            new Vector2(0f, -126f),
             new Vector2(300f, 68f));
         resumeButton.onClick.AddListener(TogglePause);
 
@@ -278,7 +351,7 @@ public sealed class PauseMenuController : MonoBehaviour
             font,
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
-            new Vector2(0f, -165f),
+            new Vector2(0f, -202f),
             new Vector2(250f, 54f));
         mainMenuButton.onClick.AddListener(ReturnToMainMenu);
         return overlay;
@@ -343,6 +416,43 @@ public sealed class PauseMenuController : MonoBehaviour
         slider.targetGraphic = handleImage;
         slider.direction = Slider.Direction.LeftToRight;
         return slider;
+    }
+
+    private static Toggle CreateTextToSpeechToggle(
+        Transform parent,
+        TMP_FontAsset font,
+        Vector2 position,
+        out TMP_Text valueText)
+    {
+        GameObject toggleObject = CreateUiObject(
+            parent,
+            "Spoken Dialogue Toggle",
+            new Vector2(150f, 46f),
+            position);
+        Image background = toggleObject.AddComponent<Image>();
+        background.color = new Color(0.2f, 0.14f, 0.36f, 0.18f);
+
+        Toggle toggle = toggleObject.AddComponent<Toggle>();
+        toggle.targetGraphic = background;
+
+        GameObject check = CreateUiObject(
+            toggleObject.transform,
+            "Checkmark",
+            new Vector2(28f, 28f),
+            new Vector2(-52f, 0f));
+        Image checkImage = check.AddComponent<Image>();
+        checkImage.color = new Color(0.25f, 0.72f, 0.8f, 1f);
+        toggle.graphic = checkImage;
+
+        valueText = CreateText(
+            toggleObject.transform,
+            "Value",
+            string.Empty,
+            font,
+            23f,
+            new Vector2(82f, 40f),
+            new Vector2(25f, 0f));
+        return toggle;
     }
 
     private static Button CreateStyledButton(
@@ -503,11 +613,25 @@ public sealed class PauseMenuController : MonoBehaviour
         RefreshMusicValue();
     }
 
+    private void HandleTextToSpeechChanged(bool enabled)
+    {
+        AudioSettingsStore.SetTextToSpeechEnabled(enabled);
+        RefreshTextToSpeechValue();
+    }
+
     private void RefreshMusicValue()
     {
         if (musicValue != null)
         {
             musicValue.text = Mathf.RoundToInt(AudioSettingsStore.MusicVolume * 100f) + "%";
+        }
+    }
+
+    private void RefreshTextToSpeechValue()
+    {
+        if (textToSpeechValue != null)
+        {
+            textToSpeechValue.text = AudioSettingsStore.TextToSpeechEnabled ? "On" : "Off";
         }
     }
 

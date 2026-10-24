@@ -68,13 +68,18 @@ public sealed class DialogueSpeakerMouth : MonoBehaviour
             return;
         }
 
-        // Typing is the shorter of the two. A line reveals in about 3.5 seconds
-        // at 24 letters a second and its baked clip runs 5 to 6, so a mouth tied
-        // to the typewriter alone stops moving while the Pupil is still talking.
+        // Generated speech can spend several seconds on the "is thinking" state.
+        // For a voiced line, actual audio playback is the authority; typing only
+        // drives the mouth for lines that use the syllable-tick fallback.
+        IDialogueLine activeLine = dialogueManager != null ? dialogueManager.ActiveLine : null;
+        bool lineUsesTextToSpeech = dialogueManager != null
+            && dialogueManager.UseTextToSpeech
+            && activeLine != null
+            && VoiceCatalog.VoiceOf(activeLine.SpeakerReference) != VoiceId.None;
         bool shouldTalk = isCurrentSpeaker
             && dialogueManager != null
             && dialogueManager.IsPlaying
-            && (dialogueManager.IsTyping || IsVoicePlaying());
+            && (lineUsesTextToSpeech ? IsVoicePlaying() : dialogueManager.IsTyping);
 
         if (!shouldTalk)
         {

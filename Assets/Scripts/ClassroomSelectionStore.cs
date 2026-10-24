@@ -9,10 +9,10 @@ using UnityEngine;
 public static class ClassroomSelectionStore
 {
     public const int DefaultGradeLevel = 5;
+    public const int MinimumStudentCount = 3;
+    public const int MaximumStudentCount = 8;
+    public const int DefaultAutomaticStudentCount = 5;
     public const int MaximumMaterialCharacters = 3000;
-    private const string EnglishOnlyInstruction =
-        " Use English for every student's question, response, explanation, and teacher evaluation, "
-        + "even when the lesson topic or learning material is Filipino.";
 
     public static void SelectPreset(string topic, string presetId)
     {
@@ -22,22 +22,167 @@ public static class ClassroomSelectionStore
             topic,
             DefaultGradeLevel,
             presetId);
+        FleeApiClient.GetOrCreate().ConfigureClassroomLanguage(
+            FleeClassroomLanguage.English,
+            string.Empty);
+        FleeApiClient.GetOrCreate().ConfigureStudentCount(0);
     }
 
-    public static void SelectCustom(string topic, string material, int gradeLevel)
+    public static void SelectCustom(
+        string topic,
+        string material,
+        int gradeLevel,
+        FleeClassroomLanguage language,
+        string additionalNotes,
+        int studentCount)
     {
         FleeApiClient.ResetClassroomSession();
-        FleeApiClient.GetOrCreate().ConfigureClassroomSource(
+        FleeApiClient client = FleeApiClient.GetOrCreate();
+        client.ConfigureClassroomSource(
             true,
             BuildGroundedTopic(topic, material),
             Mathf.Clamp(gradeLevel, 1, 12),
             string.Empty);
+        client.ConfigureClassroomLanguage(language, additionalNotes);
+        client.ConfigureStudentCount(ClampStudentCount(studentCount));
     }
 
-    public static void SelectMaterials(params string[] materialIds)
+    public static void SelectMaterials(
+        string[] materialIds,
+        FleeClassroomLanguage language,
+        string additionalNotes,
+        int studentCount)
     {
         FleeApiClient.ResetClassroomSession();
-        FleeApiClient.GetOrCreate().ConfigureClassroomMaterials(materialIds);
+        FleeApiClient client = FleeApiClient.GetOrCreate();
+        client.ConfigureClassroomMaterials(materialIds);
+        client.ConfigureClassroomLanguage(language, additionalNotes);
+        client.ConfigureStudentCount(ClampStudentCount(studentCount));
+    }
+
+    public static int ClampStudentCount(int studentCount)
+    {
+        return Mathf.Clamp(studentCount, MinimumStudentCount, MaximumStudentCount);
+    }
+
+    public static int EstimateStudentCountFromMaterial(string material)
+    {
+        if (string.IsNullOrWhiteSpace(material))
+        {
+            return DefaultAutomaticStudentCount;
+        }
+
+        string[] lines = material.Replace("\r", string.Empty).Split('\n');
+        int questionCount = 0;
+        int listItemCount = 0;
+        int sentenceCount = 0;
+        int wordCount = 0;
+        bool previousWasWordCharacter = false;
+
+        for (int index = 0; index < material.Length; index++)
+        {
+            char character = material[index];
+            if (character == '?')
+            {
+                questionCount++;
+            }
+
+            if (character == '.' || character == '!' || character == '?')
+            {
+                sentenceCount++;
+            }
+
+            bool isWordCharacter = char.IsLetterOrDigit(character);
+            if (isWordCharacter && !previousWasWordCharacter)
+            {
+                wordCount++;
+            }
+
+            previousWasWordCharacter = isWordCharacter;
+        }
+
+        for (int index = 0; index < lines.Length; index++)
+        {
+            string line = lines[index].TrimStart();
+            if (line.StartsWith("- ", StringComparison.Ordinal)
+                || line.StartsWith("* ", StringComparison.Ordinal)
+                || StartsWithNumberedItem(line))
+            {
+                listItemCount++;
+            }
+        }
+
+        int learningItemEstimate = Mathf.Max(
+            questionCount,
+            listItemCount,
+            Mathf.CeilToInt(sentenceCount / 2f),
+            Mathf.CeilToInt(wordCount / 80f));
+        return StudentCountForLearningItems(learningItemEstimate);
+    }
+
+    public static int EstimateStudentCountFromUpload(FleeMaterialSession material)
+    {
+        if (material == null)
+        {
+            return DefaultAutomaticStudentCount;
+        }
+
+        int questionCount = material.SampleQuestions != null ? material.SampleQuestions.Length : 0;
+        int topicCount = material.Topics != null ? material.Topics.Length : 0;
+        int vocabularyCount = material.Vocabulary != null ? material.Vocabulary.Length : 0;
+        int learningItemEstimate = Mathf.Max(
+            questionCount,
+            topicCount * 2,
+            Mathf.CeilToInt(vocabularyCount / 3f));
+        return learningItemEstimate > 0
+            ? StudentCountForLearningItems(learningItemEstimate)
+            : DefaultAutomaticStudentCount;
+    }
+
+    private static int StudentCountForLearningItems(int learningItemCount)
+    {
+        if (learningItemCount <= 2)
+        {
+            return 3;
+        }
+
+        if (learningItemCount <= 4)
+        {
+            return 4;
+        }
+
+        if (learningItemCount <= 6)
+        {
+            return 5;
+        }
+
+        if (learningItemCount <= 9)
+        {
+            return 6;
+        }
+
+        if (learningItemCount <= 13)
+        {
+            return 7;
+        }
+
+        return 8;
+    }
+
+    private static bool StartsWithNumberedItem(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line) || !char.IsDigit(line[0]))
+        {
+            return false;
+        }
+
+        int index = 1;
+        while (index < line.Length && char.IsDigit(line[index]))
+        {
+            index++;
+        }
+
+        return index < line.Length && (line[index] == '.' || line[index] == ')');
     }
 
     public static string BuildGroundedTopic(string topic, string material)
@@ -54,14 +199,13 @@ public static class ClassroomSelectionStore
 
         if (string.IsNullOrWhiteSpace(safeMaterial))
         {
-            return safeTopic + "." + EnglishOnlyInstruction;
+            return safeTopic;
         }
 
         return safeTopic
             + ". Create every student misconception, question, expected answer, and evaluation "
             + "using only the learning material below. Do not test facts that are not stated or "
             + "directly supported by it."
-            + EnglishOnlyInstruction
             + " Learning material: "
             + safeMaterial;
     }
@@ -105,6 +249,10 @@ public sealed class SavedClassroomDefinition
     public string material;
     public string materialId;
     public int gradeLevel;
+    public FleeClassroomLanguage language;
+    public string additionalNotes;
+    public int studentCountOverride;
+    public int automaticStudentCount;
 }
 
 public static class SavedClassroomStore
@@ -143,7 +291,11 @@ public static class SavedClassroomStore
         string topic,
         string material,
         string materialId,
-        int gradeLevel)
+        int gradeLevel,
+        FleeClassroomLanguage language,
+        string additionalNotes,
+        int studentCountOverride,
+        int automaticStudentCount)
     {
         SavedClassroomCollection collection = Load();
         SavedClassroomDefinition saved = null;
@@ -170,6 +322,17 @@ public static class SavedClassroomStore
         saved.material = string.IsNullOrWhiteSpace(material) ? string.Empty : material.Trim();
         saved.materialId = string.IsNullOrWhiteSpace(materialId) ? string.Empty : materialId.Trim();
         saved.gradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
+        saved.language = language;
+        saved.additionalNotes = string.IsNullOrWhiteSpace(additionalNotes)
+            ? string.Empty
+            : additionalNotes.Trim();
+        saved.studentCountOverride = studentCountOverride <= 0
+            ? 0
+            : ClassroomSelectionStore.ClampStudentCount(studentCountOverride);
+        saved.automaticStudentCount = ClassroomSelectionStore.ClampStudentCount(
+            automaticStudentCount <= 0
+                ? ClassroomSelectionStore.DefaultAutomaticStudentCount
+                : automaticStudentCount);
         collection.classrooms.Insert(0, saved);
         if (collection.classrooms.Count > MaximumSavedClassrooms)
         {

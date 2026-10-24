@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: voice
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 554563037739883886, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: conversationId
       value: ruben_intro
@@ -57,44 +53,12 @@ PrefabInstance:
       value: -0.08900002
       objectReference: {fileID: 0}
     - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: voice
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: displayName
       value: Ruben
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: explanationNeed
-      value: Needs enough detail to retell the explanation in his own words without flattening it.
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: quirk
-      value: 'Repeats your explanation back at twice the length, with one piece added that you never said.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: generalVibe
-      value: 'Funny, cool, artistic.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: speechStyle
-      value: 'Sarcastic and casual.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: commonPhrases
-      value: 'whuts happening | huh'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: confusionLine
-      value: 'whutz this again'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: wrongAnswerLine
-      value: 'what no'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: understandingLine
-      value: 'oki'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: preferredExplanationStyle
-      value: 'Detailed.'
       objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
@@ -112,9 +76,51 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: -5998030615637379963, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: Repeats your explanation back at twice the length, with one piece added
+        that you never said.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: generalVibe
+      value: Funny, cool, artistic.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: speechStyle
+      value: Sarcastic and casual.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: commonPhrases
+      value: whuts happening | huh
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: confusionLine
+      value: whutz this again
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs enough detail to retell the explanation in his own words without
+        flattening it.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: wrongAnswerLine
+      value: what no
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: understandingLine
+      value: oki
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: preferredExplanationStyle
+      value: Detailed.
+      objectReference: {fileID: 0}
     - target: {fileID: 6293557560880508391, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.y
       value: -0.11900002
+      objectReference: {fileID: 0}
+    - target: {fileID: 7334684474033452891, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.3006521
       objectReference: {fileID: 0}
     - target: {fileID: 8050012587980911786, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder

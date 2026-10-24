@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   backIcon: {fileID: -3102571223647074069, guid: 9645efc001b554679b437b9fb16de438, type: 3}
   pauseIcon: {fileID: 2757547376411209980, guid: 9645efc001b554679b437b9fb16de438, type: 3}
+  pauseButtonBackground: {fileID: -5116634123570496115, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
   exitIcon: {fileID: 6366427164184689404, guid: 9645efc001b554679b437b9fb16de438, type: 3}

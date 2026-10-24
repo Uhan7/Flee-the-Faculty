@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: voice
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 857086986703676108, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Name
       value: Mary
@@ -19,6 +15,10 @@ PrefabInstance:
     - target: {fileID: 1017571444142403266, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.075
+      objectReference: {fileID: 0}
+    - target: {fileID: 1068831040524902323, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: useBackendReplyFlow
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1287063618470289020, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
@@ -109,52 +109,12 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: displayName
-      value: Mary
-      objectReference: {fileID: 0}
-    - target: {fileID: 1068831040524902323, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: useBackendReplyFlow
+      propertyPath: voice
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: explanationNeed
-      value: Needs concrete, explicit explanations with clear examples.
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: quirk
-      value: 'Says every version of it, muddled or clear, as though somebody had already agreed with her.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: generalVibe
-      value: 'Funny, cool, artistic.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: speechStyle
-      value: 'Sarcastic and casual.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: commonPhrases
-      value: 'ARUHHH'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: confusionLine
-      value: 'uhh wut dus this mean again'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: wrongAnswerLine
-      value: 'but i thought it was ____'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: understandingLine
-      value: 'ou oke'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: preferredExplanationStyle
-      value: 'Short.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: recognizableHabit
-      value: 'Says ARAAAAA.'
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: displayName
+      value: Mary
       objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
@@ -183,6 +143,55 @@ PrefabInstance:
     - target: {fileID: 6075025639862314817, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.384
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: Says every version of it, muddled or clear, as though somebody had already
+        agreed with her.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: generalVibe
+      value: Funny, cool, artistic.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: speechStyle
+      value: Sarcastic and casual.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: commonPhrases
+      value: ARUHHH
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: confusionLine
+      value: uhh wut dus this mean again
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs concrete, explicit explanations with clear examples.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: wrongAnswerLine
+      value: but i thought it was ____
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: recognizableHabit
+      value: Says ARAAAAA.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: understandingLine
+      value: ou oke
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: preferredExplanationStyle
+      value: Short.
+      objectReference: {fileID: 0}
+    - target: {fileID: 7334684474033452891, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.027369559
+      objectReference: {fileID: 0}
+    - target: {fileID: 7334684474033452891, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.3023914
       objectReference: {fileID: 0}
     - target: {fileID: 8050012587980911786, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder

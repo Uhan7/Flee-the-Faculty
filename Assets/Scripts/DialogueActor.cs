@@ -85,6 +85,11 @@ public sealed class DialogueActor : MonoBehaviour, IVoicedSpeaker
     /// </summary>
     public void PlayVoiceTick()
     {
+        if (GetComponentInParent<StudentPersonality>() != null)
+        {
+            return;
+        }
+
         if (DialogueVoicePlayer.Instance != null && DialogueVoicePlayer.Instance.IsVoicing(this))
         {
             return;

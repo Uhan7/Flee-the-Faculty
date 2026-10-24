@@ -122,13 +122,20 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             DoorSceneTransition.CompleteLoadingTask(GetBackendLoadingTaskId(), "Conversation cancelled.");
         }
 
+        RuntimeDialogueSequence resumableDialogue = activeRepeatDialogue ?? activeQuestionDialogue;
+        if (useBackendReplyFlow && resumableDialogue != null && resumableDialogue.HasLines)
+        {
+            // Exit only closes the presentation. Keep the current encounter and its
+            // latest question so reopening the same Pupil is instant and does not
+            // spend another backend/TTS request. PrepareRestart remains the explicit
+            // path that clears this state and asks for a new encounter.
+            preloadedQuestionDialogue = resumableDialogue;
+            isBackendQuestionReady = true;
+        }
+
         isSpeechFlowActive = false;
         activeQuestionDialogue = null;
         activeRepeatDialogue = null;
-        preloadedQuestionDialogue = null;
-        activeEncounter = null;
-        backendPreloadFailure = null;
-        isBackendQuestionReady = false;
         SetThinkingBubbleVisible(false);
 
         if (speechCaptureFlow != null)
@@ -826,17 +833,16 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
 
         if (result.EncounterEnded)
         {
-            List<string> finalLines = new List<string> { result.Restatement };
-            if (!string.IsNullOrWhiteSpace(result.ClosingLine))
-            {
-                finalLines.Add(result.ClosingLine);
-            }
+            string finalLine = result.Satisfied || string.IsNullOrWhiteSpace(result.ClosingLine)
+                ? result.Restatement
+                : result.ClosingLine;
+            List<string> finalLines = new List<string> { finalLine };
 
-            if (EndsAsQuestion(finalLines[finalLines.Count - 1]))
+            if (EndsAsQuestion(finalLine))
             {
-                finalLines.Add(result.Satisfied
-                    ? "I know what to tell the Teacher now."
-                    : "I'll leave it there for now.");
+                finalLines[0] = finalLine + (result.Satisfied
+                    ? " I know what to tell the Teacher now."
+                    : " I'll leave it there for now.");
             }
 
             return BuildStudentDialogue("api-student-reply", finalLines.ToArray());
@@ -847,9 +853,7 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
             return BuildStudentDialogue("api-student-reply", new[] { result.Restatement });
         }
 
-        return BuildStudentDialogue(
-            "api-student-reply",
-            new[] { result.Restatement, result.FollowUp });
+        return BuildStudentDialogue("api-student-reply", new[] { result.FollowUp });
     }
 
     private static bool EndsAsQuestion(string line)
@@ -1017,6 +1021,11 @@ public sealed class StudentDialogueInteraction : MonoBehaviour
         if (questionButton != null)
         {
             questionButton.interactable = visible;
+        }
+
+        if (questionButtonImage != null)
+        {
+            questionButtonImage.raycastTarget = visible;
         }
 
         if (questionButtonRoot != null)

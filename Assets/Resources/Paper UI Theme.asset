@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dabac17180c4f489889af35d526acd3b, type: 3}
+  m_Name: Paper UI Theme
+  m_EditorClassIdentifier: 
+  neutralPaper: {fileID: 222326306142782274, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  paperColors:
+  - {fileID: 4417693041390555196, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 7455521595519355256, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 4564903137526957909, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 1892347130167141345, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -5770938222580765346, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 1555260979733094004, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 8563813423309879418, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 4209896690594208740, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -3653153917876844073, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -1872620227642924246, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  roundedPapers:
+  - {fileID: -4094204009194734879, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -5842225334420653755, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -5818643499315207000, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -6951743330762186746, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 1632283284233678267, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 6661419795184097983, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 8727279625691827119, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -1824793760262034742, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: -1469652689837249267, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  - {fileID: 4176234717184907862, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  ruledLine: {fileID: 8570457472649051427, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  tape: {fileID: 8301415459609188639, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  paperClip: {fileID: -3491103853626478857, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  thumbtack: {fileID: 32776418547485233, guid: 225d9e5373f8b4e9ea4dcec335007aa9, type: 3}
+  robotPanel: {fileID: -7208227220096516806, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  robotSection: {fileID: 8134440435907778650, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}
+  robotButton: {fileID: 2324279168075296673, guid: d5d2e541cce3d45a0b99ad5fd2fc0175, type: 3}

@@ -1,0 +1,863 @@
+fileFormatVersion: 2
+guid: 225d9e5373f8b4e9ea4dcec335007aa9
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -5842923018636100178
+    second: Extra Paper UI_0
+  - first:
+      213: 1089908688391170219
+    second: Extra Paper UI_1
+  - first:
+      213: -7973093119600970459
+    second: Extra Paper UI_2
+  - first:
+      213: -3439040651919222971
+    second: Extra Paper UI_3
+  - first:
+      213: -1876280906761868384
+    second: Extra Paper UI_4
+  - first:
+      213: 1516355945397603305
+    second: Extra Paper UI_5
+  - first:
+      213: -3671622258029650910
+    second: Extra Paper UI_6
+  - first:
+      213: -4864135887141673510
+    second: Extra Paper UI_7
+  - first:
+      213: -3431369052888218587
+    second: Extra Paper UI_8
+  - first:
+      213: 4031538576732003307
+    second: Extra Paper UI_9
+  - first:
+      213: 5962231014028050760
+    second: Extra Paper UI_10
+  - first:
+      213: 2797368981251512969
+    second: Extra Paper UI_11
+  - first:
+      213: 2158757567624426699
+    second: Extra Paper UI_12
+  - first:
+      213: 4985594907490090964
+    second: Extra Paper UI_13
+  - first:
+      213: -4222397275304559105
+    second: Extra Paper UI_14
+  - first:
+      213: -4275022384986342859
+    second: Extra Paper UI_15
+  - first:
+      213: 222581754279815699
+    second: Extra Paper UI_16
+  - first:
+      213: -2100816146968113989
+    second: Extra Paper UI_17
+  - first:
+      213: 1544346614844230694
+    second: Extra Paper UI_18
+  - first:
+      213: 4800247636752280923
+    second: Extra Paper UI_19
+  - first:
+      213: 5026515589617681373
+    second: Extra Paper UI_20
+  - first:
+      213: 3486744837494797537
+    second: Extra Paper UI_21
+  - first:
+      213: -224901405965253747
+    second: Extra Paper UI_22
+  - first:
+      213: -3751827947868533440
+    second: Extra Paper UI_23
+  - first:
+      213: -1584149201134410285
+    second: Extra Paper UI_24
+  - first:
+      213: 4115129652933027148
+    second: Extra Paper UI_25
+  - first:
+      213: 6855091970634245829
+    second: Extra Paper UI_26
+  - first:
+      213: 7829460995960608024
+    second: Extra Paper UI_27
+  - first:
+      213: 6110545910849214301
+    second: Extra Paper UI_28
+  - first:
+      213: 3608467564793763185
+    second: Extra Paper UI_29
+  - first:
+      213: -5097613191805453241
+    second: Extra Paper UI_30
+  - first:
+      213: -6089729825558232696
+    second: Extra Paper UI_31
+  - first:
+      213: 2188039975991731816
+    second: Extra Paper UI_32
+  - first:
+      213: -4012551092919705727
+    second: Extra Paper UI_33
+  - first:
+      213: -2656825457163271231
+    second: Extra Paper UI_34
+  - first:
+      213: -4863011087281358405
+    second: Extra Paper UI_35
+  - first:
+      213: 1174221054185095224
+    second: Extra Paper UI_36
+  - first:
+      213: 6629661877491454494
+    second: Extra Paper UI_37
+  - first:
+      213: -1097748966429995114
+    second: Extra Paper UI_38
+  - first:
+      213: -3327024621474772365
+    second: Extra Paper UI_39
+  - first:
+      213: 885814225931043553
+    second: Extra Paper UI_40
+  - first:
+      213: 4426600530684611699
+    second: Extra Paper UI_41
+  - first:
+      213: 5045547018320594821
+    second: Extra Paper UI_42
+  - first:
+      213: -340775966458028291
+    second: Extra Paper UI_43
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 4096
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 2
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Paper Neutral
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 2212
+        width: 394
+        height: 395
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2438dd5f89cd51300800000000000000
+      internalID: 222326306142782274
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Aqua
+      rect:
+        serializedVersion: 2
+        x: 18
+        y: 1710
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c309cca4a6cce4d30800000000000000
+      internalID: 4417693041390555196
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Blue
+      rect:
+        serializedVersion: 2
+        x: 504
+        y: 1708
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8794f2cd365577760800000000000000
+      internalID: 7455521595519355256
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Purple
+      rect:
+        serializedVersion: 2
+        x: 988
+        y: 1689
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5574c5ab73bc95f30800000000000000
+      internalID: 4564903137526957909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Violet
+      rect:
+        serializedVersion: 2
+        x: 1448
+        y: 1678
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e3a75550b7f24a10800000000000000
+      internalID: 1892347130167141345
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Pink
+      rect:
+        serializedVersion: 2
+        x: 1967
+        y: 1676
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e5d6956234289efa0800000000000000
+      internalID: -5770938222580765346
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Green
+      rect:
+        serializedVersion: 2
+        x: 41
+        y: 1155
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 47e5406fe95659510800000000000000
+      internalID: 1555260979733094004
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Mint
+      rect:
+        serializedVersion: 2
+        x: 525
+        y: 1151
+        width: 395
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a787b1b7fe6c8d670800000000000000
+      internalID: 8563813423309879418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Yellow
+      rect:
+        serializedVersion: 2
+        x: 1009
+        y: 1132
+        width: 395
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ebd5ff2cbe8c6a30800000000000000
+      internalID: 4209896690594208740
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Orange
+      rect:
+        serializedVersion: 2
+        x: 1468
+        y: 1123
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7d9cf1fedd36d4dc0800000000000000
+      internalID: -3653153917876844073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Red
+      rect:
+        serializedVersion: 2
+        x: 1986
+        y: 1121
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 16, y: 16, z: 16, w: 16}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a23e12413dd1306e0800000000000000
+      internalID: -1872620227642924246
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Aqua
+      rect:
+        serializedVersion: 2
+        x: 25
+        y: 607
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1eab7f945277e27c0800000000000000
+      internalID: -4094204009194734879
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Blue
+      rect:
+        serializedVersion: 2
+        x: 511
+        y: 604
+        width: 395
+        height: 395
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 549b114030f3ceea0800000000000000
+      internalID: -5842225334420653755
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Purple
+      rect:
+        serializedVersion: 2
+        x: 995
+        y: 585
+        width: 395
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a46eacd096004fa0800000000000000
+      internalID: -5818643499315207000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Violet
+      rect:
+        serializedVersion: 2
+        x: 1456
+        y: 574
+        width: 394
+        height: 395
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 600aa38c542768f90800000000000000
+      internalID: -6951743330762186746
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Pink
+      rect:
+        serializedVersion: 2
+        x: 1974
+        y: 572
+        width: 395
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bbd6e81bff807a610800000000000000
+      internalID: 1632283284233678267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Green
+      rect:
+        serializedVersion: 2
+        x: 49
+        y: 52
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fba14bf820e127c50800000000000000
+      internalID: 6661419795184097983
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Mint
+      rect:
+        serializedVersion: 2
+        x: 533
+        y: 47
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fab8dd894968d1970800000000000000
+      internalID: 8727279625691827119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Yellow
+      rect:
+        serializedVersion: 2
+        x: 1017
+        y: 28
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aca6b334eb70da6e0800000000000000
+      internalID: -1824793760262034742
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Orange
+      rect:
+        serializedVersion: 2
+        x: 1475
+        y: 19
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d0dad074aaeba9be0800000000000000
+      internalID: -1469652689837249267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Rounded Red
+      rect:
+        serializedVersion: 2
+        x: 1994
+        y: 17
+        width: 394
+        height: 394
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 72, y: 72, z: 72, w: 72}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 65ad5704957f4f930800000000000000
+      internalID: 4176234717184907862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Ruled Line
+      rect:
+        serializedVersion: 2
+        x: 49
+        y: 2642
+        width: 398
+        height: 5
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32db6d3c9a160f670800000000000000
+      internalID: 8570457472649051427
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Tape
+      rect:
+        serializedVersion: 2
+        x: 2002
+        y: 2251
+        width: 222
+        height: 63
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 12, y: 12, z: 12, w: 12}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f1911f2b06d843370800000000000000
+      internalID: 8301415459609188639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Clip
+      rect:
+        serializedVersion: 2
+        x: 2280
+        y: 2490
+        width: 106
+        height: 162
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7fea892ba8b1d8fc0800000000000000
+      internalID: -3491103853626478857
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Paper Thumbtack
+      rect:
+        serializedVersion: 2
+        x: 2106
+        y: 2489
+        width: 36
+        height: 35
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13a4880aaf1747000800000000000000
+      internalID: 32776418547485233
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Paper Aqua: 4417693041390555196
+      Paper Blue: 7455521595519355256
+      Paper Clip: -3491103853626478857
+      Paper Green: 1555260979733094004
+      Paper Mint: 8563813423309879418
+      Paper Neutral: 222326306142782274
+      Paper Orange: -3653153917876844073
+      Paper Pink: -5770938222580765346
+      Paper Purple: 4564903137526957909
+      Paper Red: -1872620227642924246
+      Paper Rounded Aqua: -4094204009194734879
+      Paper Rounded Blue: -5842225334420653755
+      Paper Rounded Green: 6661419795184097983
+      Paper Rounded Mint: 8727279625691827119
+      Paper Rounded Orange: -1469652689837249267
+      Paper Rounded Pink: 1632283284233678267
+      Paper Rounded Purple: -5818643499315207000
+      Paper Rounded Red: 4176234717184907862
+      Paper Rounded Violet: -6951743330762186746
+      Paper Rounded Yellow: -1824793760262034742
+      Paper Ruled Line: 8570457472649051427
+      Paper Tape: 8301415459609188639
+      Paper Thumbtack: 32776418547485233
+      Paper Violet: 1892347130167141345
+      Paper Yellow: 4209896690594208740
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

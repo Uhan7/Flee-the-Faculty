@@ -191,7 +191,7 @@ public sealed class ClassroomSessionController : MonoBehaviour
         conversationHud.SetVisible(showConversationCounter && spawnedStudentCount > 0);
         DoorSceneTransition.CompleteLoadingTask(
             LoadingTaskId,
-            classroom.Topic + " is ready.");
+            "Classroom is ready.");
     }
 
     private void SpawnPupils(FleePupilSession[] pupils)

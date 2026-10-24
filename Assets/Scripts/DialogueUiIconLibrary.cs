@@ -7,12 +7,14 @@ public sealed class DialogueUiIconLibrary : ScriptableObject
 
     [SerializeField] private Sprite backIcon;
     [SerializeField] private Sprite pauseIcon;
+    [SerializeField] private Sprite pauseButtonBackground;
     [SerializeField] private Sprite exitIcon;
 
     private static DialogueUiIconLibrary instance;
 
     public Sprite BackIcon => backIcon;
     public Sprite PauseIcon => pauseIcon;
+    public Sprite PauseButtonBackground => pauseButtonBackground;
     public Sprite ExitIcon => exitIcon;
 
     public static DialogueUiIconLibrary Load()

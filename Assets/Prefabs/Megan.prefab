@@ -8,10 +8,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: voice
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 554563037739883886, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: conversationId
       value: megan_intro
@@ -69,48 +65,12 @@ PrefabInstance:
       value: 0.08700001
       objectReference: {fileID: 0}
     - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: voice
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5088951843667480379, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: displayName
       value: Megan
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: explanationNeed
-      value: Needs concrete wording that is precise enough to survive being restated carefully.
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: quirk
-      value: 'Uses the right word for everything and has one of them wrong, which hides where the mistake is.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: generalVibe
-      value: 'Funny, cool, artistic.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: speechStyle
-      value: 'Sarcastic and casual.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: commonPhrases
-      value: 'yeah arabella'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: confusionLine
-      value: 'what does that mean'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: wrongAnswerLine
-      value: 'what no'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: understandingLine
-      value: 'oh oke'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: preferredExplanationStyle
-      value: 'Short.'
-      objectReference: {fileID: 0}
-    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
-      propertyPath: recognizableHabit
-      value: 'Says yeah arabella.'
       objectReference: {fileID: 0}
     - target: {fileID: 5435764440206559852, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_Sprite
@@ -132,6 +92,48 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 1206223121888189090, guid: 9446ea99dfc3642cab8daaeac5b0efa8, type: 3}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: quirk
+      value: Uses the right word for everything and has one of them wrong, which
+        hides where the mistake is.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: generalVibe
+      value: Funny, cool, artistic.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: speechStyle
+      value: Sarcastic and casual.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: commonPhrases
+      value: yeah arabella
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: confusionLine
+      value: what does that mean
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: explanationNeed
+      value: Needs concrete wording that is precise enough to survive being restated
+        carefully.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: wrongAnswerLine
+      value: what no
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: recognizableHabit
+      value: Says yeah arabella.
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: understandingLine
+      value: oh oke
+      objectReference: {fileID: 0}
+    - target: {fileID: 6219858393812804444, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: preferredExplanationStyle
+      value: Short.
+      objectReference: {fileID: 0}
     - target: {fileID: 6293557560880508391, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.005
@@ -139,6 +141,10 @@ PrefabInstance:
     - target: {fileID: 6293557560880508391, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.08600001
+      objectReference: {fileID: 0}
+    - target: {fileID: 7334684474033452891, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -1.301087
       objectReference: {fileID: 0}
     - target: {fileID: 8050012587980911786, guid: 18dea6fa02a2a4a8a89ebc803add0fa4, type: 3}
       propertyPath: m_SortingOrder

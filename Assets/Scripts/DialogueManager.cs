@@ -44,7 +44,7 @@ public sealed class DialogueManager : MonoBehaviour
     public bool IsTyping => view != null && !view.IsRevealComplete;
     public bool CanGoBack => IsPlaying && FindPreviousLineIndex(activeLineIndex) >= 0;
     public bool HasNextLine => IsPlaying && FindNextLineIndex(activeLineIndex) >= 0;
-    public bool UseTextToSpeech => useTextToSpeech;
+    public bool UseTextToSpeech => useTextToSpeech && AudioSettingsStore.TextToSpeechEnabled;
     public int LettersPerVoiceTick => Mathf.Max(1, lettersPerVoiceTick);
 
     public event Action<IDialogueSequence> DialogueStarted;

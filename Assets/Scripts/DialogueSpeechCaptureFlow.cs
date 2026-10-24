@@ -13,6 +13,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
     private const string NoSpeechSubmittedText = "No speech was submitted.";
     private const string TypeInsteadText = "Click here if you prefer to type.";
     private const string TypedReplyPlaceholder = "Type your reply, then press Enter";
+    private const string SpeakingInstructionsText = "Click anywhere once you are done speaking to proceed.";
 
     private static DialogueSpeechCaptureFlow instance;
 
@@ -193,6 +194,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         if (dialogueView != null)
         {
             dialogueView.SetExternalBodyAction(null);
+            dialogueView.SetExternalStatus(null);
             dialogueView.SetVisible(false);
         }
     }
@@ -234,6 +236,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         SetAraBotThinking(false);
         ShowPromptButtonVisualOnly(AraBotPromptButton.PromptRole.Thinking);
         ShowTypingFallbackHint();
+        dialogueView?.SetExternalStatus(SpeakingInstructionsText);
 
         speechController.StartListening();
     }
@@ -249,6 +252,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         if (dialogueView != null)
         {
             dialogueView.SetExternalBodyAction(null);
+            dialogueView.SetExternalStatus(null);
             dialogueView.SetExternalInputVisible(false);
         }
 
@@ -281,6 +285,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         state = PromptState.ReadyToListen;
         isTypingHintVisible = false;
         SetAraBotThinking(false);
+        dialogueView?.SetExternalStatus(null);
         ShowReadyPrompt();
         ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
     }
@@ -379,6 +384,7 @@ public sealed class DialogueSpeechCaptureFlow : MonoBehaviour
         speechController?.StopListeningWithoutSubmitting();
         state = PromptState.Typing;
         isTypingHintVisible = false;
+        dialogueView?.SetExternalStatus(null);
         ignoreAdvanceUntil = Time.unscaledTime + inputDebounceSeconds;
         ShowPromptButton(AraBotPromptButton.PromptRole.Mic, BeginListening);
 

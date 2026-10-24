@@ -28,13 +28,11 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     [Header("Interaction")]
     [SerializeField, Min(1f)] private float positionLerpSpeed = 12f;
     [SerializeField, Min(1f)] private float scaleLerpSpeed = 16f;
-    [SerializeField, Min(1f)] private float rotationLerpSpeed = 14f;
     [SerializeField, Min(1f)] private float colorLerpSpeed = 16f;
     [SerializeField, Min(1f)] private float hoverScaleMultiplier = 1.08f;
     [SerializeField, Range(0.1f, 1f)] private float pressedScaleMultiplier = 0.9f;
     [SerializeField, Min(0f)] private float hoverLift = 0.08f;
     [SerializeField, Min(0f)] private float pressedSink = 0.05f;
-    [SerializeField] private float hoverTilt = -4f;
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color hoverColor = new Color(1f, 0.97f, 0.76f, 1f);
     [SerializeField] private Color pressedColor = new Color(1f, 0.86f, 0.56f, 1f);
@@ -43,7 +41,6 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     [SerializeField, Min(0.01f)] private float clickJuiceDuration = 0.24f;
     [SerializeField, Min(0f)] private float clickPunchScale = 0.16f;
     [SerializeField, Min(0f)] private float clickBurstLift = 0.1f;
-    [SerializeField] private float clickWobbleAngle = 8f;
     [SerializeField, Range(0f, 1f)] private float clickFlashBlend = 0.2f;
 
     private RectTransform rectTransform;
@@ -77,6 +74,8 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
         {
             targetGraphic = GetComponent<Graphic>();
         }
+
+        SetPivotToCenter();
 
         if (button != null)
         {
@@ -156,6 +155,12 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
             return;
         }
 
+        if (button != null && !button.interactable)
+        {
+            isHovered = false;
+            isPressed = false;
+        }
+
         float deltaTime = Time.unscaledDeltaTime;
         clickJuiceElapsed += deltaTime;
         float bobWave = Mathf.Sin((Time.unscaledTime + bobOffsetSeed) * bobCyclesPerSecond * Mathf.PI * 2f);
@@ -169,10 +174,8 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
         float clickProgress = clickJuiceDuration <= 0f
             ? 1f
             : Mathf.Clamp01(clickJuiceElapsed / clickJuiceDuration);
-        float clickEnvelope = 1f - clickProgress;
         float clickPulse = Mathf.Sin(clickProgress * Mathf.PI) * clickPunchScale;
         float clickLift = Mathf.Sin(clickProgress * Mathf.PI) * clickBurstLift;
-        float clickWobble = Mathf.Sin(clickProgress * Mathf.PI * 2.35f) * clickWobbleAngle * clickEnvelope;
         stateOffset += clickLift;
 
         Vector2 targetPosition = baseAnchoredPosition + Vector2.up * (bobOffset + stateOffset);
@@ -203,19 +206,9 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
             targetScale,
             GetLerpFactor(scaleLerpSpeed, deltaTime));
 
-        float targetAngle = 0f;
-        if (isHovered && !isPressed)
-        {
-            targetAngle = hoverTilt;
-        }
-
-        targetAngle += clickWobble;
-
-        Quaternion desiredRotation = baseRotation * Quaternion.Euler(0f, 0f, targetAngle);
-        rectTransform.localRotation = Quaternion.Lerp(
-            rectTransform.localRotation,
-            desiredRotation,
-            GetLerpFactor(rotationLerpSpeed, deltaTime));
+        // These are the prompts above the students' heads. Keep their existing
+        // floating motion, but reserve rotation for regular menu/UI buttons.
+        rectTransform.localRotation = baseRotation;
 
         if (targetGraphic != null)
         {
@@ -282,6 +275,18 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (button == null || !button.interactable)
+        {
+            isHovered = false;
+            isPressed = false;
+            return;
+        }
+
+        if (!isHovered)
+        {
+            ButtonJuiceRuntime.PlayHover();
+        }
+
         isHovered = true;
     }
 
@@ -293,7 +298,7 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        isPressed = true;
+        isPressed = button != null && button.interactable;
     }
 
     public void OnPointerUp(PointerEventData eventData)
@@ -303,6 +308,18 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
 
     public void OnSelect(BaseEventData eventData)
     {
+        if (button == null || !button.interactable)
+        {
+            isHovered = false;
+            isPressed = false;
+            return;
+        }
+
+        if (!isHovered)
+        {
+            ButtonJuiceRuntime.PlayHover();
+        }
+
         isHovered = true;
     }
 
@@ -324,6 +341,7 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     {
         clickJuiceElapsed = 0f;
         isPressed = false;
+        ButtonJuiceRuntime.PlayClick();
     }
 
     private static float EaseOutCubic(float value)
@@ -335,5 +353,20 @@ public sealed class QuestionButtonAnimator : MonoBehaviour,
     private static float GetLerpFactor(float speed, float deltaTime)
     {
         return 1f - Mathf.Exp(-speed * deltaTime);
+    }
+
+    private void SetPivotToCenter()
+    {
+        if (rectTransform == null || rectTransform.pivot == new Vector2(0.5f, 0.5f))
+        {
+            return;
+        }
+
+        Vector2 size = rectTransform.rect.size;
+        Vector2 previousPivot = rectTransform.pivot;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition += new Vector2(
+            (0.5f - previousPivot.x) * size.x,
+            (0.5f - previousPivot.y) * size.y);
     }
 }

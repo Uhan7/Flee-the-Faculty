@@ -25,6 +25,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField] private GameObject dialogueContainer;
     [SerializeField] private TMP_Text speakerText;
     [SerializeField] private TMP_Text bodyText;
+    [SerializeField] private TMP_Text speakingInstructionsText;
     [SerializeField] private GameObject continueIndicator;
     [SerializeField] private Button backButton;
 
@@ -102,6 +103,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     private TMP_InputField externalInputField;
     private TMP_Text externalInputText;
     private TMP_Text externalInputPlaceholderText;
+    private TMP_Text externalStatusText;
     private Button externalBodyActionButton;
     private TMP_MeshInfo[] cachedBodyMeshInfo;
     private ScrollRect responseScrollRect;
@@ -228,6 +230,22 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         bodyText.raycastTarget = action != null;
     }
 
+    public void SetExternalStatus(string status)
+    {
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            EnsureExternalStatusText();
+        }
+
+        if (externalStatusText == null)
+        {
+            return;
+        }
+
+        externalStatusText.text = status ?? string.Empty;
+        externalStatusText.gameObject.SetActive(!string.IsNullOrWhiteSpace(status));
+    }
+
     private void UpdateContinueIndicator()
     {
         if (continueIndicatorRect == null || continueIndicator == null || !continueIndicator.activeSelf)
@@ -242,7 +260,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     private void UpdateActiveGlyphAnimations()
     {
-        if (bodyText == null || activeGlyphAnimations.Count == 0 || cachedBodyMeshInfo == null)
+        if (bodyText == null
+            || activeGlyphAnimations.Count == 0
+            || cachedBodyMeshInfo == null)
         {
             return;
         }
@@ -308,6 +328,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         isAraBotTurn = false;
         isNonSpokenContent = false;
         SetExternalBodyAction(null);
+        SetExternalStatus(null);
         SetExternalInputVisible(false);
 
         if (speakerText != null)
@@ -342,6 +363,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         isNonSpokenContent = waitingForVoice;
 
         SetExternalBodyAction(null);
+        SetExternalStatus(null);
         SetExternalInputVisible(false);
         RestoreBodyTextAppearance();
 
@@ -402,6 +424,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         StopLiveTranscriptRoutine();
         ClearActiveGlyphAnimations();
         SetExternalBodyAction(null);
+        SetExternalStatus(null);
         SetExternalInputVisible(false);
         RestoreBodyTextAppearance();
 
@@ -708,9 +731,13 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             Button[] buttons = dialogueContainer.GetComponentsInChildren<Button>(false);
             for (int index = 0; index < buttons.Length; index++)
             {
-                RectTransform buttonRect = buttons[index] != null
-                    ? buttons[index].transform as RectTransform
-                    : null;
+                Button button = buttons[index];
+                if (button == null || !button.isActiveAndEnabled || !button.interactable)
+                {
+                    continue;
+                }
+
+                RectTransform buttonRect = button.transform as RectTransform;
                 if (buttonRect != null
                     && RectTransformUtility.RectangleContainsScreenPoint(buttonRect, pointerPosition))
                 {
@@ -1110,14 +1137,19 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             int chunkStartCharacterIndex = visibleCharacterCount;
             visibleCharacterCount += chunk.CharacterCount;
             bodyText.maxVisibleCharacters = visibleCharacterCount;
+            NotifyVoiceTicks(chunkStartCharacterIndex, chunk.CharacterCount);
+
             CacheBodyTextMesh();
             QueueGlyphAnimations(chunk, chunkStartCharacterIndex);
-            NotifyVoiceTicks(chunkStartCharacterIndex, chunk.CharacterCount);
             UpdateActiveGlyphAnimations();
 
             if (index < chunks.Count - 1)
             {
-                yield return WaitForSecondsRealtime(GetChunkDelaySeconds(chunk) * delayScale);
+                bool usesSpokenDialogue = DialogueManager.Instance != null
+                    && DialogueManager.Instance.UseTextToSpeech;
+                float noVoiceSpeedMultiplier = usesSpokenDialogue ? 1f : 0.55f;
+                yield return WaitForSecondsRealtime(
+                    GetChunkDelaySeconds(chunk) * delayScale * noVoiceSpeedMultiplier);
             }
         }
 
@@ -1497,6 +1529,61 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         externalInputField.textComponent = externalInputText;
         externalInputField.placeholder = externalInputPlaceholderText;
         inputRoot.SetActive(false);
+    }
+
+    private void EnsureExternalStatusText()
+    {
+        if (externalStatusText != null)
+        {
+            return;
+        }
+
+        if (speakingInstructionsText != null)
+        {
+            externalStatusText = speakingInstructionsText;
+            externalStatusText.raycastTarget = false;
+            return;
+        }
+
+        if (dialogueContainer != null)
+        {
+            TMP_Text[] labels = dialogueContainer.GetComponentsInChildren<TMP_Text>(true);
+            for (int index = 0; index < labels.Length; index++)
+            {
+                if (labels[index] != null && labels[index].name == "Speaking Instructions Text")
+                {
+                    speakingInstructionsText = labels[index];
+                    externalStatusText = speakingInstructionsText;
+                    externalStatusText.raycastTarget = false;
+                    return;
+                }
+            }
+        }
+
+        if (dialogueContainerRect == null || bodyText == null)
+        {
+            return;
+        }
+
+        externalStatusText = CreateRuntimeText(
+            "Speaking Instructions",
+            dialogueContainerRect,
+            bodyText.font,
+            string.Empty,
+            Mathf.Max(15f, bodyText.fontSize * 0.46f),
+            FontStyles.Italic,
+            externalHintColor,
+            TextAlignmentOptions.BottomRight);
+
+        RectTransform statusRect = externalStatusText.rectTransform;
+        statusRect.anchorMin = new Vector2(0.32f, 0f);
+        statusRect.anchorMax = new Vector2(0.96f, 0f);
+        statusRect.pivot = new Vector2(1f, 0f);
+        statusRect.anchoredPosition = new Vector2(0f, 18f);
+        statusRect.sizeDelta = new Vector2(0f, 36f);
+        externalStatusText.enableWordWrapping = false;
+        externalStatusText.raycastTarget = false;
+        externalStatusText.gameObject.SetActive(false);
     }
 
     private static TMP_Text CreateRuntimeText(
