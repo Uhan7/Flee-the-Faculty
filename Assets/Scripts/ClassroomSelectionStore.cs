@@ -51,11 +51,12 @@ public static class ClassroomSelectionStore
         string[] materialIds,
         FleeClassroomLanguage language,
         string additionalNotes,
-        int studentCount)
+        int studentCount,
+        int gradeLevel = DefaultGradeLevel)
     {
         FleeApiClient.ResetClassroomSession();
         FleeApiClient client = FleeApiClient.GetOrCreate();
-        client.ConfigureClassroomMaterials(materialIds);
+        client.ConfigureClassroomMaterials(materialIds, gradeLevel);
         client.ConfigureClassroomLanguage(language, additionalNotes);
         client.ConfigureStudentCount(ClampStudentCount(studentCount));
     }
@@ -253,12 +254,12 @@ public sealed class SavedClassroomDefinition
     public string additionalNotes;
     public int studentCountOverride;
     public int automaticStudentCount;
+    public int paperStyle = -1;
 }
 
 public static class SavedClassroomStore
 {
     private const string StorageKey = "Flee.SavedCustomClassrooms.v1";
-    private const int MaximumSavedClassrooms = 5;
 
     [Serializable]
     private sealed class SavedClassroomCollection
@@ -295,7 +296,8 @@ public static class SavedClassroomStore
         FleeClassroomLanguage language,
         string additionalNotes,
         int studentCountOverride,
-        int automaticStudentCount)
+        int automaticStudentCount,
+        int paperStyle = -1)
     {
         SavedClassroomCollection collection = Load();
         SavedClassroomDefinition saved = null;
@@ -322,6 +324,10 @@ public static class SavedClassroomStore
         saved.material = string.IsNullOrWhiteSpace(material) ? string.Empty : material.Trim();
         saved.materialId = string.IsNullOrWhiteSpace(materialId) ? string.Empty : materialId.Trim();
         saved.gradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
+        if (paperStyle >= 0)
+        {
+            saved.paperStyle = Mathf.Clamp(paperStyle, 0, 9);
+        }
         saved.language = language;
         saved.additionalNotes = string.IsNullOrWhiteSpace(additionalNotes)
             ? string.Empty
@@ -334,12 +340,6 @@ public static class SavedClassroomStore
                 ? ClassroomSelectionStore.DefaultAutomaticStudentCount
                 : automaticStudentCount);
         collection.classrooms.Insert(0, saved);
-        if (collection.classrooms.Count > MaximumSavedClassrooms)
-        {
-            collection.classrooms.RemoveRange(
-                MaximumSavedClassrooms,
-                collection.classrooms.Count - MaximumSavedClassrooms);
-        }
 
         Persist(collection);
         return saved;
@@ -371,6 +371,15 @@ public static class SavedClassroomStore
 
             collection.classrooms ??= new List<SavedClassroomDefinition>();
             collection.classrooms.RemoveAll(classroom => classroom == null);
+            if (json.IndexOf("\"paperStyle\"", StringComparison.Ordinal) < 0)
+            {
+                // Older recipes did not retain a paper choice. Keep their existing
+                // fallback colour instead of mistaking an absent field for Aqua.
+                foreach (SavedClassroomDefinition classroom in collection.classrooms)
+                {
+                    classroom.paperStyle = -1;
+                }
+            }
             return collection;
         }
         catch (Exception exception)

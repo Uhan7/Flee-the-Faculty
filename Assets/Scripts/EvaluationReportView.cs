@@ -10,7 +10,7 @@ public sealed class EvaluationReportView : MonoBehaviour
     private static readonly Color PaperColor = new Color(0.96f, 0.9f, 0.74f, 1f);
     private static readonly Color InkColor = new Color(0.18f, 0.12f, 0.08f, 1f);
     private static readonly Color AccentColor = new Color(0.49f, 0.25f, 0.12f, 1f);
-    private const int ReportPaperStyle = 7;
+    [SerializeField, Min(0f)] private float maximumTiltAngle = 5f;
 
     public static void Show(
         FleeClassroomSession classroom,
@@ -21,10 +21,13 @@ public sealed class EvaluationReportView : MonoBehaviour
         string accuracyLabel,
         string teacherNoteLabel,
         string returnLabel,
-        System.Action onReturn)
+        System.Action onReturn,
+        System.Action onRetry = null,
+        float maximumTiltAngle = 5f)
     {
         GameObject host = new GameObject("AraBOT Evaluation Report", typeof(RectTransform));
         EvaluationReportView view = host.AddComponent<EvaluationReportView>();
+        view.maximumTiltAngle = Mathf.Max(0f, maximumTiltAngle);
         view.Build(
             classroom,
             pupils,
@@ -34,7 +37,8 @@ public sealed class EvaluationReportView : MonoBehaviour
             accuracyLabel,
             teacherNoteLabel,
             returnLabel,
-            onReturn);
+            onReturn,
+            onRetry);
     }
 
     private void Build(
@@ -46,7 +50,8 @@ public sealed class EvaluationReportView : MonoBehaviour
         string accuracyLabel,
         string teacherNoteLabel,
         string returnLabel,
-        System.Action onReturn)
+        System.Action onReturn,
+        System.Action onRetry)
     {
         Canvas canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -64,10 +69,12 @@ public sealed class EvaluationReportView : MonoBehaviour
         Stretch(blocker.rectTransform);
 
         PaperUiTheme paperTheme = PaperUiTheme.Load();
+        int paperStyle = classroom != null ? classroom.PaperStyle : PlayerPrefs.GetInt("Flee.ClassroomPaperStyle", 1);
+        Color paperAccent = paperTheme != null ? paperTheme.GetAccent(paperStyle) : AccentColor;
         Image paper = CreateImage("Paper", root, PaperColor);
-        if (paperTheme != null && paperTheme.GetPaper(ReportPaperStyle) != null)
+        if (paperTheme != null && paperTheme.GetPaper(paperStyle) != null)
         {
-            paper.sprite = paperTheme.GetPaper(ReportPaperStyle);
+            paper.sprite = paperTheme.GetPaper(paperStyle);
             paper.type = Image.Type.Sliced;
             paper.color = Color.white;
         }
@@ -76,8 +83,9 @@ public sealed class EvaluationReportView : MonoBehaviour
         paperRect.anchorMin = new Vector2(0.5f, 0.5f);
         paperRect.anchorMax = new Vector2(0.5f, 0.5f);
         paperRect.pivot = new Vector2(0.5f, 0.5f);
-        paperRect.sizeDelta = new Vector2(920f, 900f);
-        paperRect.localRotation = Quaternion.Euler(0f, 0f, -0.7f);
+        paperRect.sizeDelta = new Vector2(920f, 850f);
+        paperRect.anchoredPosition = new Vector2(0f, 60f);
+        paperRect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(-maximumTiltAngle, maximumTiltAngle));
         Shadow shadow = paper.gameObject.AddComponent<Shadow>();
         shadow.effectColor = new Color(0f, 0f, 0f, 0.42f);
         shadow.effectDistance = new Vector2(14f, -16f);
@@ -88,12 +96,12 @@ public sealed class EvaluationReportView : MonoBehaviour
             outline.effectDistance = new Vector2(3f, -3f);
         }
 
-        CreateRuledLines(paperRect, paperTheme, ReportPaperStyle);
+        CreateRuledLines(paperRect, paperTheme, paperStyle);
 
         TMP_FontAsset font = TMP_Settings.defaultFontAsset;
-        TMP_Text titleText = CreateText("Report Title", paperRect, font, title, 46f, FontStyles.Bold);
-        SetRect(titleText.rectTransform, new Vector2(58f, -48f), new Vector2(-58f, -118f));
-        titleText.alignment = TextAlignmentOptions.Center;
+        TMP_Text titleText = CreateText("Report Title", paperRect, font, title, 38f, FontStyles.Bold);
+        SetRect(titleText.rectTransform, new Vector2(64f, -48f), new Vector2(-210f, -116f));
+        titleText.alignment = TextAlignmentOptions.Left;
 
         int total = pupils != null ? pupils.Count : 0;
         int saved = 0;
@@ -124,7 +132,18 @@ public sealed class EvaluationReportView : MonoBehaviour
             "<b>Topic:</b> " + topic,
             25f,
             FontStyles.Normal);
-        SetRect(topicText.rectTransform, new Vector2(72f, -132f), new Vector2(-72f, -178f));
+        SetRect(topicText.rectTransform, new Vector2(72f, -126f), new Vector2(-210f, -170f));
+        topicText.enableAutoSizing = true;
+        topicText.fontSizeMin = 18f;
+        topicText.fontSizeMax = 25f;
+        CreateDivider(paperRect, "Topic Divider", -174f, paperAccent);
+
+        TMP_Text classInfo = CreateText("Class Information", paperRect, font,
+            "Students: " + total + "    •    Expected grade level: " + (classroom != null ? classroom.GradeLevel.ToString() : "—"),
+            22f, FontStyles.Normal);
+        SetRect(classInfo.rectTransform, new Vector2(72f, -180f), new Vector2(-72f, -214f));
+        CreateDivider(paperRect, "Heading Divider", -224f, paperAccent);
+        CreateRatingBadge(paperRect, font, averageScore);
 
         Image summaryCard = CreateImage("Summary", paperRect, new Color(1f, 0.98f, 0.88f, 0.84f));
         ApplyPaperSprite(
@@ -132,7 +151,7 @@ public sealed class EvaluationReportView : MonoBehaviour
             paperTheme != null ? paperTheme.GetRoundedPaper(cleared ? 5 : 9) : null,
             0.96f);
         AddPaperShadow(summaryCard, new Vector2(5f, -6f), 0.18f);
-        SetRect(summaryCard.rectTransform, new Vector2(64f, -188f), new Vector2(-64f, -330f));
+        SetRect(summaryCard.rectTransform, new Vector2(64f, -240f), new Vector2(-64f, -356f));
         TMP_Text summaryText = CreateText(
             "Summary Text",
             summaryCard.rectTransform,
@@ -140,32 +159,61 @@ public sealed class EvaluationReportView : MonoBehaviour
             (cleared ? "CLASS CLEARED!" : "KEEP PRACTISING") + "\n" +
             savedLabel + ":  <b>" + saved + " / " + total + "</b>   •   Needed: " + quota + "\n" +
             accuracyLabel + ":  <b>" + averageScore + "%</b>",
-            27f,
+            24f,
             FontStyles.Normal);
         Stretch(summaryText.rectTransform, 24f, 18f, 24f, 18f);
         summaryText.alignment = TextAlignmentOptions.Center;
         summaryText.color = cleared ? new Color(0.12f, 0.36f, 0.17f, 1f) : AccentColor;
 
         ScrollRect scroll = CreateScrollView(paperRect, font, paperTheme);
-        SetRect(scroll.GetComponent<RectTransform>(), new Vector2(68f, -346f), new Vector2(-68f, -746f));
-        TMP_Text detailsText = scroll.content.GetComponent<TMP_Text>();
-        detailsText.text = BuildDetails(pupils, teacherResult, teacherNoteLabel);
-        detailsText.ForceMeshUpdate();
-        scroll.content.sizeDelta = new Vector2(
-            scroll.content.sizeDelta.x,
-            Mathf.Max(400f, detailsText.preferredHeight + 30f));
+        SetRect(scroll.GetComponent<RectTransform>(), new Vector2(68f, -376f), new Vector2(-68f, -806f));
+        BuildDetailRows(scroll.content, pupils, teacherResult, teacherNoteLabel, font, paperAccent);
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+        scroll.verticalNormalizedPosition = 1f;
+        TMP_Text scrollHint = CreateText("Scroll Hint", paperRect, font,
+            "Scroll for more students and teacher feedback", 14f, FontStyles.Normal);
+        SetRect(scrollHint.rectTransform, new Vector2(72f, -358f), new Vector2(-72f, -374f));
+        scrollHint.alignment = TextAlignmentOptions.Right;
+        scrollHint.gameObject.SetActive(scroll.content.rect.height > scroll.viewport.rect.height);
 
-        Button returnButton = CreateButton("Return Button", paperRect, font, returnLabel, paperTheme);
+        Button returnButton = CreateButton("Return Button", root, font, returnLabel, paperTheme);
         RectTransform buttonRect = returnButton.GetComponent<RectTransform>();
-        buttonRect.anchorMin = new Vector2(0.5f, 0f);
-        buttonRect.anchorMax = new Vector2(0.5f, 0f);
-        buttonRect.pivot = new Vector2(0.5f, 0f);
-        buttonRect.anchoredPosition = new Vector2(0f, 54f);
-        buttonRect.sizeDelta = new Vector2(470f, 92f);
+        buttonRect.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonRect.pivot = new Vector2(0.5f, 0.5f);
+        buttonRect.anchoredPosition = new Vector2(190f, -470f);
+        buttonRect.sizeDelta = new Vector2(400f, 76f);
+        Button retryButton = CreateButton("Try Again Button", root, font, "Try Again", paperTheme);
+        RectTransform retryRect = retryButton.GetComponent<RectTransform>();
+        retryRect.anchorMin = new Vector2(0.5f, 0.5f);
+        retryRect.anchorMax = new Vector2(0.5f, 0.5f);
+        retryRect.pivot = new Vector2(0.5f, 0.5f);
+        retryRect.anchoredPosition = new Vector2(-224f, -470f);
+        retryRect.sizeDelta = new Vector2(300f, 76f);
         returnButton.onClick.AddListener(() =>
         {
-            returnButton.interactable = false;
+            DisabledButtonFeedback.SetInteractable(returnButton, false);
+            DisabledButtonFeedback.SetInteractable(retryButton, false);
             onReturn?.Invoke();
+        });
+        retryButton.onClick.AddListener(() =>
+        {
+            if (!retryButton.IsInteractable())
+            {
+                return;
+            }
+            DisabledButtonFeedback.SetInteractable(returnButton, false);
+            DisabledButtonFeedback.SetInteractable(retryButton, false);
+            if (onRetry != null)
+            {
+                onRetry.Invoke();
+            }
+            else
+            {
+                FleeApiClient.ResetClassroomSession();
+                DoorSceneTransition.LoadScene("Classroom and Movement", "Assets/Scenes/Classroom and Movement.unity");
+            }
         });
     }
 
@@ -188,7 +236,8 @@ public sealed class EvaluationReportView : MonoBehaviour
     private static string BuildDetails(
         IReadOnlyList<FleePupilSession> pupils,
         FleeTeacherSceneResult teacherResult,
-        string teacherNoteLabel)
+        string teacherNoteLabel,
+        bool includeTeacherNote = true)
     {
         StringBuilder builder = new StringBuilder();
         if (pupils != null)
@@ -221,23 +270,106 @@ public sealed class EvaluationReportView : MonoBehaviour
                         .Append("\n");
                 }
 
-                if (index < pupils.Count - 1)
-                {
-                    builder.Append("<color=#B9AA83>────────────────────────────────────</color>\n");
-                }
-
                 builder.Append('\n');
             }
         }
 
-        if (teacherResult != null && !string.IsNullOrWhiteSpace(teacherResult.TeacherRemark))
+        if (includeTeacherNote && teacherResult != null && !string.IsNullOrWhiteSpace(teacherResult.TeacherRemark))
         {
-            builder.Append("<color=#A58E62>────────────────────────────────────</color>\n");
             builder.Append("<b>").Append(teacherNoteLabel).Append(":</b>\n");
             builder.Append(teacherResult.TeacherRemark.Trim());
         }
 
         return builder.ToString();
+    }
+
+    private static void BuildDetailRows(
+        RectTransform content,
+        IReadOnlyList<FleePupilSession> pupils,
+        FleeTeacherSceneResult teacherResult,
+        string teacherNoteLabel,
+        TMP_FontAsset font,
+        Color dividerColor)
+    {
+        bool hasRow = false;
+        if (pupils != null)
+        {
+            for (int index = 0; index < pupils.Count; index++)
+            {
+                if (pupils[index] == null)
+                {
+                    continue;
+                }
+                if (hasRow)
+                {
+                    CreateDetailDivider(content, dividerColor);
+                }
+                CreateText("Student " + (index + 1), content, font,
+                    BuildDetails(new[] { pupils[index] }, teacherResult, teacherNoteLabel, false).Trim(),
+                    20f, FontStyles.Normal);
+                hasRow = true;
+            }
+        }
+        if (teacherResult != null && !string.IsNullOrWhiteSpace(teacherResult.TeacherRemark))
+        {
+            if (hasRow)
+            {
+                CreateDetailDivider(content, dividerColor);
+            }
+            CreateText("Teacher Note", content, font,
+                "<b>" + teacherNoteLabel + ":</b>\n" + teacherResult.TeacherRemark.Trim(),
+                20f, FontStyles.Normal);
+        }
+    }
+
+    private static void CreateDetailDivider(RectTransform parent, Color tint)
+    {
+        Image divider = CreateImage("Student Divider", parent, new Color(tint.r, tint.g, tint.b, 0.28f));
+        divider.raycastTarget = false;
+        LayoutElement layout = divider.gameObject.AddComponent<LayoutElement>();
+        layout.minHeight = 2f;
+        layout.preferredHeight = 2f;
+    }
+
+    private static void CreateDivider(RectTransform parent, string name, float position, Color tint)
+    {
+        Image divider = CreateImage(name, parent, new Color(tint.r, tint.g, tint.b, 0.28f));
+        divider.raycastTarget = false;
+        SetRect(divider.rectTransform, new Vector2(72f, position), new Vector2(-72f, position - 2f));
+    }
+
+    public static string GetLetterRating(int score)
+    {
+        ReportRatingSettings settings = ReportRatingSettings.Load();
+        return settings != null ? settings.Resolve(Mathf.Clamp(score, 0, 100))?.grade ?? "—" : "—";
+    }
+
+    private static void CreateRatingBadge(RectTransform parent, TMP_FontAsset font, int score)
+    {
+        GameObject badge = new GameObject("AraBOT Rating Badge", typeof(RectTransform), typeof(CanvasRenderer), typeof(ReportRatingBadge));
+        badge.transform.SetParent(parent, false);
+        RectTransform rect = badge.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.one;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = Vector2.one;
+        rect.anchoredPosition = new Vector2(-48f, -36f);
+        rect.sizeDelta = new Vector2(130f, 130f);
+        ReportRatingBadge circle = badge.GetComponent<ReportRatingBadge>();
+        circle.color = InkColor;
+        circle.raycastTarget = false;
+        TMP_Text letter = CreateText("Letter Rating", rect, font, GetLetterRating(score), 48f, FontStyles.Bold);
+        SetRect(letter.rectTransform, new Vector2(10f, -12f), new Vector2(-10f, -86f));
+        letter.color = Color.white;
+        letter.alignment = TextAlignmentOptions.Center;
+        ReportRatingSettings settings = ReportRatingSettings.Load();
+        ReportRatingSettings.RatingBand band = settings != null ? settings.Resolve(score) : null;
+        TMP_Text caption = CreateText("Rating Caption", rect, font, band != null ? band.PickText() : "ANSWER SUCCESS", 12f, FontStyles.Normal);
+        SetRect(caption.rectTransform, new Vector2(14f, -80f), new Vector2(-14f, -108f));
+        caption.color = Color.white;
+        caption.alignment = TextAlignmentOptions.Center;
+        caption.enableAutoSizing = true;
+        caption.fontSizeMin = 9f;
+        caption.fontSizeMax = 12f;
     }
 
     private static string BuildNeedsHelpReason(
@@ -319,30 +451,31 @@ public sealed class EvaluationReportView : MonoBehaviour
             0.72f);
         AddPaperShadow(viewportImage, new Vector2(5f, -6f), 0.16f);
         RectTransform viewportRect = viewportImage.rectTransform;
-        viewportImage.gameObject.AddComponent<RectMask2D>();
+        // Stencil masking follows the rotated paper; RectMask2D can cut across
+        // student text because its clipping rectangle is aligned to the canvas.
+        viewportImage.gameObject.AddComponent<Mask>().showMaskGraphic = true;
 
-        TMP_Text details = CreateText(
-            "Details",
-            viewportRect,
-            font,
-            string.Empty,
-            18f,
-            FontStyles.Normal);
-        RectTransform detailsRect = details.rectTransform;
+        GameObject details = new GameObject("Details", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        RectTransform detailsRect = details.GetComponent<RectTransform>();
+        detailsRect.SetParent(viewportRect, false);
         detailsRect.anchorMin = new Vector2(0f, 1f);
         detailsRect.anchorMax = new Vector2(1f, 1f);
         detailsRect.pivot = new Vector2(0.5f, 1f);
-        detailsRect.anchoredPosition = new Vector2(0f, -20f);
-        detailsRect.sizeDelta = new Vector2(-80f, 380f);
-        details.lineSpacing = 1f;
+        detailsRect.anchoredPosition = Vector2.zero;
+        detailsRect.sizeDelta = Vector2.zero;
+        VerticalLayoutGroup layout = details.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(28, 28, 22, 22);
+        layout.spacing = 16f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        details.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         ScrollRect scroll = viewportImage.gameObject.AddComponent<ScrollRect>();
         scroll.viewport = viewportRect;
         scroll.content = detailsRect;
-        scroll.horizontal = false;
-        scroll.vertical = true;
-        scroll.movementType = ScrollRect.MovementType.Clamped;
-        scroll.scrollSensitivity = 32f;
+        UiScrollSettings.Apply(scroll);
         return scroll;
     }
 
@@ -356,11 +489,17 @@ public sealed class EvaluationReportView : MonoBehaviour
         Image image = CreateImage(name, parent, AccentColor);
         ApplyPaperSprite(
             image,
-            paperTheme != null ? paperTheme.GetPaper(1) : null,
+            paperTheme != null ? paperTheme.RobotButton : null,
             1f);
+        if (paperTheme != null)
+        {
+            paperTheme.ApplyButtonSlicing(image);
+        }
         AddPaperShadow(image, new Vector2(5f, -6f), 0.2f);
         Button button = image.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
+        image.gameObject.AddComponent<ButtonJuice>();
+        button.transition = Selectable.Transition.None;
         TMP_Text text = CreateText("Label", image.rectTransform, font, label, 27f, FontStyles.Bold);
         Stretch(text.rectTransform, 18f, 10f, 18f, 10f);
         text.alignment = TextAlignmentOptions.Center;
@@ -379,7 +518,8 @@ public sealed class EvaluationReportView : MonoBehaviour
         }
 
         Color accent = paperTheme.GetAccent(styleIndex);
-        for (int index = 0; index < 20; index++)
+        int lineCount = Mathf.FloorToInt((paperRect.sizeDelta.y - 420f) / 34f);
+        for (int index = 0; index < lineCount; index++)
         {
             Image line = CreateImage(
                 "Ruled Line " + (index + 1),
@@ -392,8 +532,8 @@ public sealed class EvaluationReportView : MonoBehaviour
             lineRect.anchorMin = new Vector2(0f, 1f);
             lineRect.anchorMax = new Vector2(1f, 1f);
             lineRect.pivot = new Vector2(0.5f, 1f);
-            lineRect.anchoredPosition = new Vector2(0f, -150f - (index * 34f));
-            lineRect.sizeDelta = new Vector2(-96f, 3f);
+            lineRect.anchoredPosition = new Vector2(0f, -388f - (index * 34f));
+            lineRect.sizeDelta = new Vector2(-144f, 2f);
         }
     }
 
@@ -448,7 +588,7 @@ public sealed class EvaluationReportView : MonoBehaviour
         text.fontSize = size;
         text.fontStyle = style;
         text.color = InkColor;
-        text.enableWordWrapping = true;
+        text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
         return text;
     }

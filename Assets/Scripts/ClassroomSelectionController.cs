@@ -27,6 +27,10 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     private const int MaximumUploadBytes = 12 * 1024 * 1024;
     private const int MaximumAdditionalNotesCharacters = 500;
     private const string PaperStylePreferenceKey = "Flee.ClassroomPaperStyle";
+    private const string ClassroomHomePrefabPath = "Classroom Selection Views/Classroom Home";
+    private const string SampleClassroomsPrefabPath = "Classroom Selection Views/Sample Classrooms";
+    private const string CustomClassroomPrefabPath = "Classroom Selection Views/Custom Classroom";
+    private const string SavedClassroomsPrefabPath = "Classroom Selection Views/Saved Classrooms";
 
     private readonly Color navy = new Color(0.075f, 0.12f, 0.2f, 1f);
     private readonly Color blue = new Color(0.16f, 0.48f, 0.78f, 1f);
@@ -45,6 +49,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
     private RectTransform menuCanvas;
     private GameObject selectionView;
+    private GameObject sampleView;
     private GameObject customView;
     private GameObject savedView;
     private GameObject sharedTitle;
@@ -54,16 +59,19 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     private CanvasGroup sharedHeaderGroup;
     private RectTransform classroomWindow;
     private RectTransform savedListRoot;
+    private ScrollRect savedClassroomScrollRect;
     private TMP_InputField topicInput;
     private TMP_InputField materialInput;
     private TMP_InputField additionalNotesInput;
     private TMP_Text gradeLabel;
     private TMP_Text studentCountLabel;
     private TMP_Text languageButtonLabel;
+    private TMP_Text savedClassroomStatusLabel;
     private TMP_Text statusLabel;
     private Image statusPanel;
     private Button firstRoomButton;
     private Button uploadButton;
+    private Button retrieveButton;
     private TMP_Text uploadButtonLabel;
     private Button createButton;
     private TMP_Text createButtonLabel;
@@ -83,6 +91,9 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     private FleeClassroomLanguage classroomLanguage = FleeClassroomLanguage.English;
     private Coroutine viewTransitionRoutine;
     private GameObject activeView;
+#if UNITY_EDITOR
+    private bool buildViewsFromCode;
+#endif
 
     private int ResolvedStudentCount => studentCountOverride > 0
         ? ClassroomSelectionStore.ClampStudentCount(studentCountOverride)
@@ -113,6 +124,14 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         InstallPlayButtonOverlay();
         gameObject.SetActive(false);
     }
+
+#if UNITY_EDITOR
+    public void ConfigureForPrefabBuild(RectTransform canvas)
+    {
+        buildViewsFromCode = true;
+        Configure(canvas);
+    }
+#endif
 
     private void OnDestroy()
     {
@@ -165,6 +184,20 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         BeginNewCustomClassroom();
     }
 
+    public void OpenSaved()
+    {
+        gameObject.SetActive(true);
+        transform.SetAsLastSibling();
+        ShowSavedClassrooms();
+    }
+
+    public void OpenSamples()
+    {
+        gameObject.SetActive(true);
+        transform.SetAsLastSibling();
+        ShowSampleClassrooms();
+    }
+
     private void BuildInterface()
     {
         if (transform.childCount > 0)
@@ -212,74 +245,369 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
         sharedCloseButton = CreateButton(
             "Close",
-            sharedHeaderRect,
+            window,
             "X",
             new Vector2(1f, 1f),
             new Vector2(54f, 54f),
-            new Vector2(-34f, -34f),
+            new Vector2(-34f, 32f),
             navy,
             Close,
             ButtonRole.Navigation).gameObject;
 
-        selectionView = CreatePanel("Prepared Classrooms", window);
-        RectTransform selectionRect = selectionView.transform as RectTransform;
-        selectionRect.anchorMin = Vector2.zero;
-        selectionRect.anchorMax = Vector2.one;
-        selectionRect.offsetMin = new Vector2(42f, 40f);
-        selectionRect.offsetMax = new Vector2(-42f, -185f);
-        ConfigureRobotPanel(selectionRect);
-        BuildPreparedClassrooms(selectionRect);
+        selectionView = CreateOrInstantiateView(
+            ClassroomHomePrefabPath,
+            "Classroom Home",
+            window,
+            new Vector2(42f, 40f),
+            new Vector2(-42f, -185f),
+            view =>
+            {
+                ConfigureRobotPanel(view);
+                BuildClassroomHome(view);
+            });
 
-        customView = CreatePanel("Custom Classroom", window);
-        RectTransform customRect = customView.transform as RectTransform;
-        customRect.anchorMin = Vector2.zero;
-        customRect.anchorMax = Vector2.one;
-        customRect.offsetMin = new Vector2(62f, 40f);
-        customRect.offsetMax = new Vector2(-62f, -42f);
-        ConfigureCustomPaper(customRect);
-        BuildCustomClassroom(customRect);
-        ApplySelectedPaperStyle();
+        sampleView = CreateOrInstantiateView(
+            SampleClassroomsPrefabPath,
+            "Sample Classrooms",
+            window,
+            new Vector2(42f, 40f),
+            new Vector2(-42f, -185f),
+            view =>
+            {
+                ConfigureRobotPanel(view);
+                BuildPreparedClassrooms(view);
+            });
+        sampleView.SetActive(false);
+
+        customView = CreateOrInstantiateView(
+            CustomClassroomPrefabPath,
+            "Custom Classroom",
+            window,
+            new Vector2(62f, 40f),
+            new Vector2(-62f, -42f),
+            view =>
+            {
+                ConfigureCustomPaper(view);
+                BuildCustomClassroom(view);
+            });
         customView.SetActive(false);
 
-        savedView = CreatePanel("Saved Classrooms", window);
-        RectTransform savedRect = savedView.transform as RectTransform;
-        savedRect.anchorMin = Vector2.zero;
-        savedRect.anchorMax = Vector2.one;
-        savedRect.offsetMin = new Vector2(62f, 40f);
-        savedRect.offsetMax = new Vector2(-62f, -185f);
-        ConfigureRobotPanel(savedRect);
-        BuildSavedClassrooms(savedRect);
+        savedView = CreateOrInstantiateView(
+            SavedClassroomsPrefabPath,
+            "Saved Classrooms",
+            window,
+            new Vector2(62f, 40f),
+            new Vector2(-62f, -185f),
+            view =>
+            {
+                ConfigureRobotPanel(view);
+                BuildSavedClassrooms(view);
+            });
         savedView.SetActive(false);
+
+        WireViewPrefabs();
+        ApplySelectedPaperStyle();
         sharedHeader.transform.SetAsLastSibling();
+        sharedCloseButton.transform.SetAsLastSibling();
+    }
+
+    private GameObject CreateOrInstantiateView(
+        string resourcePath,
+        string viewName,
+        RectTransform parent,
+        Vector2 offsetMin,
+        Vector2 offsetMax,
+        Action<RectTransform> buildFallback)
+    {
+        bool loadPrefab = true;
+#if UNITY_EDITOR
+        loadPrefab = !buildViewsFromCode;
+#endif
+        GameObject prefab = loadPrefab ? Resources.Load<GameObject>(resourcePath) : null;
+        if (prefab != null)
+        {
+            GameObject instance = Instantiate(prefab, parent, false);
+            instance.name = viewName;
+            return instance;
+        }
+
+        GameObject view = CreatePanel(viewName, parent);
+        RectTransform rect = view.transform as RectTransform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+        buildFallback?.Invoke(rect);
+        return view;
+    }
+
+    private void WireViewPrefabs()
+    {
+        WireClassroomHomeView();
+        WireSampleClassroomsView();
+        WireCustomClassroomView();
+        WireSavedClassroomsView();
+    }
+
+    private void WireClassroomHomeView()
+    {
+        BindButton(selectionView, "Create A Classroom", BeginNewCustomClassroom);
+        BindButton(selectionView, "Visit A Classroom", ShowSavedClassrooms);
+        BindButton(selectionView, "Sample Classrooms", ShowSampleClassrooms);
+        Transform visitButton = FindDescendant(selectionView.transform, "Visit A Classroom");
+        savedClassroomStatusLabel = visitButton != null
+            ? visitButton.Find("Status")?.GetComponent<TMP_Text>()
+            : null;
+    }
+
+    private void WireSampleClassroomsView()
+    {
+        firstRoomButton = BindButton(
+            sampleView,
+            "PHOTOSYNTHESIS",
+            () => StartPreset("photosynthesis", "photosynthesis"));
+        BindButton(
+            sampleView,
+            "FAIR INVESTIGATION",
+            () => StartPreset("scientific investigation", "scientific-investigation"));
+        BindButton(
+            sampleView,
+            "GMDAS",
+            () => StartPreset("order of operations", "gmdas"));
+        BindButton(
+            sampleView,
+            "PHILIPPINE ARCHIPELAGO",
+            () => StartPreset("Philippine archipelago", "philippine-archipelago"));
+        BindButton(sampleView, "Back", ShowSelection);
+    }
+
+    private void WireCustomClassroomView()
+    {
+        topicInput = FindComponent<TMP_InputField>(customView, "Topic Input");
+        materialInput = FindComponent<TMP_InputField>(customView, "Material Input");
+        additionalNotesInput = FindComponent<TMP_InputField>(customView, "Additional Notes Input");
+        gradeLabel = FindComponent<TMP_Text>(customView, "Grade Value");
+        studentCountLabel = FindButtonLabel(customView, "Student Count Auto");
+        languageButtonLabel = FindButtonLabel(customView, "Language Toggle");
+        uploadButton = FindComponent<Button>(customView, "Upload");
+        uploadButtonLabel = uploadButton != null
+            ? uploadButton.GetComponentInChildren<TMP_Text>(true)
+            : null;
+        createButton = FindComponent<Button>(customView, "Create");
+        createButtonLabel = createButton != null
+            ? createButton.GetComponentInChildren<TMP_Text>(true)
+            : null;
+        statusPanel = FindComponent<Image>(customView, "Form Status");
+        statusLabel = statusPanel != null
+            ? statusPanel.transform.Find("Status")?.GetComponent<TMP_Text>()
+            : null;
+        paperColorSwatch = FindComponent<Image>(customView, "Paper Swatch");
+        customPaperImage = customView.GetComponent<Image>();
+
+        customPaperNotes.Clear();
+        AddInputNote(topicInput);
+        AddInputNote(materialInput);
+        AddInputNote(additionalNotesInput);
+        customRuledLines.Clear();
+        Image[] customImages = customView.GetComponentsInChildren<Image>(true);
+        for (int index = 0; index < customImages.Length; index++)
+        {
+            if (customImages[index] != null
+                && customImages[index].name.StartsWith("Ruled Line", StringComparison.Ordinal))
+            {
+                customRuledLines.Add(customImages[index]);
+            }
+        }
+
+        if (topicInput != null)
+        {
+            topicInput.onValueChanged.RemoveAllListeners();
+            topicInput.onValueChanged.AddListener(HandleTopicChanged);
+        }
+
+        if (materialInput != null)
+        {
+            materialInput.onValueChanged.RemoveAllListeners();
+            materialInput.onValueChanged.AddListener(HandleMaterialChanged);
+        }
+
+        BindButton(customView, "Back", ShowSelection);
+        BindButton(customView, "Grade Down", () => ChangeGrade(-1));
+        BindButton(customView, "Grade Up", () => ChangeGrade(1));
+        BindButton(customView, "Student Count Down", () => ChangeStudentCount(-1));
+        BindButton(customView, "Student Count Auto", UseAutomaticStudentCount);
+        BindButton(customView, "Student Count Up", () => ChangeStudentCount(1));
+        BindButton(customView, "Language Toggle", ToggleLanguage);
+        BindButton(customView, "Paper Colour", CyclePaperColor);
+        uploadButton = BindButton(customView, "Upload", PickWorksheetFile);
+        createButton = BindButton(customView, "Create", StartCustom);
+        retrieveButton = BindButton(customView, "Retrieve Source", RetrieveSourceFile);
+        if (retrieveButton != null)
+        {
+            ConfigureDownloadLabel(retrieveButton);
+        }
+        RefreshCustomFormState();
+    }
+
+    private void WireSavedClassroomsView()
+    {
+        BindButton(savedView, "Back", ShowSelection);
+        if (FindDescendant(savedView.transform, "Heading Divider") == null)
+        {
+            CreateClassroomDivider("Heading Divider", savedView.transform, new Vector2(-4f, -134f));
+        }
+        savedListRoot = FindComponent<RectTransform>(savedView, "Saved Classroom List");
+        savedClassroomScrollRect = FindComponent<ScrollRect>(savedView, "Saved Classroom Scroll View");
+        if (savedClassroomScrollRect == null || savedListRoot == null)
+        {
+            return;
+        }
+
+        savedClassroomScrollRect.content = savedListRoot;
+        RectTransform viewport = FindComponent<RectTransform>(savedView, "Viewport");
+        savedClassroomScrollRect.viewport = viewport;
+        UiScrollSettings.Apply(savedClassroomScrollRect);
+    }
+
+    private void AddInputNote(TMP_InputField input)
+    {
+        Image note = input != null ? input.targetGraphic as Image : null;
+        if (note != null)
+        {
+            customPaperNotes.Add(note);
+        }
+    }
+
+    private Button BindButton(
+        GameObject view,
+        string buttonName,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        Button button = FindComponent<Button>(view, buttonName);
+        if (button == null)
+        {
+            return null;
+        }
+
+        button.onClick = new Button.ButtonClickedEvent();
+        if (paperTheme != null)
+        {
+            paperTheme.ApplyButtonSlicing(button.targetGraphic as Image);
+        }
+        if (onClick != null)
+        {
+            button.onClick.AddListener(onClick);
+        }
+
+        return button;
+    }
+
+    private static TMP_Text FindButtonLabel(GameObject view, string buttonName)
+    {
+        Button button = FindComponent<Button>(view, buttonName);
+        return button != null ? button.GetComponentInChildren<TMP_Text>(true) : null;
+    }
+
+    private static T FindComponent<T>(GameObject view, string objectName) where T : Component
+    {
+        if (view == null)
+        {
+            return null;
+        }
+
+        Transform target = FindDescendant(view.transform, objectName);
+        return target != null ? target.GetComponent<T>() : null;
+    }
+
+    private void BuildClassroomHome(RectTransform parent)
+    {
+        CreateClassroomHomeButton(
+            "Create A Classroom",
+            parent,
+            "CREATE A CLASSROOM",
+            "Build one from your own lesson",
+            new Vector2(0f, 135f),
+            BeginNewCustomClassroom);
+
+        Button visitButton = CreateClassroomHomeButton(
+            "Visit A Classroom",
+            parent,
+            "VISIT MY CLASSROOMS",
+            "No classrooms yet",
+            new Vector2(0f, 15f),
+            ShowSavedClassrooms);
+        savedClassroomStatusLabel = visitButton.transform.Find("Status")?.GetComponent<TMP_Text>();
+
+        CreateClassroomHomeButton(
+            "Sample Classrooms",
+            parent,
+            "TRY SAMPLE CLASSROOMS",
+            "Check out four ready-made lessons",
+            new Vector2(0f, -105f),
+            ShowSampleClassrooms);
+    }
+
+    private Button CreateClassroomHomeButton(
+        string name,
+        RectTransform parent,
+        string title,
+        string description,
+        Vector2 position,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        Button button = CreateButton(
+            name,
+            parent,
+            string.Empty,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(720f, 96f),
+            position,
+            Color.white,
+            onClick,
+            ButtonRole.Neutral);
+        RectTransform buttonRect = button.transform as RectTransform;
+        CreateText(
+            "Title",
+            buttonRect,
+            title,
+            24f,
+            FontStyles.Bold,
+            navy,
+            TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(660f, 34f),
+            new Vector2(0f, 14f));
+        CreateText(
+            "Status",
+            buttonRect,
+            description,
+            16f,
+            FontStyles.Normal,
+            navy,
+            TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(660f, 28f),
+            new Vector2(0f, -19f));
+        return button;
     }
 
     private void BuildPreparedClassrooms(RectTransform parent)
     {
-        firstRoomButton = CreateRoomCard(parent, "PHOTOSYNTHESIS", "Science", "photosynthesis", "photosynthesis", new Vector2(-252f, 125f), new Color(0.3f, 0.68f, 0.42f));
-        CreateRoomCard(parent, "FAIR INVESTIGATION", "Science", "scientific investigation", "scientific-investigation", new Vector2(252f, 125f), new Color(0.28f, 0.55f, 0.82f));
-        CreateRoomCard(parent, "GMDAS", "Mathematics", "order of operations", "gmdas", new Vector2(-252f, -60f), new Color(0.93f, 0.59f, 0.2f));
-        CreateRoomCard(parent, "PHILIPPINE ARCHIPELAGO", "Araling Panlipunan", "Philippine archipelago", "philippine-archipelago", new Vector2(252f, -60f), new Color(0.78f, 0.32f, 0.35f));
+        firstRoomButton = CreateRoomCard(parent, "PHOTOSYNTHESIS", "Science", "photosynthesis", "photosynthesis", new Vector2(-252f, 110f));
+        CreateRoomCard(parent, "FAIR INVESTIGATION", "Science", "scientific investigation", "scientific-investigation", new Vector2(252f, 110f));
+        CreateRoomCard(parent, "GMDAS", "Mathematics", "order of operations", "gmdas", new Vector2(-252f, -60f));
+        CreateRoomCard(parent, "PHILIPPINE ARCHIPELAGO", "Araling Panlipunan", "Philippine archipelago", "philippine-archipelago", new Vector2(252f, -60f));
 
         CreateButton(
-            "Create Your Own",
+            "Back",
             parent,
-            "+  CREATE YOUR OWN CLASSROOM",
+            "<  BACK TO CLASSROOM MENU",
             new Vector2(0.5f, 0f),
-            new Vector2(472f, 64f),
-            new Vector2(-252f, 18f),
-            navy,
-            BeginNewCustomClassroom,
-            ButtonRole.Primary);
-        CreateButton(
-            "My Classrooms",
-            parent,
-            "MY CLASSROOMS",
-            new Vector2(0.5f, 0f),
-            new Vector2(472f, 64f),
-            new Vector2(252f, 18f),
-            blue,
-            ShowSavedClassrooms,
-            ButtonRole.Navigation);
+            new Vector2(472f, 48f),
+            new Vector2(0f, 52f),
+            Color.white,
+            ShowSelection,
+            ButtonRole.Neutral);
     }
 
     private Button CreateRoomCard(
@@ -288,68 +616,71 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         string subject,
         string topic,
         string presetId,
-        Vector2 position,
-        Color color)
+        Vector2 position)
     {
         Button button = CreateButton(
             title,
             parent,
             string.Empty,
             new Vector2(0.5f, 0.5f),
-            new Vector2(472f, 165f),
+            new Vector2(472f, 140f),
             position,
-            color,
+            Color.white,
             () => StartPreset(topic, presetId));
 
         RectTransform rect = button.transform as RectTransform;
-        Image tile = button.targetGraphic as Image;
-        if (tile != null && paperTheme != null)
+        button.GetComponent<ButtonJuice>().UsePaperCardMotion();
+        Image classroomPaper = button.targetGraphic as Image;
+        if (paperTheme != null)
         {
-            tile.sprite = paperTheme.GetPaper(paperTheme.FindClosestStyle(color));
-            tile.type = Image.Type.Sliced;
-            tile.preserveAspect = false;
+            int style = GetPresetPaperStyle(presetId);
+            classroomPaper.sprite = paperTheme.GetPaper(style);
+            classroomPaper.type = Image.Type.Sliced;
+            classroomPaper.pixelsPerUnitMultiplier = 1f;
+            classroomPaper.preserveAspect = false;
         }
+        RectTransform paperRect = classroomPaper.rectTransform;
 
         Color cardInk = paperTheme != null ? navy : Color.white;
         string metadata = "GRADE 5  •  " + subject.ToUpperInvariant() + "  •  5–10 MIN";
-        TMP_Text metadataText = CreateText("Metadata", rect, metadata, 15f, FontStyles.Bold, cardInk, TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(410f, 30f), new Vector2(0f, 45f));
+        TMP_Text metadataText = CreateText("Metadata", rect, metadata, 15f, FontStyles.Bold, cardInk, TextAlignmentOptions.TopLeft, new Vector2(0.5f, 0.5f), new Vector2(410f, 30f), new Vector2(0f, 38f));
         metadataText.textWrappingMode = TextWrappingModes.NoWrap;
         metadataText.overflowMode = TextOverflowModes.Ellipsis;
-        TMP_Text roomName = CreateText("Room Name", rect, title, 25f, FontStyles.Bold, cardInk, TextAlignmentOptions.Left, new Vector2(0.5f, 0.5f), new Vector2(410f, 58f), new Vector2(0f, 1f));
+        TMP_Text roomName = CreateText("Room Name", paperRect, title, 25f, FontStyles.Bold, cardInk, TextAlignmentOptions.Left, new Vector2(0.5f, 0.5f), new Vector2(410f, 58f), new Vector2(0f, 1f));
         roomName.textWrappingMode = TextWrappingModes.NoWrap;
         roomName.overflowMode = TextOverflowModes.Ellipsis;
-        CreateText("Enter classroom  >", rect, "Enter classroom  >", 16f, FontStyles.Normal, cardInk, TextAlignmentOptions.BottomRight, new Vector2(0.5f, 0.5f), new Vector2(410f, 34f), new Vector2(0f, -45f));
+        CreateText("Play Hint", paperRect, "Click to play", 16f, FontStyles.Normal, cardInk, TextAlignmentOptions.BottomRight, new Vector2(0.5f, 0.5f), new Vector2(410f, 30f), new Vector2(0f, -38f));
         return button;
     }
 
     private void BuildCustomClassroom(RectTransform parent)
     {
-        CreateText("Custom Heading", parent, "CREATE YOUR OWN", 30f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 48f), new Vector2(55f, -22f));
+        CreateText("Custom Heading", parent, "CREATE YOUR OWN CLASSROOM!", 26f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(690f, 48f), new Vector2(55f, -40f));
         CreateButton(
             "Back",
             parent,
-            "<  BACK TO ROOMS",
+            "<  BACK TO MENU",
             new Vector2(1f, 1f),
             new Vector2(240f, 48f),
-            new Vector2(-55f, -22f),
+            new Vector2(-55f, -40f),
             navy,
             ShowSelection,
             ButtonRole.Navigation);
 
-        CreateText("Topic Label", parent, "TOPIC OR LESSON NAME", 16f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(946f, 28f), new Vector2(55f, -78f));
-        topicInput = CreateInputField("Topic Input", parent, "e.g. The water cycle", false, new Vector2(0f, 1f), new Vector2(946f, 52f), new Vector2(55f, -108f));
+        CreateText("Topic Label", parent, "TOPIC OR LESSON NAME", 16f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(946f, 24f), new Vector2(55f, -96f));
+        topicInput = CreateInputField("Topic Input", parent, "e.g. The water cycle...", false, new Vector2(0f, 1f), new Vector2(946f, 42f), new Vector2(55f, -126f));
         RegisterPaperNote(topicInput, 0);
         topicInput.characterLimit = 100;
         topicInput.onValueChanged.AddListener(HandleTopicChanged);
 
         CreateText("Grade Label", parent, "GRADE", 15f, FontStyles.Bold, navy, TextAlignmentOptions.Center, new Vector2(0f, 1f), new Vector2(160f, 26f), new Vector2(55f, -174f));
-        CreateButton("Grade Down", parent, "-", new Vector2(0f, 1f), new Vector2(48f, 48f), new Vector2(55f, -204f), blue, () => ChangeGrade(-1));
+        CreateButton("Grade Down", parent, "-", new Vector2(0f, 1f), new Vector2(40f, 48f), new Vector2(55f, -204f), blue, () => ChangeGrade(-1));
         gradeLabel = CreateText("Grade Value", parent, "5", 25f, FontStyles.Bold, navy, TextAlignmentOptions.Center, new Vector2(0f, 1f), new Vector2(64f, 48f), new Vector2(103f, -204f));
-        CreateButton("Grade Up", parent, "+", new Vector2(0f, 1f), new Vector2(48f, 48f), new Vector2(167f, -204f), blue, () => ChangeGrade(1));
+        CreateButton("Grade Up", parent, "+", new Vector2(0f, 1f), new Vector2(40f, 48f), new Vector2(175f, -204f), blue, () => ChangeGrade(1));
 
         CreateText("Student Count Label", parent, "STUDENTS", 15f, FontStyles.Bold, navy, TextAlignmentOptions.Center, new Vector2(0f, 1f), new Vector2(224f, 26f), new Vector2(263f, -174f));
-        CreateButton("Student Count Down", parent, "-", new Vector2(0f, 1f), new Vector2(48f, 48f), new Vector2(263f, -204f), blue, () => ChangeStudentCount(-1));
-        Button studentCountButton = CreateButton("Student Count Auto", parent, "AUTO 5", new Vector2(0f, 1f), new Vector2(128f, 48f), new Vector2(311f, -204f), paleBlue, UseAutomaticStudentCount);
+        CreateButton("Student Count Down", parent, "-", new Vector2(0f, 1f), new Vector2(40f, 48f), new Vector2(263f, -204f), blue, () => ChangeStudentCount(-1));
+        Button studentCountButton = CreateButton("Student Count Auto", parent, "AUTO (5)", new Vector2(0f, 1f), new Vector2(112f, 48f), new Vector2(319f, -204f), paleBlue, UseAutomaticStudentCount);
         studentCountLabel = studentCountButton.GetComponentInChildren<TMP_Text>(true);
         if (studentCountLabel != null)
         {
@@ -357,7 +688,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             studentCountLabel.fontSize = 15f;
             studentCountLabel.textWrappingMode = TextWrappingModes.NoWrap;
         }
-        CreateButton("Student Count Up", parent, "+", new Vector2(0f, 1f), new Vector2(48f, 48f), new Vector2(439f, -204f), blue, () => ChangeStudentCount(1));
+        CreateButton("Student Count Up", parent, "+", new Vector2(0f, 1f), new Vector2(40f, 48f), new Vector2(447f, -204f), blue, () => ChangeStudentCount(1));
 
         CreateText("Language Label", parent, "LANGUAGE", 15f, FontStyles.Bold, navy, TextAlignmentOptions.Center, new Vector2(0f, 1f), new Vector2(190f, 26f), new Vector2(535f, -174f));
         Button languageButton = CreateButton("Language Toggle", parent, "ENGLISH", new Vector2(0f, 1f), new Vector2(190f, 48f), new Vector2(535f, -204f), blue, ToggleLanguage);
@@ -385,54 +716,83 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         materialInput.onValueChanged.AddListener(HandleMaterialChanged);
 
         CreateText("Notes Label", parent, "SETUP NOTE (OPTIONAL)", 16f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(946f, 28f), new Vector2(55f, -396f));
-        additionalNotesInput = CreateInputField("Additional Notes Input", parent, "e.g. Avoid fractions, or use our class term 'groups of'", true, new Vector2(0f, 1f), new Vector2(946f, 62f), new Vector2(55f, -428f));
+        additionalNotesInput = CreateInputField("Additional Notes Input", parent, "e.g. Avoid fractions, or use our class term 'groups of'...", true, new Vector2(0f, 1f), new Vector2(946f, 48f), new Vector2(55f, -428f));
         RegisterPaperNote(additionalNotesInput, 1);
         additionalNotesInput.characterLimit = MaximumAdditionalNotesCharacters;
 
-        statusPanel = CreateImage("Form Status", parent, new Color(0.86f, 0.94f, 1f, 0.98f));
-        if (paperTheme != null && paperTheme.RobotSection != null)
-        {
-            statusPanel.sprite = paperTheme.RobotSection;
-            statusPanel.type = Image.Type.Sliced;
-        }
+        statusPanel = CreateImage("Form Status", parent, Color.clear);
         statusPanel.raycastTarget = false;
-        Anchor(statusPanel.rectTransform, new Vector2(0.5f, 0f), new Vector2(680f, 46f), new Vector2(0f, 80f));
-        statusLabel = CreateText("Status", statusPanel.rectTransform, string.Empty, 14f, FontStyles.Bold, navy, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(640f, 34f), Vector2.zero);
+        Anchor(statusPanel.rectTransform, new Vector2(0.5f, 0f), new Vector2(946f, 36f), new Vector2(0f, 116f));
+        statusLabel = CreateText("Status", statusPanel.rectTransform, string.Empty, 14f, FontStyles.Normal, navy, TextAlignmentOptions.Left, new Vector2(0.5f, 0.5f), new Vector2(926f, 36f), Vector2.zero);
         statusLabel.enableAutoSizing = true;
         statusLabel.fontSizeMin = 11f;
         statusLabel.fontSizeMax = 14f;
         statusLabel.overflowMode = TextOverflowModes.Ellipsis;
         statusPanel.gameObject.SetActive(false);
 
-        uploadButton = CreateButton("Upload", parent, "UPLOAD WORKSHEET", new Vector2(0f, 0f), new Vector2(280f, 54f), new Vector2(55f, 18f), blue, PickWorksheetFile);
+        uploadButton = CreateButton("Upload", parent, "UPLOAD WORKSHEET", new Vector2(0f, 0f), new Vector2(280f, 48f), new Vector2(55f, 52f), blue, PickWorksheetFile);
         uploadButtonLabel = uploadButton.GetComponentInChildren<TMP_Text>(true);
-        CreateText("Formats", parent, "PDF, PNG, JPG, or WEBP", 14f, FontStyles.Normal, navy, TextAlignmentOptions.Left, new Vector2(0f, 0f), new Vector2(300f, 50f), new Vector2(351f, 20f));
-        createButton = CreateButton("Create", parent, "CREATE CLASSROOM  >", new Vector2(1f, 0f), new Vector2(320f, 56f), new Vector2(-55f, 18f), green, StartCustom, ButtonRole.Primary);
+        retrieveButton = CreateButton("Retrieve Source", parent, "DOWNLOAD ORIGINAL FILE", new Vector2(0f, 0f), new Vector2(280f, 48f), new Vector2(351f, 52f), blue, RetrieveSourceFile);
+        ConfigureDownloadLabel(retrieveButton);
+        createButton = CreateButton("Create", parent, "CREATE CLASSROOM  >", new Vector2(1f, 0f), new Vector2(320f, 48f), new Vector2(-55f, 52f), green, StartCustom, ButtonRole.Primary);
         createButtonLabel = createButton.GetComponentInChildren<TMP_Text>(true);
         RefreshCustomFormState();
     }
 
     private void BuildSavedClassrooms(RectTransform parent)
     {
-        CreateText("Saved Heading", parent, "MY CLASSROOMS", 30f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(480f, 48f), new Vector2(60f, -25f));
-        CreateButton("Back", parent, "<  BACK TO ROOMS", new Vector2(1f, 1f), new Vector2(240f, 48f), new Vector2(-60f, -25f), navy, ShowSelection, ButtonRole.Navigation);
+        CreateText("Saved Heading", parent, "MY CLASSROOMS", 30f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(480f, 48f), new Vector2(60f, -40f));
+        CreateButton("Back", parent, "<  BACK TO MENU", new Vector2(1f, 1f), new Vector2(240f, 48f), new Vector2(-60f, -40f), navy, ShowSelection, ButtonRole.Navigation);
         CreateText(
             "Saved Description",
             parent,
-            "Your five most recent custom classroom recipes are saved on this device.",
+            "Your custom classrooms are saved on this device.",
             18f,
             FontStyles.Normal,
             navy,
             TextAlignmentOptions.Left,
             new Vector2(0f, 1f),
             new Vector2(900f, 34f),
-            new Vector2(60f, -66f));
+            new Vector2(60f, -92f));
 
-        savedListRoot = CreatePanel("Saved Classroom List", parent).transform as RectTransform;
-        savedListRoot.anchorMin = Vector2.zero;
-        savedListRoot.anchorMax = Vector2.one;
-        savedListRoot.offsetMin = new Vector2(36f, 10f);
-        savedListRoot.offsetMax = new Vector2(-36f, -90f);
+        CreateClassroomDivider("Heading Divider", parent, new Vector2(-4f, -134f));
+
+        GameObject scrollObject = new GameObject(
+            "Saved Classroom Scroll View",
+            typeof(RectTransform),
+            typeof(ScrollRect));
+        scrollObject.layer = 5;
+        RectTransform scrollRect = scrollObject.GetComponent<RectTransform>();
+        scrollRect.SetParent(parent, false);
+        scrollRect.anchorMin = Vector2.zero;
+        scrollRect.anchorMax = Vector2.one;
+        scrollRect.offsetMin = new Vector2(44f, 56f);
+        scrollRect.offsetMax = new Vector2(-44f, -134f);
+
+        Image viewportImage = CreateImage("Viewport", scrollRect, Color.clear);
+        RectTransform viewport = viewportImage.rectTransform;
+        Stretch(viewport);
+        viewport.offsetMax = new Vector2(-8f, 0f);
+        viewportImage.raycastTarget = true;
+        viewportImage.gameObject.AddComponent<RectMask2D>();
+
+        savedListRoot = CreatePanel("Saved Classroom List", viewport).transform as RectTransform;
+        savedListRoot.anchorMin = new Vector2(0f, 1f);
+        savedListRoot.anchorMax = new Vector2(1f, 1f);
+        savedListRoot.pivot = new Vector2(0.5f, 1f);
+        savedListRoot.anchoredPosition = Vector2.zero;
+        savedListRoot.sizeDelta = Vector2.zero;
+
+        savedClassroomScrollRect = scrollObject.GetComponent<ScrollRect>();
+        savedClassroomScrollRect.content = savedListRoot;
+        savedClassroomScrollRect.viewport = viewport;
+        savedClassroomScrollRect.horizontal = false;
+        savedClassroomScrollRect.vertical = true;
+        savedClassroomScrollRect.movementType = ScrollRect.MovementType.Elastic;
+        savedClassroomScrollRect.elasticity = 0.12f;
+        savedClassroomScrollRect.inertia = false;
+        savedClassroomScrollRect.decelerationRate = 0.12f;
+        UiScrollSettings.Apply(savedClassroomScrollRect);
     }
 
     private void InstallPlayButtonOverlay()
@@ -479,12 +839,17 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
     private void StartPreset(string topic, string presetId)
     {
+        selectedPaperStyle = GetPresetPaperStyle(presetId);
         ClassroomSelectionStore.SelectPreset(topic, presetId);
         BeginClassroomTransition();
     }
 
     private void StartCustom()
     {
+        if (createButton == null || !createButton.IsInteractable())
+        {
+            return;
+        }
         if (isUploading)
         {
             SetStatus("AraBOT is still reading that material.", true);
@@ -508,12 +873,14 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 classroomLanguage,
                 additionalNotes,
                 studentCountOverride,
-                automaticStudentCount);
+                automaticStudentCount,
+                selectedPaperStyle);
             ClassroomSelectionStore.SelectMaterials(
                 new[] { uploadedMaterialId },
                 classroomLanguage,
                 additionalNotes,
-                studentCount);
+                studentCount,
+                gradeLevel);
             BeginClassroomTransition();
             return;
         }
@@ -529,7 +896,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 classroomLanguage,
                 additionalNotes,
                 studentCountOverride,
-                automaticStudentCount);
+                automaticStudentCount,
+                selectedPaperStyle);
             ClassroomSelectionStore.SelectCustom(
                 topic,
                 pastedMaterial,
@@ -556,7 +924,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             classroomLanguage,
             additionalNotes,
             studentCountOverride,
-            automaticStudentCount);
+            automaticStudentCount,
+            selectedPaperStyle);
         ClassroomSelectionStore.SelectCustom(
             topic,
             string.Empty,
@@ -569,14 +938,21 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
     private void BeginClassroomTransition()
     {
+        FleeApiClient.GetOrCreate().ConfigurePaperStyle(selectedPaperStyle);
         gameObject.SetActive(false);
         DoorSceneTransition.LoadScene(ClassroomSceneName, ClassroomScenePath);
     }
 
     private void ShowSelection()
     {
+        RefreshClassroomHome();
         ShowOnly(selectionView);
         SetStatus(string.Empty, false);
+    }
+
+    private void ShowSampleClassrooms()
+    {
+        ShowOnly(sampleView);
     }
 
     private void ShowCustom()
@@ -634,6 +1010,12 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         }
 
         bool animateHeader = Application.isPlaying && viewTransitionDuration > 0f;
+        RectTransform targetRect = target.transform as RectTransform;
+        RectTransform closeRect = sharedCloseButton.transform as RectTransform;
+        Vector2 restingTopRight = targetRect.offsetMax - targetRect.anchoredPosition;
+        // The bottom of X sits 20 pixels above this view's actual top border.
+        Anchor(closeRect, Vector2.one, new Vector2(54f, 54f),
+            new Vector2(restingTopRight.x, restingTopRight.y + 74f));
         PrepareSharedHeader(target, animateHeader);
 
         if (!Application.isPlaying || viewTransitionDuration <= 0f)
@@ -659,7 +1041,6 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         RectTransform targetRect = target.transform as RectTransform;
         CanvasGroup targetGroup = GetOrAddCanvasGroup(target);
         float duration = Mathf.Max(0.01f, viewTransitionDuration);
-        float elapsed = 0f;
         Vector2 restingPosition = Vector2.zero;
         Vector2 loweredPosition = Vector2.down * viewTransitionDistance;
 
@@ -675,28 +1056,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         targetGroup.interactable = false;
         targetGroup.blocksRaycasts = false;
 
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float progress = Mathf.Clamp01(elapsed / duration);
-            float eased = viewTransitionCurve != null
-                ? viewTransitionCurve.Evaluate(progress)
-                : progress;
-
-            if (previousRect != null)
-            {
-                previousRect.anchoredPosition = Vector2.LerpUnclamped(
-                    restingPosition,
-                    loweredPosition,
-                    eased);
-            }
-
-            targetRect.anchoredPosition = Vector2.LerpUnclamped(
-                loweredPosition,
-                restingPosition,
-                eased);
-            yield return null;
-        }
+        yield return MenuPopupMotion.Slide(
+            targetRect, loweredPosition, restingPosition, duration, viewTransitionCurve, previousRect);
 
         if (previous != null)
         {
@@ -709,7 +1070,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         targetGroup.interactable = true;
         targetGroup.blocksRaycasts = true;
         SetOnlyActive(target);
-        if (target != customView)
+        if (UsesSharedHeader(target))
         {
             yield return AnimateSharedHeaderIn();
         }
@@ -721,21 +1082,12 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     {
         CanvasGroup group = GetOrAddCanvasGroup(classroomWindow.gameObject);
         float duration = Mathf.Max(0.01f, viewTransitionDuration);
-        float elapsed = 0f;
         group.alpha = 1f;
         group.interactable = false;
         group.blocksRaycasts = false;
 
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float progress = Mathf.Clamp01(elapsed / duration);
-            float eased = viewTransitionCurve != null
-                ? viewTransitionCurve.Evaluate(progress)
-                : progress;
-            classroomWindow.anchoredPosition = Vector2.down * (viewTransitionDistance * eased);
-            yield return null;
-        }
+        yield return MenuPopupMotion.Slide(
+            classroomWindow, Vector2.zero, Vector2.down * viewTransitionDistance, duration, viewTransitionCurve);
 
         classroomWindow.anchoredPosition = Vector2.zero;
         group.alpha = 1f;
@@ -749,6 +1101,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     private void SetOnlyActive(GameObject target)
     {
         selectionView?.SetActive(selectionView == target);
+        sampleView?.SetActive(sampleView == target);
         customView?.SetActive(customView == target);
         savedView?.SetActive(savedView == target);
     }
@@ -786,11 +1139,29 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             return;
         }
 
-        bool visible = target != customView;
+        bool visible = UsesSharedHeader(target);
+        TMP_Text title = sharedTitle.GetComponent<TMP_Text>();
+        TMP_Text subtitle = sharedSubtitle.GetComponent<TMP_Text>();
+        if (target == sampleView)
+        {
+            title.text = "SAMPLE CLASSROOMS";
+            subtitle.text = "Choose a ready-made lesson and jump straight in.";
+        }
+        else
+        {
+            title.text = "WHAT WOULD YOU LIKE TO DO?";
+            subtitle.text = "Create a lesson, revisit one you saved, or try a sample.";
+        }
+
         sharedHeader.SetActive(visible);
         sharedHeaderGroup.alpha = visible && !animate ? 1f : 0f;
         sharedHeaderGroup.interactable = visible && !animate;
         sharedHeaderGroup.blocksRaycasts = visible && !animate;
+    }
+
+    private bool UsesSharedHeader(GameObject target)
+    {
+        return target == selectionView || target == sampleView;
     }
 
     private System.Collections.IEnumerator AnimateSharedHeaderIn()
@@ -822,6 +1193,21 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         sharedHeaderGroup.blocksRaycasts = true;
     }
 
+    private void RefreshClassroomHome()
+    {
+        if (savedClassroomStatusLabel == null)
+        {
+            return;
+        }
+
+        int savedClassroomCount = SavedClassroomStore.LoadAll().Count;
+        savedClassroomStatusLabel.text = savedClassroomCount == 0
+            ? "No classrooms yet — create one first"
+            : savedClassroomCount == 1
+                ? "1 saved classroom"
+                : savedClassroomCount + " saved classrooms";
+    }
+
     private void RefreshSavedClassrooms()
     {
         if (savedListRoot == null)
@@ -835,6 +1221,15 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         }
 
         IReadOnlyList<SavedClassroomDefinition> classrooms = SavedClassroomStore.LoadAll();
+        savedListRoot.anchoredPosition = Vector2.zero;
+        savedListRoot.sizeDelta = new Vector2(
+            0f,
+            Mathf.Max(260f, 16f + (classrooms.Count * 116f)));
+        if (savedClassroomScrollRect != null)
+        {
+            savedClassroomScrollRect.verticalNormalizedPosition = 1f;
+        }
+
         if (classrooms.Count == 0)
         {
             CreateText(
@@ -864,42 +1259,46 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             return;
         }
 
-        Image row = CreateImage(
-            "Saved " + classroom.id,
-            savedListRoot,
-            paleBlue);
-        Sprite rowSprite = paperTheme != null && paperTheme.RobotSection != null
-            ? paperTheme.RobotSection
-            : paperTheme != null ? paperTheme.RobotButton : null;
-        if (rowSprite != null)
+        if (index > 0)
         {
-            row.sprite = rowSprite;
-            row.type = Image.Type.Sliced;
-            row.preserveAspect = false;
-            row.color = Color.white;
-            AddPaperShadow(row, new Vector2(4f, -5f), 0.18f);
+            CreateClassroomDivider("Classroom Divider", savedListRoot, new Vector2(0f, -2f - index * 116f));
         }
-        RectTransform rowRect = row.rectTransform;
-        Anchor(rowRect, new Vector2(0.5f, 1f), new Vector2(936f, 82f), new Vector2(0f, -8f - (index * 86f)));
+
+        GameObject row = CreatePanel("Saved " + classroom.id, savedListRoot);
+        RectTransform rowRect = row.transform as RectTransform;
+        Anchor(rowRect, new Vector2(0.5f, 1f), new Vector2(936f, 104f), new Vector2(0f, -8f - (index * 116f)));
+        HorizontalLayoutGroup rowLayout = row.AddComponent<HorizontalLayoutGroup>();
+        rowLayout.padding = new RectOffset(18, 18, 18, 18);
+        rowLayout.spacing = 16f;
+        rowLayout.childAlignment = TextAnchor.MiddleCenter;
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = false;
 
         Image paperLabel = CreateImage(
             "Classroom Paper",
             rowRect,
-            index % 2 == 0 ? paleBlue : Color.Lerp(paleBlue, Color.white, 0.35f));
+            Color.white);
         if (paperTheme != null && paperTheme.StyleCount > 0)
         {
-            paperLabel.sprite = paperTheme.GetPaper(1 + (index * 4));
+            paperLabel.sprite = paperTheme.GetPaper(classroom.paperStyle >= 0
+                ? classroom.paperStyle
+                : index % paperTheme.StyleCount);
             paperLabel.type = Image.Type.Sliced;
             paperLabel.preserveAspect = false;
-            paperLabel.color = Color.white;
             AddPaperShadow(paperLabel, new Vector2(3f, -3f), 0.12f);
         }
         RectTransform paperRect = paperLabel.rectTransform;
         Anchor(paperRect, new Vector2(0f, 0.5f), new Vector2(650f, 64f), new Vector2(14f, 0f));
+        LayoutElement paperLayout = paperLabel.gameObject.AddComponent<LayoutElement>();
+        paperLayout.flexibleWidth = 1f;
+        paperLayout.preferredHeight = 68f;
 
         string classroomId = classroom.id;
         string title = string.IsNullOrWhiteSpace(classroom.topic) ? "My uploaded lesson" : classroom.topic;
         TMP_Text topicLabel = CreateText("Topic", paperRect, title, 20f, FontStyles.Bold, navy, TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(500f, 30f), new Vector2(18f, 11f));
+        topicLabel.rectTransform.sizeDelta = new Vector2(450f, 30f);
         topicLabel.textWrappingMode = TextWrappingModes.NoWrap;
         topicLabel.overflowMode = TextOverflowModes.Ellipsis;
         string languageName = classroom.language == FleeClassroomLanguage.Filipino
@@ -911,21 +1310,19 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         int savedStudentCount = classroom.studentCountOverride > 0
             ? classroom.studentCountOverride
             : savedAutomaticCount;
-        string countSource = classroom.studentCountOverride > 0 ? string.Empty : " auto";
-        CreateText("Grade", paperRect, "Grade " + classroom.gradeLevel + "  |  " + languageName + "  |  " + savedStudentCount + countSource + " students", 14f, FontStyles.Normal, navy, TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(500f, 24f), new Vector2(18f, -18f));
-        CreateText("Open Hint", paperRect, "OPEN  >", 14f, FontStyles.Bold, navy, TextAlignmentOptions.Right, new Vector2(1f, 0.5f), new Vector2(108f, 28f), new Vector2(-16f, 0f));
+        CreateText("Grade", paperRect, "Grade " + classroom.gradeLevel + "  |  " + languageName + "  |  " + savedStudentCount + " students", 14f, FontStyles.Normal, navy, TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(500f, 24f), new Vector2(18f, -18f));
+        CreateText("Play Hint", paperRect, "CLICK TO PLAY", 12f, FontStyles.Bold, navy, TextAlignmentOptions.Right, new Vector2(1f, 0.5f), new Vector2(108f, 28f), new Vector2(-16f, 0f));
 
         Button paperButton = paperLabel.gameObject.AddComponent<Button>();
         paperButton.targetGraphic = paperLabel;
-        ColorBlock paperColors = paperButton.colors;
-        paperColors.normalColor = Color.white;
-        paperColors.highlightedColor = new Color(0.95f, 0.98f, 1f, 1f);
-        paperColors.pressedColor = new Color(0.86f, 0.9f, 0.94f, 1f);
-        paperButton.colors = paperColors;
+        paperButton.transition = Selectable.Transition.None;
         paperButton.onClick.AddListener(() => StartSavedClassroom(classroomId));
-        paperLabel.gameObject.AddComponent<ButtonJuice>();
+        paperLabel.gameObject.AddComponent<ButtonJuice>().UsePaperCardMotion();
 
         Button editButton = CreateButton("Edit", rowRect, "EDIT", new Vector2(1f, 0.5f), new Vector2(100f, 50f), new Vector2(-124f, 0f), blue, () => EditSavedClassroom(classroomId), ButtonRole.Navigation);
+        LayoutElement editLayout = editButton.gameObject.AddComponent<LayoutElement>();
+        editLayout.preferredWidth = 100f;
+        editLayout.preferredHeight = 50f;
         TMP_Text editLabel = editButton.GetComponentInChildren<TMP_Text>(true);
         if (editLabel != null)
         {
@@ -934,6 +1331,9 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         }
 
         Button deleteButton = CreateButton("Delete", rowRect, "DELETE", new Vector2(1f, 0.5f), new Vector2(100f, 50f), new Vector2(-14f, 0f), new Color(0.75f, 0.25f, 0.25f), null, ButtonRole.Destructive);
+        LayoutElement deleteLayout = deleteButton.gameObject.AddComponent<LayoutElement>();
+        deleteLayout.preferredWidth = 100f;
+        deleteLayout.preferredHeight = 50f;
         TMP_Text deleteLabel = deleteButton.GetComponentInChildren<TMP_Text>(true);
         if (deleteLabel != null)
         {
@@ -969,6 +1369,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             return;
         }
 
+        selectedPaperStyle = classroom.paperStyle >= 0 ? classroom.paperStyle : selectedPaperStyle;
         if (!string.IsNullOrWhiteSpace(classroom.materialId))
         {
             int automaticCount = classroom.automaticStudentCount > 0
@@ -980,7 +1381,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 classroom.additionalNotes,
                 classroom.studentCountOverride > 0
                     ? classroom.studentCountOverride
-                    : automaticCount);
+                    : automaticCount,
+                classroom.gradeLevel);
         }
         else
         {
@@ -1011,6 +1413,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         }
 
         editingClassroomId = classroom.id;
+        selectedPaperStyle = classroom.paperStyle >= 0 ? classroom.paperStyle : selectedPaperStyle;
+        ApplySelectedPaperStyle();
         uploadedMaterialId = classroom.materialId ?? string.Empty;
         gradeLevel = Mathf.Clamp(classroom.gradeLevel, 1, 12);
         studentCountOverride = classroom.studentCountOverride > 0
@@ -1038,8 +1442,10 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         UpdateCustomFormLabels(true);
         SetStatus(
             string.IsNullOrWhiteSpace(uploadedMaterialId)
-                ? "Edit the classroom, then save and start."
-                : "This classroom uses a previously uploaded worksheet.",
+                ? "Edit your lesson, then choose Save & Start."
+                : ClassroomSourceFiles.Exists(uploadedMaterialId)
+                    ? "Worksheet attached. Download Original File gives you the PDF or image you uploaded."
+                    : "Worksheet attached. Its original file was not saved on this device; upload it again to keep a downloadable copy.",
             false);
         ShowCustom();
     }
@@ -1171,7 +1577,6 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 ? paperTheme.RobotPanel
                 : paperTheme.GetPaper(selectedPaperStyle);
             customPaperImage.type = Image.Type.Sliced;
-            customPaperImage.color = Color.white;
         }
 
         for (int index = 0; index < customPaperNotes.Count; index++)
@@ -1180,16 +1585,6 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             {
                 customPaperNotes[index].sprite = paperTheme.GetPaper(selectedPaperStyle);
                 customPaperNotes[index].type = Image.Type.Sliced;
-                customPaperNotes[index].color = new Color(1f, 1f, 1f, 0.98f);
-            }
-        }
-
-        Color accent = paperTheme.GetAccent(selectedPaperStyle);
-        for (int index = 0; index < customRuledLines.Count; index++)
-        {
-            if (customRuledLines[index] != null)
-            {
-                customRuledLines[index].color = new Color(accent.r, accent.g, accent.b, 0.16f);
             }
         }
 
@@ -1198,7 +1593,6 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             paperColorSwatch.sprite = paperTheme.GetPaper(selectedPaperStyle);
             paperColorSwatch.type = Image.Type.Sliced;
             paperColorSwatch.preserveAspect = false;
-            paperColorSwatch.color = Color.white;
         }
     }
 
@@ -1250,7 +1644,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
         studentCountLabel.text = studentCountOverride > 0
             ? studentCountOverride.ToString()
-            : "AUTO " + ResolvedStudentCount;
+            : "AUTO (" + ResolvedStudentCount + ")";
     }
 
     private void RefreshCustomFormState()
@@ -1259,10 +1653,14 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         bool hasPastedMaterial = materialInput != null && !string.IsNullOrWhiteSpace(materialInput.text);
         bool hasUploadedMaterial = !string.IsNullOrWhiteSpace(uploadedMaterialId);
         bool canCreate = !isUploading && (hasTopic || hasPastedMaterial || hasUploadedMaterial);
+        if (retrieveButton != null)
+        {
+            DisabledButtonFeedback.SetInteractable(retrieveButton, !isUploading && ClassroomSourceFiles.Exists(uploadedMaterialId));
+        }
 
         if (uploadButton != null)
         {
-            uploadButton.interactable = !isUploading;
+            DisabledButtonFeedback.SetInteractable(uploadButton, !isUploading);
         }
 
         if (uploadButtonLabel != null)
@@ -1274,7 +1672,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
 
         if (createButton != null)
         {
-            createButton.interactable = canCreate;
+            DisabledButtonFeedback.SetInteractable(createButton, canCreate);
         }
 
         if (createButtonLabel != null)
@@ -1285,9 +1683,6 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 : canCreate
                     ? (isEditing ? "SAVE & START  >" : "CREATE CLASSROOM  >")
                     : "ADD A TOPIC OR MATERIAL";
-            createButtonLabel.color = canCreate
-                ? GetButtonLabelColor(ButtonRole.Primary)
-                : new Color(navy.r, navy.g, navy.b, 0.52f);
         }
     }
 
@@ -1415,6 +1810,16 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         }
 
         uploadedMaterialId = material.MaterialId;
+        try
+        {
+            ClassroomSourceFiles.Save(uploadedMaterialId, fileName, contentType, contents);
+        }
+        catch (Exception exception)
+        {
+            SetStatus("The worksheet was read, but its original file could not be stored on this device: " + exception.Message, true);
+            RefreshCustomFormState();
+            yield break;
+        }
         automaticStudentCount = ClassroomSelectionStore.EstimateStudentCountFromUpload(material);
         RefreshStudentCountLabel();
         if (topicInput != null && string.IsNullOrWhiteSpace(topicInput.text))
@@ -1436,7 +1841,7 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             : string.Empty;
         SetStatus(
             fileName + " is ready." + topicSummary +
-            " Auto roster: " + automaticStudentCount + " students." +
+            " Suggested class size: " + automaticStudentCount + " students. Choose Create Classroom to play, or Download Original File to get your upload." +
             unreadableWarning,
             false);
 
@@ -1446,7 +1851,8 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 new[] { uploadedMaterialId },
                 classroomLanguage,
                 additionalNotesInput != null ? additionalNotesInput.text : string.Empty,
-                ResolvedStudentCount);
+                ResolvedStudentCount,
+                gradeLevel);
             BeginClassroomTransition();
         }
     }
@@ -1455,10 +1861,61 @@ public sealed class ClassroomSelectionController : MonoBehaviour
     {
         if (uploadButton != null)
         {
-            uploadButton.interactable = interactable && !isUploading;
+            DisabledButtonFeedback.SetInteractable(uploadButton, interactable && !isUploading);
         }
 
         RefreshCustomFormState();
+    }
+
+    private void RetrieveSourceFile()
+    {
+        if (retrieveButton == null || !retrieveButton.IsInteractable())
+        {
+            return;
+        }
+        try
+        {
+            ClassroomSourceFiles.Retrieve(uploadedMaterialId);
+        }
+        catch (Exception exception)
+        {
+            SetStatus("Could not retrieve the original file: " + exception.Message, true);
+        }
+    }
+
+    private static void ConfigureDownloadLabel(Button button)
+    {
+        (button.transform as RectTransform).SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 280f);
+        TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+        label.rectTransform.anchorMin = Vector2.zero;
+        label.rectTransform.anchorMax = Vector2.one;
+        label.rectTransform.offsetMin = new Vector2(24f, 8f);
+        label.rectTransform.offsetMax = new Vector2(-24f, -8f);
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 12f;
+        label.fontSizeMax = 18f;
+    }
+
+    private static int GetPresetPaperStyle(string presetId)
+    {
+        switch (presetId)
+        {
+            case "photosynthesis":
+                return 5;
+            case "scientific-investigation":
+                return 1;
+            case "gmdas":
+                return 7;
+            default:
+                return 9;
+        }
+    }
+
+    private void CreateClassroomDivider(string name, Transform parent, Vector2 position)
+    {
+        Image divider = CreateImage(name, parent, new Color(navy.r, navy.g, navy.b, 0.18f));
+        divider.raycastTarget = false;
+        Anchor(divider.rectTransform, new Vector2(0.5f, 1f), new Vector2(900f, 2f), position);
     }
 
     private static string GetContentType(string fileName)
@@ -1495,17 +1952,11 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         if (statusPanel != null)
         {
             statusPanel.gameObject.SetActive(hasMessage);
-            statusPanel.color = isError
-                ? new Color(1f, 0.83f, 0.8f, 1f)
-                : isUploading
-                    ? new Color(0.82f, 0.92f, 1f, 1f)
-                    : new Color(0.82f, 0.95f, 0.86f, 1f);
         }
 
         statusLabel.text = !hasMessage
             ? string.Empty
-            : (isError ? "!  " : isUploading ? "READING:  " : "READY:  ") + message.Trim();
-        statusLabel.color = isError ? new Color(0.55f, 0.08f, 0.08f) : navy;
+            : (isError ? "Please check: " : isUploading ? "Worksheet upload: " : "Classroom setup: ") + message.Trim();
     }
 
     private static GameObject CreatePanel(string name, Transform parent)
@@ -1537,25 +1988,21 @@ public sealed class ClassroomSelectionController : MonoBehaviour
         UnityEngine.Events.UnityAction onClick,
         ButtonRole role = ButtonRole.Neutral)
     {
-        Image image = CreateImage(name, parent, color);
+        Image image = CreateImage(name, parent, Color.white);
         RectTransform rect = image.rectTransform;
         Anchor(rect, anchor, size, position);
 
         Button button = image.gameObject.AddComponent<Button>();
         button.targetGraphic = image;
+        image.gameObject.AddComponent<DisabledButtonFeedback>();
         Sprite themedButtonSprite = paperTheme != null && paperTheme.RobotButton != null
             ? paperTheme.RobotButton
-            : paperTheme != null ? paperTheme.GetPaper(paperTheme.FindClosestStyle(color)) : null;
-        Color roleColor = GetButtonRoleColor(role, color);
-        Color normalTint = themedButtonSprite != null && role != ButtonRole.Neutral
-            ? Color.Lerp(Color.white, roleColor, 0.16f)
-            : themedButtonSprite != null ? Color.white : color;
+            : paperTheme != null ? paperTheme.NeutralPaper : null;
         if (themedButtonSprite != null)
         {
             image.sprite = themedButtonSprite;
             image.type = Image.Type.Sliced;
             image.preserveAspect = false;
-            image.color = normalTint;
         }
         else if (nineSliceButtonSprite != null)
         {
@@ -1563,12 +2010,11 @@ public sealed class ClassroomSelectionController : MonoBehaviour
             image.type = Image.Type.Sliced;
             image.preserveAspect = false;
         }
-        ColorBlock colors = button.colors;
-        colors.normalColor = normalTint;
-        colors.highlightedColor = Color.Lerp(normalTint, Color.white, 0.16f);
-        colors.pressedColor = Color.Lerp(normalTint, Color.black, 0.14f);
-        colors.disabledColor = new Color(0.62f, 0.68f, 0.72f, 0.72f);
-        button.colors = colors;
+        button.transition = Selectable.Transition.None;
+        if (paperTheme != null)
+        {
+            paperTheme.ApplyButtonSlicing(image);
+        }
         if (onClick != null)
         {
             button.onClick.AddListener(onClick);
@@ -1582,26 +2028,13 @@ public sealed class ClassroomSelectionController : MonoBehaviour
                 label,
                 20f,
                 FontStyles.Bold,
-                themedButtonSprite != null ? GetButtonLabelColor(role) : Color.white,
+                themedButtonSprite != null ? navy : Color.white,
                 TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f),
                 size - new Vector2(20f, 12f),
                 Vector2.zero);
             buttonLabel.textWrappingMode = TextWrappingModes.NoWrap;
             buttonLabel.overflowMode = TextOverflowModes.Ellipsis;
-        }
-
-        if (themedButtonSprite != null && role != ButtonRole.Neutral)
-        {
-            Image accent = CreateImage("Role Accent", rect, roleColor);
-            accent.raycastTarget = false;
-            RectTransform accentRect = accent.rectTransform;
-            accentRect.anchorMin = new Vector2(0f, 0f);
-            accentRect.anchorMax = new Vector2(1f, 0f);
-            accentRect.pivot = new Vector2(0.5f, 0f);
-            accentRect.offsetMin = new Vector2(13f, 7f);
-            accentRect.offsetMax = new Vector2(-13f, 13f);
-            accent.transform.SetAsFirstSibling();
         }
 
         image.gameObject.AddComponent<ButtonJuice>();

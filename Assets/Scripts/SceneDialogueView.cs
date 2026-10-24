@@ -41,6 +41,12 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField] private Sprite studentPointingArrowSprite;
     [SerializeField] private bool useSpeakerSpecificStyles = true;
 
+    [Header("Speaker Fonts")]
+    [SerializeField] private TMP_FontAsset characterFont;
+    [SerializeField] private TMP_FontAsset teacherFont;
+    [SerializeField] private TMP_FontAsset studentFont;
+    [SerializeField] private TMP_FontAsset araBotFont;
+
     [Header("Panel Juice")]
     [SerializeField] private bool animatePanelAppearance;
     [SerializeField, Min(0.01f)] private float panelAppearDuration = 0.3f;
@@ -351,6 +357,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         ShowDialogueContainer();
         ApplySpeakerStyle(UsesBrownSpeakerStyle(line));
+        ApplySpeakerFont(line);
         StopLiveTranscriptRoutine();
 
         // The voice player normally receives LineChanged before the view does,
@@ -419,6 +426,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         ShowDialogueContainer();
         ApplySpeakerStyle(useStudentStyle);
+        ApplySpeakerFont(speaker, useStudentStyle);
 
         StopRevealRoutine();
         StopLiveTranscriptRoutine();
@@ -462,6 +470,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         ShowDialogueContainer();
         ApplySpeakerStyle(useStudentStyle);
+        ApplySpeakerFont(speaker, useStudentStyle);
 
         if (speakerText != null)
         {
@@ -932,6 +941,55 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         ApplySlicedSprite(pointingArrowImage, useStudentStyle ? studentPointingArrowSprite : defaultPointingArrowSprite);
     }
 
+    private void ApplySpeakerFont(IDialogueLine line)
+    {
+        TMP_FontAsset font = IsAraBotSpeaker(line)
+            ? araBotFont
+            : IsTeacherSpeakerName(line != null ? line.SpeakerName : string.Empty)
+                ? teacherFont
+                : UsesBrownSpeakerStyle(line)
+                    ? studentFont
+                    : characterFont;
+        ApplySpeakerFont(font);
+    }
+
+    private void ApplySpeakerFont(string speakerName, bool useStudentStyle)
+    {
+        TMP_FontAsset font = IsAraBotSpeakerName(speakerName)
+            ? araBotFont
+            : useStudentStyle
+                ? studentFont
+                : IsTeacherSpeakerName(speakerName)
+                    ? teacherFont
+                    : characterFont;
+        ApplySpeakerFont(font);
+    }
+
+    private void ApplySpeakerFont(TMP_FontAsset font)
+    {
+        TMP_FontAsset resolvedFont = font != null
+            ? font
+            : characterFont != null
+                ? characterFont
+                : bodyText != null
+                    ? bodyText.font
+                    : speakerText != null ? speakerText.font : null;
+        if (resolvedFont == null)
+        {
+            return;
+        }
+
+        if (speakerText != null)
+        {
+            speakerText.font = resolvedFont;
+        }
+
+        if (bodyText != null)
+        {
+            bodyText.font = resolvedFont;
+        }
+    }
+
     private static void ApplySlicedSprite(Image image, Sprite sprite)
     {
         if (image == null || sprite == null)
@@ -981,6 +1039,12 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     {
         return !string.IsNullOrWhiteSpace(speakerName)
             && speakerName.IndexOf("arabot", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool IsTeacherSpeakerName(string speakerName)
+    {
+        return !string.IsNullOrWhiteSpace(speakerName)
+            && speakerName.IndexOf("teacher", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     public void SetExternalBodyText(string body, bool lineCanAdvance)

@@ -45,27 +45,31 @@ public sealed class ButtonJuice : MonoBehaviour,
 
     private Button button;
     private RectTransform rectTransform;
-    private Graphic targetGraphic;
     private Vector3 baseScale;
     private Quaternion baseRotation;
-    private Color baseColor = Color.white;
     private float clickElapsed = float.MaxValue;
     private float currentHoverRotation;
     private float currentClickWobbleAngle;
     private bool isHovered;
     private bool isPressed;
 
+    public void UsePaperCardMotion()
+    {
+        hoverScale = 1.015f;
+        pressedScale = 0.98f;
+        clickPunch = 0.015f;
+    }
+
     private void Awake()
     {
         button = GetComponent<Button>();
         rectTransform = GetComponent<RectTransform>();
-        targetGraphic = button != null ? button.targetGraphic : GetComponent<Graphic>();
         SetPivotToCenter();
         baseScale = rectTransform.localScale;
         baseRotation = rectTransform.localRotation;
-        if (targetGraphic != null)
+        if (GetComponent<DisabledButtonFeedback>() == null)
         {
-            baseColor = targetGraphic.color;
+            gameObject.AddComponent<DisabledButtonFeedback>();
         }
     }
 
@@ -110,6 +114,11 @@ public sealed class ButtonJuice : MonoBehaviour,
         }
 
         float deltaTime = Time.unscaledDeltaTime;
+        if (button != null && !button.IsInteractable())
+        {
+            isHovered = false;
+            isPressed = false;
+        }
         clickElapsed += deltaTime;
         float clickProgress = Mathf.Clamp01(clickElapsed / Mathf.Max(0.01f, clickDuration));
         float punch = Mathf.Sin(clickProgress * Mathf.PI) * clickPunch * (1f - clickProgress);
@@ -133,23 +142,6 @@ public sealed class ButtonJuice : MonoBehaviour,
             desiredRotation,
             1f - Mathf.Exp(-tweenSpeed * deltaTime));
 
-        if (targetGraphic != null)
-        {
-            Color desiredColor = baseColor;
-            if (isPressed)
-            {
-                desiredColor = Color.Lerp(baseColor, Color.black, pressedDarkness);
-            }
-            else if (isHovered)
-            {
-                desiredColor = Color.Lerp(baseColor, Color.white, hoverBrightness);
-            }
-
-            targetGraphic.color = Color.Lerp(
-                targetGraphic.color,
-                desiredColor,
-                1f - Mathf.Exp(-tweenSpeed * deltaTime));
-        }
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -228,10 +220,6 @@ public sealed class ButtonJuice : MonoBehaviour,
             rectTransform.localRotation = baseRotation;
         }
 
-        if (targetGraphic != null)
-        {
-            targetGraphic.color = baseColor;
-        }
     }
 
     private float ResolveHoverRotation()

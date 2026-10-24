@@ -243,8 +243,8 @@ public static class PaperUiAssetSetup
                 reportDetails?.GetComponent<Shadow>() != null,
                 "Teacher report paper tiles should have soft shadows.");
             RequireSlicedPaper(reportReturn, false, "Teacher report return button");
-            RectTransform detailsText = FindDeep(reportPaper, "Details") as RectTransform;
-            Require(detailsText != null && detailsText.sizeDelta.x <= -64f,
+            VerticalLayoutGroup detailsLayout = FindDeep(reportPaper, "Details")?.GetComponent<VerticalLayoutGroup>();
+            Require(detailsLayout != null && detailsLayout.padding.left >= 24 && detailsLayout.padding.right >= 24,
                 "Teacher report details need safe horizontal padding.");
             RequireMinimumButtonTargets(reportObject.transform, 44f);
 
@@ -347,16 +347,15 @@ public static class PaperUiAssetSetup
             Canvas.ForceUpdateCanvases();
             Capture(camera, target, preparedPreviewPath);
 
+            controller.OpenSamples();
+            Canvas.ForceUpdateCanvases();
+            Capture(camera, target, "/private/tmp/flee-classroom-samples-ui.png");
+
             controller.OpenCustom();
             Canvas.ForceUpdateCanvases();
             Capture(camera, target, createPreviewPath);
 
-            Transform savedButtonTransform = FindDeep(classroomObject.transform, "My Classrooms");
-            Button savedButton = savedButtonTransform != null
-                ? savedButtonTransform.GetComponent<Button>()
-                : null;
-            Require(savedButton != null, "My Classrooms button was not found for the preview.");
-            savedButton.onClick.Invoke();
+            controller.OpenSaved();
             Canvas.ForceUpdateCanvases();
             Transform savedPaper = FindDeep(classroomObject.transform, "Classroom Paper");
             Require(savedPaper?.GetComponent<Button>() != null,
@@ -411,7 +410,9 @@ public static class PaperUiAssetSetup
                 "Photosynthesis",
                 2,
                 pupils.ToArray(),
-                FleeClassroomLanguage.English);
+                FleeClassroomLanguage.English,
+                5,
+                5);
             FleeTeacherSceneResult teacherResult = new FleeTeacherSceneResult(
                 new[]
                 {
@@ -446,17 +447,16 @@ public static class PaperUiAssetSetup
             reportCanvas.worldCamera = camera;
             reportCanvas.planeDistance = 1f;
             Canvas.ForceUpdateCanvases();
-            TMP_Text previewDetails = FindDeep(reportObject.transform, "Details")?.GetComponent<TMP_Text>();
-            Require(previewDetails != null &&
-                previewDetails.text.Contains("●") &&
-                previewDetails.text.Contains("NEEDS HELP") &&
-                previewDetails.text.Contains("Why:") &&
-                previewDetails.text.Contains("Oxygen is the gas plants use to make food."),
+            Transform detailsRoot = FindDeep(reportObject.transform, "Details");
+            string previewDetails = string.Join("\n", detailsRoot.GetComponentsInChildren<TMP_Text>().Select(text => text.text));
+            Require(previewDetails.Contains("●") &&
+                previewDetails.Contains("NEEDS HELP") &&
+                previewDetails.Contains("Why:") &&
+                previewDetails.Contains("Oxygen is the gas plants use to make food."),
                 "Teacher report pupil rows should include status labels and grounded failure reasons.");
-            previewDetails.ForceMeshUpdate();
-            RectTransform previewViewport = previewDetails.transform.parent as RectTransform;
-            Require(previewViewport != null && previewDetails.preferredHeight + 30f <= previewViewport.rect.height,
-                "The standard teacher report preview should fit without clipping any text.");
+            ScrollRect previewScroll = detailsRoot.GetComponentInParent<ScrollRect>();
+            Require(previewScroll != null && previewScroll.content.rect.height > 0f && !previewScroll.inertia,
+                "The teacher report should lay out all student rows with controlled scrolling.");
             Capture(camera, target, reportPreviewPath);
 
             Debug.Log(

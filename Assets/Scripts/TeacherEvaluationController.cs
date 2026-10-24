@@ -27,6 +27,7 @@ public sealed class TeacherEvaluationController : MonoBehaviour
     [SerializeField] private string reportAccuracyLabel = "Answer success";
     [SerializeField] private string reportTeacherNoteLabel = "Teacher's note";
     [SerializeField] private string reportReturnLabel = "Return to Main Menu";
+    [SerializeField, Range(0f, 10f)] private float reportMaximumTiltAngle = 5f;
 
     private ClassroomSessionController classroomSession;
     private DialogueConversationCamera conversationCamera;
@@ -481,7 +482,17 @@ public sealed class TeacherEvaluationController : MonoBehaviour
             reportAccuracyLabel,
             reportTeacherNoteLabel,
             reportReturnLabel,
-            () => DoorSceneTransition.LoadScene(MainMenuSceneName, MainMenuScenePath));
+            () => DoorSceneTransition.LoadScene(MainMenuSceneName, MainMenuScenePath),
+            RetryClassroom,
+            reportMaximumTiltAngle);
+    }
+
+    private static void RetryClassroom()
+    {
+        // Reset progress while retaining the API client's selected lesson, file,
+        // language, grade and roster size for the new attempt.
+        FleeApiClient.ResetClassroomSession();
+        DoorSceneTransition.LoadScene("Classroom and Movement", "Assets/Scenes/Classroom and Movement.unity");
     }
 
     private static string BuildGroundedSummary(int rescued, int rescueQuota)

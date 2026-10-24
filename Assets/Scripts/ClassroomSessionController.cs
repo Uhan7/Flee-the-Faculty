@@ -606,7 +606,10 @@ public sealed class ClassroomSessionController : MonoBehaviour
             source.ClassroomId,
             source.Topic,
             source.RescueQuota,
-            pupils);
+            pupils,
+            source.Language,
+            source.GradeLevel,
+            source.PaperStyle);
     }
 
     private Vector2 GetSpawnPosition(

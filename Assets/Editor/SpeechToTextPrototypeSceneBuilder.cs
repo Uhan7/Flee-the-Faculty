@@ -13,7 +13,7 @@ namespace BrowserSpeechToTextPrototypeSceneBuilderInternal
     internal static class SpeechToTextPrototypeSceneBuilder
     {
         private const string ScenePath = "Assets/Scenes/Speech To Text Prototype.unity";
-        private const string FontAssetPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+        private const string FontAssetPath = "Assets/Fonts/TMP/Motley Forces TMP SDF.asset";
 
         [MenuItem("Tools/Flee the Faculty/Create Speech To Text Prototype Scene")]
         public static void CreateScene()

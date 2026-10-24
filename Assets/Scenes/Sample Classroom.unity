@@ -247,6 +247,10 @@ MonoBehaviour:
   studentDialogueBoxSprite: {fileID: -4838281946603112173, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
   studentNameBoxSprite: {fileID: 1228628871593904614, guid: b0ba765af5168471f99c4c185d1906c4, type: 3}
   useSpeakerSpecificStyles: 1
+  characterFont: {fileID: 11400000, guid: c7b6d1a0af3a48e9a4d0f5016bc0e4aa, type: 2}
+  teacherFont: {fileID: 11400000, guid: 5f3dd852528bc480095588c1bd9aea6b, type: 2}
+  studentFont: {fileID: 11400000, guid: 7b9d6593fbebf422282ed1f04a2d875a, type: 2}
+  araBotFont: {fileID: 11400000, guid: b0d01c09d8ea04be193ac3eef1fe7a51, type: 2}
   panelAppearDuration: 0.3
   panelAppearRiseDistance: 110
   panelAppearStartScale: 0.88

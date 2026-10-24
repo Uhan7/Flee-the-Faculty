@@ -10,11 +10,19 @@ public static class TmpFontAssetBatchCreator
 
     private static readonly FontDefinition[] FontDefinitions =
     {
+        new FontDefinition("Assets/Fonts/~Non-TMP/AmberyGardenRegular-PKjGd.ttf", "Ambery Garden TMP SDF"),
         new FontDefinition("Assets/Fonts/~Non-TMP/Bangpop-8OlyZ.ttf", "Bangpop TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/BlueBubbles-gwE7P.otf", "Blue Bubbles TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/BorderWall-OG55o.otf", "Border Wall TMP SDF"),
         new FontDefinition("Assets/Fonts/~Non-TMP/CozyAutumns-aYomo.ttf", "Cozy Autumns TMP SDF"),
         new FontDefinition("Assets/Fonts/~Non-TMP/HandsonBold-9MnrL.otf", "Handson Bold TMP SDF"),
         new FontDefinition("Assets/Fonts/~Non-TMP/MalamPoek-7OlZE.ttf", "Malam Poek TMP SDF"),
-        new FontDefinition("Assets/Fonts/~Non-TMP/MatchaMint-7OdpB.ttf", "Matcha Mint TMP SDF")
+        new FontDefinition("Assets/Fonts/~Non-TMP/MatchaMint-7OdpB.ttf", "Matcha Mint TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/MotleyForcesRegular-w1rZ3.ttf", "Motley Forces TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/Octosale-XGmmK.ttf", "Octosale TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/RonysiswadiArchitect5-1GErv.ttf", "RonySiswadi Architect 5 TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/SuperChiby-BL62V.ttf", "Super Chiby TMP SDF"),
+        new FontDefinition("Assets/Fonts/~Non-TMP/SuperJoyful-lxwPq.ttf", "Super Joyful TMP SDF")
     };
 
     [MenuItem("Tools/Create Missing TMP Font Assets")]

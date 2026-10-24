@@ -37,10 +37,20 @@ public sealed class MainMenuController : MonoBehaviour
     private Vector3 mouthBaseScale;
     private Quaternion mouthBaseRotation;
     private int hoverSourceCount;
+    private MenuPopupMotion settingsMotion;
 
     private void Awake()
     {
         ResolveReferences();
+        if (settingsPanel != null)
+        {
+            settingsPanel.SetActive(false);
+            settingsMotion = settingsPanel.GetComponent<MenuPopupMotion>();
+            if (settingsMotion == null)
+            {
+                settingsMotion = settingsPanel.AddComponent<MenuPopupMotion>();
+            }
+        }
 
         if (leftEye != null)
         {
@@ -59,7 +69,19 @@ public sealed class MainMenuController : MonoBehaviour
         }
 
         ConfigureDebugUnlock();
+        if (accessPanel != null)
+        {
+            MenuPopupMotion.AddCloseButton(accessPanel.transform as RectTransform, CloseAccessPanel);
+        }
         ClassroomSelectionBootstrap.EnsureFor(this);
+        UnityEngine.UI.Button[] buttons = GetComponentsInChildren<UnityEngine.UI.Button>(true);
+        foreach (UnityEngine.UI.Button button in buttons)
+        {
+            if (button.GetComponent<DisabledButtonFeedback>() == null)
+            {
+                button.gameObject.AddComponent<DisabledButtonFeedback>();
+            }
+        }
 
         ClosePanels();
     }
@@ -87,15 +109,29 @@ public sealed class MainMenuController : MonoBehaviour
         }
 
         bool shouldOpen = !settingsPanel.activeSelf;
-        ClosePanels();
-        settingsPanel.SetActive(shouldOpen);
+        CloseAccessPanel();
+        if (shouldOpen)
+        {
+            settingsPanel.SetActive(true);
+        }
+        else
+        {
+            CloseSettingsPanel();
+        }
     }
 
     public void CloseSettingsPanel()
     {
         if (settingsPanel != null)
         {
-            settingsPanel.SetActive(false);
+            if (settingsMotion != null && settingsPanel.activeInHierarchy)
+            {
+                settingsMotion.Close();
+            }
+            else
+            {
+                settingsPanel.SetActive(false);
+            }
         }
     }
 

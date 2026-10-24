@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8c0d0239cb746dba4d9be2e3811630e, type: 3}
+  m_Name: Report Rating Settings
+  m_EditorClassIdentifier:
+  gradingReference: 'Base bands: Ateneo de Davao University Academic Policies, section 14 (https://www.addu.edu.ph/academic-policies/): A 92-100, B+ 88-91, B 84-87, C+ 80-83, C 76-79, D 72-75, F below 72. Game-only bonus ranks split the A band: S at 100 and A+ at 97-99. These bonus ranks are not university grades. The score determines the rank; only the phrase is random.'
+  bands:
+  - minimumScore: 100
+    grade: S
+    possibleTexts:
+    - Super teacher!
+    - Classroom legend!
+    - Perfectly explained!
+  - minimumScore: 97
+    grade: A+
+    possibleTexts:
+    - Outstanding work!
+    - Brilliant teaching!
+    - Above and beyond!
+  - minimumScore: 92
+    grade: A
+    possibleTexts:
+    - Excellent teaching!
+    - Clear and confident!
+    - Lesson mastered!
+  - minimumScore: 88
+    grade: B+
+    possibleTexts:
+    - Very good work!
+    - Almost excellent!
+    - Strong explanations!
+  - minimumScore: 84
+    grade: B
+    possibleTexts:
+    - Good teaching!
+    - Solid progress!
+    - Keep building!
+  - minimumScore: 80
+    grade: C+
+    possibleTexts:
+    - Getting there!
+    - Steady improvement!
+    - Keep explaining!
+  - minimumScore: 76
+    grade: C
+    possibleTexts:
+    - A useful start!
+    - Practice makes progress!
+    - Room to grow!
+  - minimumScore: 72
+    grade: D
+    possibleTexts:
+    - Keep practising!
+    - Try another approach!
+    - One step at a time!
+  - minimumScore: 0
+    grade: F
+    possibleTexts:
+    - Let's try again!
+    - You can improve!
+    - A fresh start awaits!

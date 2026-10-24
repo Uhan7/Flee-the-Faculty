@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "Paper UI Theme", menuName = "Flee the Faculty/Paper UI Theme")]
 public sealed class PaperUiTheme : ScriptableObject
@@ -54,6 +55,22 @@ public sealed class PaperUiTheme : ScriptableObject
     public Sprite RobotSection => robotSection;
     public Sprite RobotButton => robotButton;
     public int StyleCount => Mathf.Min(StyleNames.Length, paperColors != null ? paperColors.Length : 0);
+
+    /// <summary>Keeps button corners at 16 UI units so even 40px controls fit both borders.</summary>
+    public void ApplyButtonSlicing(Image image)
+    {
+        if (image == null || image.sprite == null || image.sprite != robotButton)
+        {
+            return;
+        }
+
+        Vector4 border = image.sprite.border;
+        float largestBorder = Mathf.Max(border.x, border.y, border.z, border.w);
+        float referencePixelsPerUnit = image.canvas != null ? image.canvas.referencePixelsPerUnit : 100f;
+        float borderInUiUnits = largestBorder * referencePixelsPerUnit / image.sprite.pixelsPerUnit;
+        image.type = Image.Type.Sliced;
+        image.pixelsPerUnitMultiplier = Mathf.Max(1f, borderInUiUnits / 16f);
+    }
 
     public static PaperUiTheme Load()
     {

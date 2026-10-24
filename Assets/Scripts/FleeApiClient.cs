@@ -34,6 +34,7 @@ public sealed class FleeApiClient : MonoBehaviour
     [SerializeField] private string presetId = "scientific-investigation";
     [SerializeField] private string[] classroomMaterialIds = Array.Empty<string>();
     [SerializeField, Range(0, 8)] private int requestedStudentCount;
+    [SerializeField, Range(0, 9)] private int classroomPaperStyle = 1;
 
     /// <summary>
     /// What the next Classroom is played in. Every line a Pupil speaks comes
@@ -95,10 +96,11 @@ public sealed class FleeApiClient : MonoBehaviour
             : preparedPresetId.Trim();
     }
 
-    public void ConfigureClassroomMaterials(string[] materialIds)
+    public void ConfigureClassroomMaterials(string[] materialIds, int gradeLevel = 5)
     {
         classroomMaterialIds = materialIds ?? Array.Empty<string>();
         generateClassroomFromTopic = false;
+        classroomGradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
     }
 
     public void ConfigureStudentCount(int studentCount)
@@ -106,6 +108,11 @@ public sealed class FleeApiClient : MonoBehaviour
         requestedStudentCount = studentCount <= 0
             ? 0
             : ClassroomSelectionStore.ClampStudentCount(studentCount);
+    }
+
+    public void ConfigurePaperStyle(int style)
+    {
+        classroomPaperStyle = Mathf.Clamp(style, 0, 9);
     }
 
     /// <summary>
@@ -1030,7 +1037,7 @@ public sealed class FleeApiClient : MonoBehaviour
         pupil.lastScore = response.score;
     }
 
-    private static FleeClassroomSession ToClassroomSession(FleeClassroomResponse classroom)
+    private FleeClassroomSession ToClassroomSession(FleeClassroomResponse classroom)
     {
         if (classroom == null || classroom.pupils == null)
         {
@@ -1062,7 +1069,9 @@ public sealed class FleeApiClient : MonoBehaviour
             classroom.topic,
             classroom.rescueQuota,
             pupils,
-            FleeClassroomLanguages.FromWireValue(classroom.language));
+            FleeClassroomLanguages.FromWireValue(classroom.language),
+            classroom.gradeLevel > 0 ? classroom.gradeLevel : classroomGradeLevel,
+            classroomPaperStyle);
     }
 
     private static FleeMaterialSession ToMaterialSession(FleeMaterialResponse material)
@@ -1183,6 +1192,7 @@ public sealed class FleeApiClient : MonoBehaviour
         public string topic;
         public FleePupilResponse[] pupils;
         public int rescueQuota;
+        public int gradeLevel;
 
         /// <summary>
         /// What the Classroom is actually played in, which is not always what
@@ -1392,19 +1402,25 @@ public sealed class FleeClassroomSession
         string topic,
         int rescueQuota,
         FleePupilSession[] pupils,
-        FleeClassroomLanguage language = FleeClassroomLanguage.English)
+        FleeClassroomLanguage language = FleeClassroomLanguage.English,
+        int gradeLevel = 5,
+        int paperStyle = 1)
     {
         ClassroomId = classroomId;
         Topic = topic;
         RescueQuota = rescueQuota;
         Pupils = pupils ?? Array.Empty<FleePupilSession>();
         Language = language;
+        GradeLevel = Mathf.Clamp(gradeLevel, 1, 12);
+        PaperStyle = Mathf.Clamp(paperStyle, 0, 9);
     }
 
     public string ClassroomId { get; }
     public string Topic { get; }
     public int RescueQuota { get; }
     public FleePupilSession[] Pupils { get; }
+    public int GradeLevel { get; }
+    public int PaperStyle { get; }
 
     /// <summary>
     /// What every line in this Classroom is spoken in. Read it off here rather
