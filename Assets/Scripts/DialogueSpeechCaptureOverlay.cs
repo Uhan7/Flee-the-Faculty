@@ -291,7 +291,8 @@ public sealed class DialogueSpeechCaptureOverlay : MonoBehaviour
 
         blockerImage = overlayRoot.AddComponent<Image>();
         blockerImage.color = overlayBlockerColor;
-        blockerImage.raycastTarget = true;
+        // Speech controls still receive input; the surrounding overlay lets dialogue scrolling through.
+        blockerImage.raycastTarget = false;
 
         promptBubbleButton = CreateSpriteButton(
             "Prompt Bubble",

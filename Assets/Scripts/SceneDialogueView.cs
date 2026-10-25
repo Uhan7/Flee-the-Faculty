@@ -82,7 +82,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
     [SerializeField, Range(0f, 1f)] private float externalHintAlpha = 0.48f;
     [SerializeField] private Color externalHintColor = new Color(0.45f, 0.45f, 0.45f, 1f);
 
-    [Header("AraBOT Response Scrolling")]
+    [Header("Dialogue Scrolling")]
     [SerializeField, Min(1)] private int responseLinesBeforeScrolling = 3;
     [SerializeField, Min(4f)] private float responseScrollbarWidth = 12f;
 
@@ -559,6 +559,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         backButton.onClick.RemoveListener(HandleBackPressed);
         backButton.onClick.AddListener(HandleBackPressed);
         backButtonRect = backButton.transform as RectTransform;
+        AlignDialogueControls();
         if (backButtonRect != null)
         {
             backButtonBasePosition = backButtonRect.anchoredPosition;
@@ -614,9 +615,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         bool canRevisitQuestion = StudentDialogueInteraction.CanRevisitActiveQuestion();
         bool shouldShow = dialogueContainer != null
             && dialogueContainer.activeInHierarchy
-            && isAraBotTurn
-            && hasCompletedDialoguePage
-            && (canGoBack || canRevisitQuestion);
+            && ((manager != null && manager.IsPlaying) || (isAraBotTurn && canRevisitQuestion));
+
+        backButton.interactable = canGoBack || (isAraBotTurn && canRevisitQuestion);
 
         if (shouldShow && !backButton.gameObject.activeSelf)
         {
@@ -713,11 +714,6 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
     private void HandleBackPressed()
     {
-        if (!isAraBotTurn)
-        {
-            return;
-        }
-
         DialogueManager manager = DialogueManager.Instance;
         if (manager != null && manager.CanGoBack)
         {
@@ -725,7 +721,37 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             return;
         }
 
-        StudentDialogueInteraction.RevisitActiveQuestion();
+        if (isAraBotTurn)
+        {
+            StudentDialogueInteraction.RevisitActiveQuestion();
+        }
+    }
+
+    private void AlignDialogueControls()
+    {
+        if (dialogueBoxImage == null || dialogueContainer == null)
+        {
+            return;
+        }
+
+        DialogueExitConversationButton exit = dialogueContainer.GetComponentInChildren<DialogueExitConversationButton>(true);
+        AlignControl(backButtonRect, false);
+        AlignControl(exit != null ? exit.transform as RectTransform : null, true);
+    }
+
+    private void AlignControl(RectTransform control, bool right)
+    {
+        if (control == null)
+        {
+            return;
+        }
+
+        RectTransform box = dialogueBoxImage.rectTransform;
+        // Place controls beside the box so they cannot cover dialogue text.
+        control.SetParent(box, false);
+        control.anchorMin = control.anchorMax = new Vector2(right ? 1f : 0f, 0.5f);
+        control.pivot = new Vector2(0.5f, 0.5f);
+        control.anchoredPosition = new Vector2((right ? 1f : -1f) * (control.rect.width * 0.5f + 30f), 0f);
     }
 
     public bool IsPointerOverControlButton()
@@ -741,7 +767,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             for (int index = 0; index < buttons.Length; index++)
             {
                 Button button = buttons[index];
-                if (button == null || !button.isActiveAndEnabled || !button.interactable)
+                if (button == null || !button.isActiveAndEnabled)
                 {
                     continue;
                 }
@@ -951,6 +977,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
                     ? studentFont
                     : characterFont;
         ApplySpeakerFont(font);
+        ApplySpeakerTemplate(IsAraBotSpeaker(line) ? "AraBOT" : IsTeacherSpeakerName(line != null ? line.SpeakerName : string.Empty) ? "Teacher" : UsesBrownSpeakerStyle(line) ? "Student" : "Character");
     }
 
     private void ApplySpeakerFont(string speakerName, bool useStudentStyle)
@@ -963,6 +990,26 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
                     ? teacherFont
                     : characterFont;
         ApplySpeakerFont(font);
+        ApplySpeakerTemplate(IsAraBotSpeakerName(speakerName) ? "AraBOT" : IsTeacherSpeakerName(speakerName) ? "Teacher" : useStudentStyle ? "Student" : "Character");
+    }
+
+    private void ApplySpeakerTemplate(string role)
+    {
+        DialogueSpeakerTemplate template = Resources.Load<DialogueSpeakerTemplate>("Dialogue Speaker Templates/" + role);
+        if (template == null)
+        {
+            return;
+        }
+
+        template.Apply(speakerText, bodyText, responseViewportRect, dialogueBoxImage, nameBoxImage, pointingArrowImage);
+        bodyTextBaseOverflowMode = bodyText.overflowMode;
+        bodyTextBaseFontStyle = bodyText.fontStyle;
+        bodyTextBaseColor = bodyText.color;
+        AlignDialogueControls();
+        if (backButtonRect != null)
+        {
+            backButtonBasePosition = backButtonRect.anchoredPosition;
+        }
     }
 
     private void ApplySpeakerFont(TMP_FontAsset font)
@@ -1376,11 +1423,15 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         int originalSiblingIndex = bodyRect.GetSiblingIndex();
 
         GameObject viewportObject = new GameObject(
-            "AraBOT Response Viewport",
+            "Dialogue Text Viewport",
             typeof(RectTransform),
+            typeof(Image),
             typeof(RectMask2D),
             typeof(ScrollRect));
         viewportObject.layer = bodyText.gameObject.layer;
+        Image viewportHitArea = viewportObject.GetComponent<Image>();
+        viewportHitArea.color = Color.clear;
+        viewportHitArea.raycastTarget = true;
 
         responseViewportRect = viewportObject.GetComponent<RectTransform>();
         responseViewportRect.SetParent(originalParent, false);
@@ -1409,9 +1460,7 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
         responseScrollRect.horizontal = false;
         responseScrollRect.vertical = true;
         responseScrollRect.movementType = ScrollRect.MovementType.Clamped;
-        responseScrollRect.inertia = true;
-        responseScrollRect.decelerationRate = 0.12f;
-        responseScrollRect.scrollSensitivity = 28f;
+        UiScrollSettings.Apply(responseScrollRect);
 
         Scrollbar scrollbar = CreateResponseScrollbar(responseViewportRect);
         if (scrollbar != null)
@@ -1487,11 +1536,10 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
 
         bodyText.overflowMode = bodyTextBaseOverflowMode;
         bodyText.ForceMeshUpdate();
-        bool shouldScroll = isAraBotTurn
-            && !isNonSpokenContent
-            && !string.IsNullOrWhiteSpace(bodyText.text)
-            && bodyText.textInfo != null
-            && bodyText.textInfo.lineCount > Mathf.Max(1, responseLinesBeforeScrolling);
+        float viewportHeight = Mathf.Max(1f, responseViewportRect.rect.height);
+        float contentHeight = Mathf.Max(viewportHeight, bodyText.preferredHeight + 4f);
+        bool shouldScroll = !string.IsNullOrWhiteSpace(bodyText.text)
+            && contentHeight > viewportHeight + 1f;
         bool justEnabled = shouldScroll && !isResponseScrollable;
 
         if (shouldScroll)
@@ -1499,10 +1547,9 @@ public sealed class SceneDialogueView : MonoBehaviour, IDialogueView
             responseContentRect.anchorMin = new Vector2(0f, 1f);
             responseContentRect.anchorMax = Vector2.one;
             responseContentRect.pivot = new Vector2(0.5f, 1f);
-            responseContentRect.anchoredPosition = Vector2.zero;
-            float viewportHeight = Mathf.Max(1f, responseViewportRect.rect.height);
-            float contentHeight = Mathf.Max(viewportHeight, bodyText.preferredHeight + 4f);
+            float offset = resetPosition || justEnabled ? 0f : responseContentRect.anchoredPosition.y;
             responseContentRect.sizeDelta = new Vector2(0f, contentHeight);
+            responseContentRect.anchoredPosition = new Vector2(0f, Mathf.Clamp(offset, 0f, contentHeight - viewportHeight));
         }
         else
         {
